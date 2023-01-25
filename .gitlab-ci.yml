@@ -7,9 +7,11 @@ compile:
   script:
     - make
     - echo "*-----Compiled-----*"
+  tags: [private]
 
 test:
   stage: test
   script:
     - make test
     - echo "*-----Test-----*"
+  tags: [private]
