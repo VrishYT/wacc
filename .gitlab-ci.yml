@@ -1,0 +1,15 @@
+stages:
+  compile
+  test
+
+compile:
+  stage: compile
+  script:
+    - make
+    - echo "*-----Compiled-----*"
+
+test:
+  stage: test
+  script:
+    - make test
+    - echo "*-----Test-----*"
