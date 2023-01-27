@@ -19,8 +19,7 @@ object Main {
         val add = (x: BigInt, y: BigInt) => x + y
         val sub = (x: BigInt, y: BigInt) => x - y
         val mul = (x: BigInt, y: BigInt) => x * y
-        
-         div = (x: BigInt, y: BigInt) => x / y
+        val div = (x: BigInt, y: BigInt) => x / y
 
         lazy val expr: Parsley[BigInt] =
             chain.left1[BigInt](
@@ -37,7 +36,7 @@ object Main {
 
     def openFile(file1: String) : Unit = {
         val builder = new StringBuilder()
-        for (line <- Source.fromFile(args.head).getLines) {
+        for (line <- Source.fromFile(file1).getLines) {
             builder.append(line)
             builder.append(" ")
         }
