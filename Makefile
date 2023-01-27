@@ -1,8 +1,10 @@
-all:
+all: compiler
+
+compiler:
 	sbt compile assembly
 
 test:
-	./run_test.sh
+	sbt test
 
 clean:
 	sbt clean && rm -rf wacc-11-compiler.jar
