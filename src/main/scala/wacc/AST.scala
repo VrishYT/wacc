@@ -1,4 +1,4 @@
-object ast {
+object AST {
     case class Program(fs: List[Func], stmt: Stats)
 
     sealed trait Func
@@ -20,7 +20,7 @@ object ast {
     case class Free(x: Expr) extends Stat
     case class Return(x: Expr) extends Stat
     case class Exit(x: Expr) extends Stat
-    case class Print(x: Expr, newln: NewLine) extends Stat
+    case class Print(x: Expr, end: Char) extends Stat
     case class If(p: Expr, x: Stat, y: Stat) extends Stat
     case class While(P: Expr, x: Stat) extends Stat
     case class Begin(x: Stat) extends Stat
@@ -29,10 +29,14 @@ object ast {
     //sealed trait RHSValue extends
 
     sealed trait Expr extends Stat
-    //case class IntLiteral(x: IntSign, y: Digits) extends Expr
-    //case class Bool(x: BoolLiteral) extends Expr
-    //case class Char(x: CharLiteral) extends Expr
-    //case class Str(x: StringLiteral) extends Expr
+    case class IntLiteral(sign: IntSign, x: Digits) extends Expr
+    case class CharLiteral(x: CharLetter) extends Expr
+    case class StrLiteral(xs: List[CharLetter]) extends Expr
+    case class ArrayElem(id: Ident, dims: [Expr]) extends Expr
+    case class ParensExpr(x: Expr) extends Expr
+
+    sealed trait Ident extends Expr
+    case class Ident_(v: String) extends Ident
 
     sealed trait IntSign extends IntLiteral
     case object Positive extends IntSign
@@ -44,6 +48,10 @@ object ast {
 
     sealed trait PairLiteral extends Expr
     case object Null extends PairLiteral
+
+    sealed trait CharLetter
+    case class Escaped(x: Character)
+
 
     case class ArrayLiteral(xs: List[Expr]) extends RHSValue
 
