@@ -62,3 +62,6 @@ project/**/metals.sbt
 
 # jarfile
 wacc-11-compiler.jar
+
+# spec
+spec.pdf
