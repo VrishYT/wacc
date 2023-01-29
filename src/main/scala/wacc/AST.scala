@@ -1,42 +1,57 @@
 object AST {
-    case class Program(fs: List[Func], stmt: Stats)
+    case class Program(fs: List[Func], stats: List[Stat])
 
-    sealed trait Func
-    case class Func_(t: Type, v: Ident, args: List[Param], stmt: Stats) extends Func
+    case class Func(t: Type, id: Ident, args: List[Param], stats: List[Stat])
+    case class Param(t: Type, id: Ident)
 
-    sealed trait Param
-    case class Param_(x: Type, y: Ident) extends Param
-    /* sealed trait ParamList
-    case object EmptyParam extends ParamList
-    case class ParamCons(t: Type, v: Ident, xs: ParamList)
-    */
-
-    sealed trait Stats extends Func /*SHOULD THIS EXTEND FUNCTIONS??*/
-    case class Seq(stmt: Stat, stmts: Stats) extends Stats
-
-    sealed trait Stat extends Stats
+    sealed trait Stat
     case object Skip extends Stat
-    case class Read(x: LHSVal) extends Stat
+    case class Declare(t: Type, id: Ident, rhs: RValue) extends Stat
+    case class Assign(lhs: LValue, y: RValue) extends Stat
+    case class Read(x: LValue) extends Stat
     case class Free(x: Expr) extends Stat
     case class Return(x: Expr) extends Stat
     case class Exit(x: Expr) extends Stat
     case class Print(x: Expr, end: Char) extends Stat
     case class If(p: Expr, x: Stat, y: Stat) extends Stat
-    case class While(P: Expr, x: Stat) extends Stat
+    case class While(p: Expr, x: Stat) extends Stat
     case class Begin(x: Stat) extends Stat
 
-    //sealed trait LHSValue extends 
-    //sealed trait RHSValue extends
+    sealed trait Type
+    sealed trait PairElemType extends Type
+    case object PairKeyword extends PairElemType
+    case class PairType(fst: PairElemType, snd: PairElemType) extends Type
+    sealed trait BaseType extends PairElemType
+    case object IntType extends BaseType
+    case object BoolType extends BaseType
+    case object CharType extends BaseType
+    case object StringType extends BaseType
+    case class ArrayType(t: Type) extends PairElemType
+    
 
     sealed trait Expr extends Stat
     case class IntLiteral(sign: IntSign, x: Digits) extends Expr
     case class CharLiteral(x: CharLetter) extends Expr
     case class StrLiteral(xs: List[CharLetter]) extends Expr
-    case class ArrayElem(id: Ident, dims: [Expr]) extends Expr
     case class ParensExpr(x: Expr) extends Expr
 
-    sealed trait Ident extends Expr
-    case class Ident_(v: String) extends Ident
+    // sealed trait Expr1 extends Expr
+    
+    // sealed trait Ident extends Expr1
+    // case class Ident_(v: String) extends Ident
+    
+    // sealed trait ArrayElem extends Expr1
+    // case class ArrayElem_(id: Ident, dims: [Expr]) extends ArrayElem
+
+    // sealed trait LValue
+    // case class (x: Expr1)
+    
+    sealed trait PairElem extends LValue
+    case class Fst(x: LValue) extends PairElem
+    case class Snd(x: LValue) extends PairElem
+
+    sealed trait RValue
+
 
     sealed trait IntSign extends IntLiteral
     case object Positive extends IntSign
@@ -53,7 +68,7 @@ object AST {
     case class Escaped(x: Character)
 
 
-    case class ArrayLiteral(xs: List[Expr]) extends RHSValue
+    case class ArrayLiteral(xs: List[Expr]) extends RValue
 
 
 
