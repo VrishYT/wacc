@@ -1,9 +1,10 @@
 object Lexing{
     import parsley.Parsley
     import parsley.Parsley.{attempt, notFollowedBy}
-    import parsley.implicits.character.stringLift
+    import parsley.implicits.character.{stringLift, charLift}
     import parsley.character.digit
     import parsley.token.{Lexer, predicate}
+    import parsley.token.predicate.Basic
     import parsley.token.descriptions.{LexicalDesc, NameDesc, SymbolDesc}
     import parsley.token.descriptions._
 
@@ -26,8 +27,8 @@ object Lexing{
     private val desc = LexicalDesc.plain.copy(
         nameDesc = NameDesc.plain.copy(
             // Unicode is also possible instead of Basic
-            identifierStart = Unicode(c => Character.isLetter(c) || c == '_'),
-            identifierLetter = Unicode(c => Character.isLetterOrDigit(c) || c == '_')
+            identifierStart = Basic(c => Character.isLetter(c) || c == '_'),
+            identifierLetter = Basic(c => Character.isLetterOrDigit(c) || c == '_')
         ),
         symbolDesc = SymbolDesc.plain.copy(
             hardKeywords = Set("begin", "end", "is", "skip", "read", "free", 
