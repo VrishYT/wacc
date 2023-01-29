@@ -1,11 +1,13 @@
 package wacc
 
-import org.scalatest.funsuite.AnyFunSuite
-import java.nio.file.{Files, Paths, Path}
-import scala.jdk.CollectionConverters._
-import org.scalatest.Assertions._
 
 import scala.io.Source
+import scala.jdk.CollectionConverters._
+
+import org.scalatest.Assertions._
+import org.scalatest.funsuite.AnyFunSuite
+
+import java.nio.file.{Files, Paths, Path}
 
 class SemanticTests extends AnyFunSuite {
 
