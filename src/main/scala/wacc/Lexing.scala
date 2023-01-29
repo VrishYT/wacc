@@ -1,11 +1,13 @@
 object Lexing{
     import parsley.Parsley
+    import parsley.Parsley.{attempt, notFollowedBy}
+    import parsley.implicits.character.stringLift
+    import parsley.character.digit
     import parsley.token.{Lexer, predicate}
     import parsley.token.descriptions.{LexicalDesc, NameDesc, SymbolDesc}
-    import parsley.token.predicate.{Unicode}
     import parsley.token.descriptions._
 
-    val escapeConfigs = text.EscapeDesc(escBegin = '\\',
+    val escapeConfigs = text.EscapeDesc.plain.copy(escBegin = '\\',
                            literals = Set('\'', '\"', '\\'),
                            singleMap = Map( '0' -> 0x0000,
                                             'b' -> 0x0008,
@@ -24,31 +26,22 @@ object Lexing{
     private val desc = LexicalDesc.plain.copy(
         nameDesc = NameDesc.plain.copy(
             // Unicode is also possible instead of Basic
-            identifierStart = predicate.Basic(_.isLetter),
-            identifierLetter = predicate.Basic(_.isLetterOrDigit)
+            identifierStart = Unicode(c => Character.isLetter(c) || c == '_'),
+            identifierLetter = Unicode(c => Character.isLetterOrDigit(c) || c == '_')
         ),
         symbolDesc = SymbolDesc.plain.copy(
-            hardKeywords = Set("negate", "begin", "end", "is", "skip", "read", "free", 
+            hardKeywords = Set("begin", "end", "is", "skip", "read", "free", 
                                 "return", "exit", "print", "println", "if", "then", "else",
                                 "fi", "while", "do", "done", "fst", "snd", "newpair", "call", 
-                                "int", "bool", "char", "string", "pair","true", "false", "=", "(", ")", "[", "]", ";", "," ),
+                                "int", "bool", "char", "string", "pair", "true", "false"),
             hardOperators = Set("*", "+", "-", "/", ">", ">=", "<", "<=", "==", "!=", "&&", "||", "len", "ord", "chr"),
             //TODO: check whether len ord chr should be in keywords or operators 
             caseSensitive = false
         ),
-        numericDesc = numeric.NumericDesc(
-            literalBreakChar = numeric.BreakCharDesc.NoBreakChar,
-            leadingDotAllowed = false,
-            trailingDotAllowed = false,
-            leadingZerosAllowed = true,
-            positiveSign = numeric.PlusSignPresence.Optional,
+        numericDesc = numeric.NumericDesc.plain.copy(
             // generic number
             integerNumbersCanBeHexadecimal = false,
             integerNumbersCanBeOctal = false,
-            integerNumbersCanBeBinary = false,
-            realNumbersCanBeHexadecimal = false,
-            realNumbersCanBeOctal = false,
-            realNumbersCanBeBinary = false,
             // special literals
             hexadecimalLeads = Set(),
             octalLeads = Set(),
@@ -59,29 +52,24 @@ object Lexing{
             octalExponentDesc = numeric.ExponentDesc.NoExponents,
             binaryExponentDesc = numeric.ExponentDesc.NoExponents
         ),
-        textDesc = text.TextDesc(
-            escapeSequences = escapeConfigs,
-            characterLiteralEnd = '\'',
-            stringEnds = Set("\""),
-            multiStringEnds = Set.empty,
-            graphicCharacter = Unicode(_ >= ' '.toInt)
+        textDesc = text.TextDesc.plain.copy(
+            escapeSequences = escapeConfigs
         ),
-        spaceDesc = SpaceDesc(
-            commentStart = "",
-            commentEnd = "",
-            commentLine = "#",
-            commentLineAllowsEOF = true,
-            nestedComments = false,
-            space = Unicode(Character.isWhitespace),
-            whitespaceIsContextDependent = false
+        spaceDesc = SpaceDesc.plain.copy(
+            commentLine = "#"
         )
     )
 
 
     private val lexer = new Lexer(desc)
 
-    val identifier = lexer.lexeme.names.identifier
-    val number = lexer.lexeme.numeric.natural.decimal
+    val IDENT = lexer.lexeme.names.identifier
+    val INTEGER = lexer.lexeme.numeric.integer
+    val SIGN = ('+' <|> '-') *> notFollowedBy(' ')
+    val UNOP = ('+' <|> '-') *> notFollowedBy(digit)
+
+    val STR_LIT = lexer.lexeme.text.string.ascii
+    val CHR_LIT = lexer.lexeme.text.character.ascii
 
     def fully[A](p: Parsley[A]) = lexer.fully(p)
     val implicits = lexer.lexeme.symbol.implicits
