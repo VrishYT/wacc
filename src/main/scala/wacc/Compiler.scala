@@ -25,13 +25,14 @@ class Compiler {
         return true
     }
 
-    def compile: Int = {
-        // println("*--- Compiling '" + filename + "' ---*")
-        // println(fileData)
-        return 0
-    }
+    // TODO
+    def parse = true
+    
+    // TODO
+    def typecheck = true
 
-
+    // TODO
+    def compile = true
 
 }
 
