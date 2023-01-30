@@ -7,14 +7,34 @@ import parsley.character.digit
 import parsley.expr.chain
 import parsley.implicits.character.charLift
 import parsley.combinator._
+import Lexing._
+import Parser._
 
 
 object Main {
     def main(args: Array[String]): Unit = {
 
-        println("Hello WACC_11!")
+        //val file = openFile(args.head)
 
-        lazy val integer = digit.foldLeft1[BigInt](0)((n, d) => n * 10 + d.asDigit)
+        UNOP_MINUS.parse(args.head) match {
+            case Success(x) => println(s"${args.head} = $x")
+            case Failure(msg) => println(msg)
+        }
+    }
+
+    def openFile(file1: String) : String = {
+        val builder = new StringBuilder()
+        for (line <- Source.fromFile(file1).getLines) {
+            builder.append(line)
+            builder.append(" ")
+        }
+        val result = builder.toString()
+        return result
+    }
+}
+
+/*
+lazy val integer = digit.foldLeft1[BigInt](0)((n, d) => n * 10 + d.asDigit)
 
         val add = (x: BigInt, y: BigInt) => x + y
         val sub = (x: BigInt, y: BigInt) => x - y
@@ -31,18 +51,4 @@ object Main {
             case Success(x) => println(s"${args.head} = $x")
             case Failure(msg) => println(msg)
         }
-        
-    }
-
-    def openFile(file1: String) : Unit = {
-        val builder = new StringBuilder()
-        for (line <- Source.fromFile(file1).getLines) {
-            builder.append(line)
-            builder.append(" ")
-        }
-        val result = builder.toString()
-        println(result)
-    }
-}
-
-
+*/

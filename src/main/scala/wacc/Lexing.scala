@@ -1,3 +1,5 @@
+package wacc
+
 object Lexing{
     import parsley.Parsley
     import parsley.Parsley.{attempt, notFollowedBy}
@@ -65,9 +67,8 @@ object Lexing{
     private val lexer = new Lexer(desc)
 
     val IDENT = lexer.lexeme.names.identifier
-    val INTEGER = lexer.lexeme.numeric.integer
-    val SIGN = ('+' <|> '-') *> notFollowedBy(' ')
-    val UNOP = ('+' <|> '-') *> notFollowedBy(digit)
+    val INTEGER = lexer.lexeme.numeric.integer.decimal32
+    val UNOP_MINUS = lexer.lexeme(attempt('-' *> notFollowedBy(digit)))
 
     val STR_LIT = lexer.lexeme.text.string.ascii
     val CHR_LIT = lexer.lexeme.text.character.ascii
@@ -75,3 +76,4 @@ object Lexing{
     def fully[A](p: Parsley[A]) = lexer.fully(p)
     val implicits = lexer.lexeme.symbol.implicits
 }
+ 
