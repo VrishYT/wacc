@@ -8,16 +8,6 @@ class Compiler {
     private var filename = ""
     private var fileData = ""
 
-    // default values for flags
-    private var parse = false
-    private var typecheck = false
-    private var full_compile = true
-    private var targetArch = "arm32"
-    private var optimise = false
-    private var assembly = false
-    private var execute = false
-    private var directory = "."
-
     def readTarget(): Boolean = {
 
         val path = Paths.get(filename)
@@ -35,13 +25,14 @@ class Compiler {
         return true
     }
 
-    def compile: Int = {
-        // println("*--- Compiling '" + filename + "' ---*")
-        // println(fileData)
-        return 0
-    }
+    // TODO
+    def parse = true
+    
+    // TODO
+    def typecheck = true
 
-
+    // TODO
+    def compile = true
 
 }
 
