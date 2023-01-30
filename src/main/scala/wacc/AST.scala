@@ -2,13 +2,13 @@ object AST {
     // Program, functions and parameters
     case class Program(fs: List[Func], stats: List[Stat])
 
-    case class Func(t: Type, id: Ident, args: List[Param], stats: List[Stat])
-    case class Param(t: Type, id: Ident)
+    case class Func(t: Type, id: String, args: List[Param], stats: List[Stat])
+    case class Param(t: Type, id: String)
 
     // Statements
     sealed trait Stat
     case object Skip extends Stat
-    case class Declare(t: Type, id: Ident, rhs: RValue) extends Stat
+    case class Declare(t: Type, id: String, rhs: RValue) extends Stat
     case class Assign(x: LValue, y: RValue) extends Stat
     case class Read(x: LValue) extends Stat
     case class Free(x: Expr) extends Stat
@@ -29,7 +29,7 @@ object AST {
     sealed trait RValue
     case class ArrayLiteral(xs: List[Expr]) extends RValue
     case class NewPair(fst: Expr, snd: Expr) extends RValue
-    case class Call(id: Ident, args: List[Expr]) extends RValue
+    case class Call(id: String, args: List[Expr]) extends RValue
 
     // Types
     sealed trait Type
@@ -47,18 +47,14 @@ object AST {
 
     // Expressions
     sealed trait Expr extends RValue
-    case class IntLiteral(sgn: IntSign, x: List[Digit]) extends Expr
-    case class CharLiteral(x: CharLetter) extends Expr
-    case class StrLiteral(xs: List[CharLetter]) extends Expr
-    case class Ident(v: String) extends Expr with LValue
-    case class ArrayElem(id: Ident, xs: [Expr]) extends Expr with LValue
+    case class IntLiteral(x: Int) extends Expr
+    case class CharLiteral(x: Char) extends Expr
+    case class StrLiteral(xs: String) extends Expr
+    case class BoolLiteral(x: Boolean) extends Expr
+    case class ArrayElem(id: String, xs: List[Expr]) extends Expr with LValue
     case class UnaryOpExpr(op: UnaryOp, x: Expr) extends Expr
-    case class BinaryOpExpr(x: Expr, op: BinaryOp, y: Expr) extends Expr
+    case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr) extends Expr
     case class ParensExpr(x: Expr) extends Expr
-    
-    sealed trait BoolLiteral extends Expr
-    case object True extends BoolLiteral
-    case object False extends BoolLiteral
 
     sealed trait PairLiteral extends Expr
     case object Null extends PairLiteral
@@ -76,6 +72,10 @@ object AST {
     case object Div extends BinaryOp
     case object Mod extends BinaryOp
     case object Add extends BinaryOp
+    // case object Add extends BinaryOp with ParserBridge2[Expr, Expr, Expr]
+    // {
+    //     def apply(x: Expr, y: Expr) = BinaryOpExpr(Add, x, y)
+    // }
     case object Sub extends BinaryOp
     case object Greater extends BinaryOp
     case object GreaterThan extends BinaryOp
@@ -86,45 +86,8 @@ object AST {
     case object And extends BinaryOp
     case object Or extends BinaryOp
 
-    // Integer Signs
-    sealed trait IntSign
-    case object Positive extends IntSign
-    case object Negative extends IntSign
-
-    // Digits
-    sealed trait Digit
-    case object Zero extends Digit
-    case object One extends Digit
-    case object Two extends Digit
-    case object Three extends Digit
-    case object Four extends Digit
-    case object Five extends Digit
-    case object Six extends Digit
-    case object Seven extends Digit
-    case object Eight extends Digit
-    case object Nine extends Digit
-
-    // Characters
-    sealed trait CharLetter
-    case class NormalChar(x: Char) extends CharLetter
-    
-    sealed trait EscapedChar extends CharLetter
-    case object NullTerminator extends EscapedChar
-    case object Backspace extends EscapedChar
-    case object HorizontalTab extends EscapedChar
-    case object Newline extends EscapedChar
-    case object Formfeed extends EscapedChar
-    case object CarriageReturn extends EscapedChar
-    case object DoubleQuote extends EscapedChar
-    case object SingleQuote extends EscapedChar
-    case object Backslash extends EscapedChar
-
-    // Comments
-    case class Comment(x: String)
-
-
-
-
+    // Add(x, y)
+    // BinaryOpExpr(Add, x, y)
 }
 
 
