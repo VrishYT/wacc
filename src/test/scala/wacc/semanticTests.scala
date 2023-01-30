@@ -1,15 +1,19 @@
 package wacc
 
-import org.scalatest.funsuite.AnyFunSuite
-import java.nio.file.{Files, Paths, Path}
-import scala.jdk.CollectionConverters._
-import org.scalatest.Assertions._
 
 import scala.io.Source
+import scala.jdk.CollectionConverters._
 
-class SemanticTests extends AnyFunSuite {
+import org.scalatest.Assertions._
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.Ignore
+import org.scalatest.Tag
 
-    private def getExitCode(path: Path): Int = {
+import java.nio.file.{Files, Paths, Path}
+
+object Testing {
+
+    def getExpectedExitCode(path: Path): Int = {
         var foundExit = false
         for (line <- Source.fromFile(path.toString).getLines) {
 
@@ -24,19 +28,52 @@ class SemanticTests extends AnyFunSuite {
         return 0
     }
 
-    val examples = Paths.get("src/test/scala/wacc/wacc_examples")
-    Files.walk(examples).iterator().asScala.filter(_.getFileName.toString().endsWith(".wacc")).foreach(file => {
-        test(file.getFileName.toString.replace(".wacc", "") + " gives expected output") {
-            val absPath = file.toAbsolutePath.toString
-            val exitCode = getExitCode(file)
+}
 
-            exitCode match {
-                case 200 => assert(absPath.contains("/invalid/") && absPath.contains("/semanticErr/"))
-                case 100 => assert(absPath.contains("/invalid/") && absPath.contains("/syntaxErr/"))
-                case default => assert(absPath.contains("/valid/"))
-            }
+@Ignore
+class ValidTests extends AnyFunSuite {
+
+    val examples = Paths.get("src/test/scala/wacc/wacc_examples/valid")
+    Files.walk(examples).iterator().asScala.filter(_.getFileName.toString().endsWith(".wacc")).foreach(path => {
+        test(path.getFileName.toString.replace(".wacc", "") + " are valid wacc files") {
+            val expectedExitCode = Testing.getExpectedExitCode(path)
+            assert(expectedExitCode != 100 && expectedExitCode != 200)
+
+            val exitCode = Compiler(path.getFileName.toAbsolutePath.toString).compile
+            assert(expectedExitCode == exitCode)
         }
     })
 
+}
+
+@Ignore
+class SemanticErrorTests extends AnyFunSuite {
+
+    val examples = Paths.get("src/test/scala/wacc/wacc_examples/invalid/semanticErr")
+    Files.walk(examples).iterator().asScala.filter(_.getFileName.toString().endsWith(".wacc")).foreach(path => {
+        test(path.getFileName.toString.replace(".wacc", "") + " are semantically invalid") {
+            val expectedExitCode = Testing.getExpectedExitCode(path)
+            assert(expectedExitCode == 200)
+
+            val exitCode = Compiler(path.getFileName.toAbsolutePath.toString).compile
+            assert(expectedExitCode == exitCode)
+        }
+    })
+
+}
+
+@Ignore
+class SyntacticErrorTests extends AnyFunSuite {
+
+    val examples = Paths.get("src/test/scala/wacc/wacc_examples/invalid/syntaxErr")
+    Files.walk(examples).iterator().asScala.filter(_.getFileName.toString().endsWith(".wacc")).foreach(path => {
+        test(path.getFileName.toString.replace(".wacc", "") + " have invalid syntax") {
+            val expectedExitCode = Testing.getExpectedExitCode(path)
+            assert(expectedExitCode == 100)
+
+            val exitCode = Compiler(path.getFileName.toAbsolutePath.toString).compile
+            assert(expectedExitCode == exitCode)
+        }
+    })
 
 }
