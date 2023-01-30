@@ -4,6 +4,7 @@ object AST {
     case class Func(t: Type, id: Ident, args: List[Param], stats: List[Stat])
     case class Param(t: Type, id: Ident)
 
+    // Statements
     sealed trait Stat
     case object Skip extends Stat
     case class Declare(t: Type, id: Ident, rhs: RValue) extends Stat
@@ -17,9 +18,9 @@ object AST {
     case class While(p: Expr, x: List[Stat]) extends Stat
     case class Begin(xs: List[Stat]) extends Stat
 
-    
+    // Expressions
     sealed trait Expr extends RValue
-    case class IntLiteral(sgn: IntSign, x: Digits) extends Expr
+    case class IntLiteral(sgn: IntSign, x: List[Digit]) extends Expr
     case class CharLiteral(x: CharLetter) extends Expr
     case class StrLiteral(xs: List[CharLetter]) extends Expr
     case class Ident(v: String) extends Expr with LValue
@@ -35,6 +36,7 @@ object AST {
     sealed trait PairLiteral extends Expr
     case object Null extends PairLiteral
     
+    // Operators
     sealed trait UnaryOp
     case object Not extends UnaryOp
     case object Negate extends UnaryOp
@@ -57,6 +59,7 @@ object AST {
     case object And extends BinaryOp
     case object Or extends BinaryOp
 
+    // Types
     sealed trait Type
     case class ArrayType(t: Type) extends Type with PairElemType
     case class PairType(fst: PairElemType, snd: PairElemType) extends Type
@@ -70,6 +73,7 @@ object AST {
     sealed trait PairElemType extends Type
     case object Pair extends PairElemType
 
+    // Left and Right Values
     sealed trait LValue
 
     sealed trait PairElem extends LValue with RValue
@@ -81,17 +85,41 @@ object AST {
     case class NewPair(fst: Expr, snd: Expr) extends RValue
     case class Call(id: Ident, args: List[Expr]) extends RValue
 
-
+    // Integer Signs
     sealed trait IntSign
     case object Positive extends IntSign
     case object Negative extends IntSign
 
+    // Digits
+    sealed trait Digit
+    case object Zero extends Digit
+    case object One extends Digit
+    case object Two extends Digit
+    case object Three extends Digit
+    case object Four extends Digit
+    case object Five extends Digit
+    case object Six extends Digit
+    case object Seven extends Digit
+    case object Eight extends Digit
+    case object Nine extends Digit
 
-
+    // Characters
     sealed trait CharLetter
-    case class Escaped(x: Character)
+    case class NormalChar(x: Char) extends CharLetter
+    
+    sealed trait EscapedChar extends CharLetter
+    case object NullTerminator extends EscapedChar
+    case object Backspace extends EscapedChar
+    case object HorizontalTab extends EscapedChar
+    case object Newline extends EscapedChar
+    case object Formfeed extends EscapedChar
+    case object CarriageReturn extends EscapedChar
+    case object DoubleQuote extends EscapedChar
+    case object SingleQuote extends EscapedChar
+    case object Backslash extends EscapedChar
 
-
+    // Comments
+    case class Comment(x: String)
 
 
 
