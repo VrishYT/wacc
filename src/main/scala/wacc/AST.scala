@@ -56,6 +56,7 @@ object AST {
     case class CharLiteral(x: Char) extends Expr
     case class StrLiteral(xs: String) extends Expr
     case class BoolLiteral(x: Boolean) extends Expr
+    case class Ident(id: String) extends Expr with LValue
     case class ArrayElem(id: String, xs: List[Expr]) extends Expr with LValue
     case class UnaryOpExpr(op: UnaryOp, x: Expr) extends Expr
     case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr) extends Expr
