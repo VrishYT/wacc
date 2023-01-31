@@ -1,3 +1,5 @@
+package wacc
+
 import parsley.Parsley
 import scala.language.implicitConversions
 
