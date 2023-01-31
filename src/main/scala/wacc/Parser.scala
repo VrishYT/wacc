@@ -7,7 +7,7 @@ object Parser{
     import Lexing._
     import implicits.implicitSymbol
     import parsley.token.Lexer
-    // import ast._
+    import AST._
 
 
     //case class VarId(v: String) extends Expr
