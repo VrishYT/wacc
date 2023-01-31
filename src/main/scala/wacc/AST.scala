@@ -2,7 +2,7 @@ import parsley.Parsley
 import scala.language.implicitConversions
 
 object AST {
-    import GenericBridges._
+    import parsley.genericbridges._
 
     // Program, functions and parameters
     case class Program(fs: List[Func], stats: List[Stat])
@@ -42,10 +42,18 @@ object AST {
     case class PairType(fst: PairElemType, snd: PairElemType) extends Type
 
     sealed trait BaseType extends Type with PairElemType
-    case object IntType extends BaseType with ParserBridge0[BaseType]
-    case object BoolType extends BaseType with ParserBridge0[BaseType]
-    case object CharType extends BaseType with ParserBridge0[BaseType]
-    case object StringType extends BaseType with ParserBridge0[BaseType]
+    case object IntType extends BaseType with ParserBridge0[BaseType] {
+        def apply() = IntType
+    }
+    case object BoolType extends BaseType with ParserBridge0[BaseType] {
+        def apply() = BoolType
+    }
+    case object CharType extends BaseType with ParserBridge0[BaseType] {
+        def apply() = CharType
+    }
+    case object StringType extends BaseType with ParserBridge0[BaseType] {
+        def apply() = StringType
+    }
 
     sealed trait PairElemType extends Type
     case object Pair extends PairElemType with ParserBridge0[PairElemType]
@@ -60,86 +68,75 @@ object AST {
     case class ArrayElem(id: String, xs: List[Expr]) extends Expr with LValue
     case class UnaryOpExpr(op: UnaryOp, x: Expr) extends Expr
     case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr) extends Expr
+    
+    object IntLiteral extends ParserBridge1[Int, IntLiteral]
+    object CharLiteral extends ParserBridge1[Char, CharLiteral]
+    object StrLiteral extends ParserBridge1[String, StrLiteral]
+    object BoolLiteral extends ParserBridge1[Boolean, BoolLiteral]
+    object Ident extends ParserBridge1[String, Ident]
 
     sealed trait PairLiteral extends Expr
     case object Null extends PairLiteral with ParserBridge0[PairLiteral] 
     
     // Operators
     sealed trait UnaryOp
-    case object Not extends UnaryOp
-        with ParserBridge1[Expr, UnaryOpExpr] {
+    case object Not extends UnaryOp with ParserBridge1[Expr, UnaryOpExpr] {
         def apply(x: Expr) = UnaryOpExpr(Not, x)
     }
-    case object Negate extends UnaryOp
-        with ParserBridge1[Expr, UnaryOpExpr] {
+    case object Negate extends UnaryOp with ParserBridge1[Expr, UnaryOpExpr] {
         def apply(x: Expr) = UnaryOpExpr(Negate, x)
     }
-    case object Length extends UnaryOp
-        with ParserBridge1[Expr, UnaryOpExpr] {
+    case object Length extends UnaryOp with ParserBridge1[Expr, UnaryOpExpr] {
         def apply(x: Expr) = UnaryOpExpr(Length, x)
     }
-    case object Ord extends UnaryOp
-        with ParserBridge1[Expr, UnaryOpExpr] {
+    case object Ord extends UnaryOp with ParserBridge1[Expr, UnaryOpExpr] {
         def apply(x: Expr) = UnaryOpExpr(Ord, x)
     }
-    case object Chr extends UnaryOp
-        with ParserBridge1[Expr, UnaryOpExpr] {
+    case object Chr extends UnaryOp with ParserBridge1[Expr, UnaryOpExpr] {
         def apply(x: Expr) = UnaryOpExpr(Chr, x)
     }
-
+    
     sealed trait BinaryOp
-    case object Mul extends BinaryOp
-        with ParserBridge2[Expr, Expr, BinaryOpExpr] {
+    case object Mul extends BinaryOp with ParserBridge2[Expr, Expr, BinaryOpExpr] {
         def apply(x: Expr, y: Expr) = BinaryOpExpr(Mul, x, y)
     }
-    case object Div extends BinaryOp
-        with ParserBridge2[Expr, Expr, BinaryOpExpr] {
+    case object Div extends BinaryOp with ParserBridge2[Expr, Expr, BinaryOpExpr] {
         def apply(x: Expr, y: Expr) = BinaryOpExpr(Div, x, y)
     }
-    case object Mod extends BinaryOp
-        with ParserBridge2[Expr, Expr, BinaryOpExpr] {
+    case object Mod extends BinaryOp with ParserBridge2[Expr, Expr, BinaryOpExpr] {
         def apply(x: Expr, y: Expr) = BinaryOpExpr(Mod, x, y)
     }
-    case object Add extends BinaryOp 
-        with ParserBridge2[Expr, Expr, BinaryOpExpr] {
+    case object Add extends BinaryOp with ParserBridge2[Expr, Expr, BinaryOpExpr] {
         def apply(x: Expr, y: Expr) = BinaryOpExpr(Add, x, y)
     }
-    case object Sub extends BinaryOp
-        with ParserBridge2[Expr, Expr, BinaryOpExpr] {
+    case object Sub extends BinaryOp with ParserBridge2[Expr, Expr, BinaryOpExpr] {
         def apply(x: Expr, y: Expr) = BinaryOpExpr(Sub, x, y)
     }
-    case object Greater extends BinaryOp
-        with ParserBridge2[Expr, Expr, BinaryOpExpr] {
+    case object Greater extends BinaryOp with ParserBridge2[Expr, Expr, BinaryOpExpr] {
         def apply(x: Expr, y: Expr) = BinaryOpExpr(Greater, x, y)
     }
-    case object GreaterEquals extends BinaryOp
-        with ParserBridge2[Expr, Expr, BinaryOpExpr] {
+    case object GreaterEquals extends BinaryOp with ParserBridge2[Expr, Expr, BinaryOpExpr] {
         def apply(x: Expr, y: Expr) = BinaryOpExpr(GreaterEquals, x, y)
     }
-    case object Less extends BinaryOp
-        with ParserBridge2[Expr, Expr, BinaryOpExpr] {
+    case object Less extends BinaryOp with ParserBridge2[Expr, Expr, BinaryOpExpr] {
         def apply(x: Expr, y: Expr) = BinaryOpExpr(Less, x, y)
     }
-    case object LessEquals extends BinaryOp
-        with ParserBridge2[Expr, Expr, BinaryOpExpr] {
+    case object LessEquals extends BinaryOp with ParserBridge2[Expr, Expr, BinaryOpExpr] {
         def apply(x: Expr, y: Expr) = BinaryOpExpr(LessEquals, x, y)
     }
-    case object Equal extends BinaryOp
-        with ParserBridge2[Expr, Expr, BinaryOpExpr] {
+    case object Equal extends BinaryOp with ParserBridge2[Expr, Expr, BinaryOpExpr] {
         def apply(x: Expr, y: Expr) = BinaryOpExpr(Equal, x, y)
     }
-    case object NotEqual extends BinaryOp
-        with ParserBridge2[Expr, Expr, BinaryOpExpr] {
+    case object NotEqual extends BinaryOp with ParserBridge2[Expr, Expr, BinaryOpExpr] {
         def apply(x: Expr, y: Expr) = BinaryOpExpr(NotEqual, x, y)
     }
-    case object And extends BinaryOp
-        with ParserBridge2[Expr, Expr, BinaryOpExpr] {
+    case object And extends BinaryOp with ParserBridge2[Expr, Expr, BinaryOpExpr] {
         def apply(x: Expr, y: Expr) = BinaryOpExpr(And, x, y)
     }
-    case object Or extends BinaryOp
-        with ParserBridge2[Expr, Expr, BinaryOpExpr] {
+    case object Or extends BinaryOp with ParserBridge2[Expr, Expr, BinaryOpExpr] {
         def apply(x: Expr, y: Expr) = BinaryOpExpr(Or, x, y)
     }
+
 }
 
 
