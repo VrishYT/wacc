@@ -64,7 +64,7 @@ object Lexing{
     )
 
 
-    private val lexer = new Lexer(desc)
+    val lexer = new Lexer(desc)
 
     val IDENT = lexer.lexeme.names.identifier
     val INTEGER = lexer.lexeme.numeric.integer.decimal32
