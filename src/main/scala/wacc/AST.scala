@@ -60,7 +60,6 @@ object AST {
     case class ArrayElem(id: String, xs: List[Expr]) extends Expr with LValue
     case class UnaryOpExpr(op: UnaryOp, x: Expr) extends Expr
     case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr) extends Expr
-    case class ParenthesesExpr(x: Expr) extends Expr
 
     sealed trait PairLiteral extends Expr
     case object Null extends PairLiteral with ParserBridge0[PairLiteral] 
