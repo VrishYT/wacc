@@ -114,17 +114,17 @@ object AST {
         with ParserBridge2[Expr, Expr, BinaryOpExpr] {
         def apply(x: Expr, y: Expr) = BinaryOpExpr(Greater, x, y)
     }
-    case object GreaterThan extends BinaryOp
+    case object GreaterEquals extends BinaryOp
         with ParserBridge2[Expr, Expr, BinaryOpExpr] {
-        def apply(x: Expr, y: Expr) = BinaryOpExpr(GreaterThan, x, y)
+        def apply(x: Expr, y: Expr) = BinaryOpExpr(GreaterEquals, x, y)
     }
     case object Less extends BinaryOp
         with ParserBridge2[Expr, Expr, BinaryOpExpr] {
         def apply(x: Expr, y: Expr) = BinaryOpExpr(Less, x, y)
     }
-    case object LessThan extends BinaryOp
+    case object LessEquals extends BinaryOp
         with ParserBridge2[Expr, Expr, BinaryOpExpr] {
-        def apply(x: Expr, y: Expr) = BinaryOpExpr(LessThan, x, y)
+        def apply(x: Expr, y: Expr) = BinaryOpExpr(LessEquals, x, y)
     }
     case object Equal extends BinaryOp
         with ParserBridge2[Expr, Expr, BinaryOpExpr] {
