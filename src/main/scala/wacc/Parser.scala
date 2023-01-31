@@ -31,7 +31,7 @@ object Parser{
         "(" *> expr <* ")", IntLiteral(INTEGER), CharLiteral(CHR_LIT), StrLiteral(STR_LIT), BoolLiteral(BOOL_LIT), Ident(IDENT), Null)(
                       Ops(Prefix)(Length <# "len", Ord <# "ord", Chr <# "chr", Negate <# UNOP_MINUS, Not <# "!"),
                       Ops(InfixL)(Mul <# "*", Div <# "/", Mod <# "%"),
-                      Ops(InfixL)(Plus <# "+", Minus <# "-"),
+                      Ops(InfixL)(Add <# "+", Sub <# "-"),
                       Ops(InfixL)(Greater <# ">", GreaterEquals <# ">=", Less <# "<", LessEquals <# "<="),
                       Ops(InfixL)(Equal <# "==", NotEqual <# "!="),
                       Ops(InfixL)(And <# "&&"),
