@@ -104,10 +104,7 @@ object AST {
     object Ident extends ParserBridge1[String, Ident]
     object ArrayElem extends ParserBridge2[String, List[Expr], ArrayElem]
 
-    sealed trait PairLiteral extends Expr
-    case object Null extends PairLiteral with ParserBridge0[PairLiteral] {
-        def apply() = Null
-    }
+    case object PairLiteralNull extends Expr with ParserBridge0[Expr]
     
     // Operators
     sealed trait UnaryOp
