@@ -26,8 +26,8 @@ object SemanticChecker {
 
         val childVars = MapM[String, Type]()
 
-        def checkExpressionType(x: Expr, t: Type*): Unit = {
-            val matched = x match {
+        def checkExpressionType(x: Expr, t: Seq[Type]): Unit = {
+            x match {
                 case _: IntLiteral => t contains IntType
                 case _: CharLiteral => t contains CharType
                 case _: StrLiteral => t contains StringType
@@ -64,10 +64,6 @@ object SemanticChecker {
                 }
                 case BinaryOpExpr(op, exp1, exp2) => ???
             }
-
-            if (!matched) {
-
-            }
         }
         
         statements.foreach(statement => {
@@ -77,7 +73,7 @@ object SemanticChecker {
                 case Read(x) => ??? 
                 case Free(x) => ??? 
                 case Return(x) => ??? 
-                case Exit(x) => checkExpressionType(x, IntType)
+                case Exit(x) => checkExpressionType(x, Seq(IntType))
                 case Print(x, end) => ??? 
                 case If(p, x, y) => ??? 
                 case While(p, x) => ??? 
