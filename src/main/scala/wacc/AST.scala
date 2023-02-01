@@ -19,7 +19,7 @@ object AST {
 
     // Statements
     sealed trait Stat
-    case object Skip extends Stat with ParserBridge0[Skip]
+    case object Skip extends Stat with ParserBridge0[Stat]
     case class Declare(t: Type, id: String, rhs: RValue) extends Stat
     case class Assign(x: LValue, y: RValue) extends Stat
     case class Read(x: LValue) extends Stat
@@ -84,7 +84,7 @@ object AST {
     }
 
     sealed trait PairElemType extends Type
-    case object Pair extends PairElemType with ParserBridge0[Pair]
+    case object Pair extends PairElemType with ParserBridge0[PairElemType]
     
     // Expressions
     sealed trait Expr extends RValue
@@ -104,8 +104,7 @@ object AST {
     object Ident extends ParserBridge1[String, Ident]
     object ArrayElem extends ParserBridge2[String, List[Expr], ArrayElem]
 
-    sealed trait PairLiteral extends Expr
-    case object Null extends PairLiteral with ParserBridge0[Null] 
+    case object PairLiteralNull extends Expr with ParserBridge0[Expr]
     
     // Operators
     sealed trait UnaryOp
