@@ -103,7 +103,7 @@ object AST {
     object ArrayElem extends ParserBridge2[String, List[Expr], ArrayElem]
 
     sealed trait PairLiteral extends Expr
-    case object Null extends PairLiteral with ParserBridge0[Pair] 
+    case object Null extends PairLiteral with ParserBridge0[PairLiteral] 
     
     // Operators
     sealed trait UnaryOp
