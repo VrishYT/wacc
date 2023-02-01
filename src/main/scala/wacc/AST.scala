@@ -9,8 +9,13 @@ object AST {
     // Program, functions and parameters
     case class Program(fs: List[Func], stats: List[Stat])
 
+    object Program extends ParserBridge2[List[Func], List[Stat], Program]
+
     case class Func(t: Type, id: String, args: List[Param], stats: List[Stat])
     case class Param(t: Type, id: String)
+
+    object Func extends ParserBridge4[Type, String, List[Param], List[Stat], Func]
+    object Param extends ParserBridge2[Type, String, Param]
 
     // Statements
     sealed trait Stat
@@ -25,6 +30,17 @@ object AST {
     case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat
     case class While(p: Expr, x: List[Stat]) extends Stat
     case class Begin(xs: List[Stat]) extends Stat
+
+    object Declare extends ParserBridge3[Type, String, RValue, Declare]
+    object Assign extends ParserBridge2[LValue, RValue, Assign]
+    object Read extends ParserBridge1[LValue, Read]
+    object Free extends ParserBridge1[Expr, Free]
+    object Return extends ParserBridge1[Expr, Return]
+    object Exit extends ParserBridge1[Expr, Exit]
+    object Print extends ParserBridge2[Expr, Char, Print]
+    object If extends ParserBridge3[Expr, List[Stat], List[Stat], If]
+    object While extends ParserBridge2[Expr, List[Stat], While]
+    object Begin extends ParserBridge1[List[Stat], Begin]
     
     // Left and Right Values
     sealed trait LValue
@@ -33,15 +49,25 @@ object AST {
     case class Fst(x: LValue) extends PairElem
     case class Snd(x: LValue) extends PairElem
 
+    object Fst extends ParserBridge1[LValue, Fst]
+    object Snd extends ParserBridge1[LValue, Snd]
+
     sealed trait RValue
     case class ArrayLiteral(xs: List[Expr]) extends RValue
     case class NewPair(fst: Expr, snd: Expr) extends RValue
     case class Call(id: String, args: List[Expr]) extends RValue
+    
+    object ArrayLiteral extends ParserBridge1[List[Expr], ArrayLiteral]
+    object NewPair extends ParserBridge2[Expr, Expr, NewPair]
+    object Call extends ParserBridge2[String, List[Expr], Call]
 
     // Types
     sealed trait Type
     case class ArrayType(t: Type) extends Type with PairElemType
     case class PairType(fst: PairElemType, snd: PairElemType) extends Type
+
+    object ArrayType extends ParserBridge1[Type, ArrayType]
+    object PairType extends ParserBridge2[PairElemType, PairElemType, PairType]
 
     sealed trait BaseType extends Type with PairElemType
     case object IntType extends BaseType with ParserBridge0[BaseType] {
@@ -76,9 +102,10 @@ object AST {
     object StrLiteral extends ParserBridge1[String, StrLiteral]
     object BoolLiteral extends ParserBridge1[Boolean, BoolLiteral]
     object Ident extends ParserBridge1[String, Ident]
+    object ArrayElem extends ParserBridge2[String, List[Expr], ArrayElem]
 
     sealed trait PairLiteral extends Expr
-    case object Null extends PairLiteral with ParserBridge0[PairLiteral] 
+    case object Null extends PairLiteral with ParserBridge0[Pair] 
     
     // Operators
     sealed trait UnaryOp
