@@ -10,25 +10,26 @@ object Parser{
     import parsley.token.Lexer
     import AST._
 
-    sealed trait Boolean 
-    case object True extends Boolean
-    case object False extends Boolean
+    // sealed trait Boolean 
+    // case object True extends Boolean
+    // case object False extends Boolean
 
-    val BOOL_LIT = lexer.lexeme.symbol("true") #> BoolLiteral(true) <|> 
-                   lexer.lexeme.symbol("false") #> BoolLiteral(false)
+    val BOOL_LIT = lexer.lexeme.symbol("true") #> true <|> 
+                   lexer.lexeme.symbol("false") #> false
                                  
-    val PAIR_LIT = lexer.lexeme.symbol("null") #> Null
+    val PAIR_LIT = lexer.lexeme.symbol("null") #> PairLiteralNull
 
     val BASE_TYPE = lexer.lexeme.symbol("int") #> IntType <|>
                     lexer.lexeme.symbol("string") #> StringType <|>
                     lexer.lexeme.symbol("bool") #> BoolType <|> 
                     lexer.lexeme.symbol("char") #> CharType
     
-    // private lazy val atom: Parsley[Expr] = 
-    //                 "(" *> expr <* ")" <|> IntLiteral(INTEGER) <|> CharLiteral(CHR_LIT) <|> StrLiteral(STR_LIT) <|> BoolLiteral(BOOL_LIT)
+    private lazy val atom: Parsley[Expr] = 
+                    "(" *> expr <* ")" <|> IntLiteral(INTEGER) <|> CharLiteral(CHR_LIT) <|>
+                    StrLiteral(STR_LIT) <|> BoolLiteral(BOOL_LIT) <|> Ident(IDENT) <|> PAIR_LIT
 
     val expr: Parsley[Expr] = precedence[Expr](
-        "(" *> expr <* ")", IntLiteral(INTEGER), CharLiteral(CHR_LIT), StrLiteral(STR_LIT), BoolLiteral(BOOL_LIT), Ident(IDENT), Null)(
+        atom)(
                       Ops(Prefix)(Length <# "len", Ord <# "ord", Chr <# "chr", Negate <# UNOP_MINUS, Not <# "!"),
                       Ops(InfixL)(Mul <# "*", Div <# "/", Mod <# "%"),
                       Ops(InfixL)(Add <# "+", Sub <# "-"),
