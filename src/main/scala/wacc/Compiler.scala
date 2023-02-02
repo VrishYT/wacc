@@ -43,7 +43,7 @@ class Compiler {
         }
     }
     
-    def typecheck = 0
+    def typecheck = true
 
     def compile = ???
 

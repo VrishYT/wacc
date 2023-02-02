@@ -11,7 +11,8 @@ object Main {
         val compiler = Compiler(args(0))
         compiler.readTarget()
         if (!compiler.parse) sys.exit(100)
-        sys.exit(compiler.typecheck)
+        if (!compiler.typecheck) sys.exit(200)
+        compiler.compile
     }
 
 }
