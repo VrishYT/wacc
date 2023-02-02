@@ -26,7 +26,8 @@ object AST {
     case class Free(x: Expr) extends Stat
     case class Return(x: Expr) extends Stat
     case class Exit(x: Expr) extends Stat
-    case class Print(x: Expr, end: Char) extends Stat
+    case class Print(x: Expr) extends Stat
+    case class Println(x: Expr) extends Stat
     case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat
     case class While(p: Expr, x: List[Stat]) extends Stat
     case class Begin(xs: List[Stat]) extends Stat
@@ -37,7 +38,8 @@ object AST {
     object Free extends ParserBridge1[Expr, Free]
     object Return extends ParserBridge1[Expr, Return]
     object Exit extends ParserBridge1[Expr, Exit]
-    object Print extends ParserBridge2[Expr, Char, Print]
+    object Print extends ParserBridge1[Expr, Print]
+    object Println extends ParserBridge1[Expr, Println]
     object If extends ParserBridge3[Expr, List[Stat], List[Stat], If]
     object While extends ParserBridge2[Expr, List[Stat], While]
     object Begin extends ParserBridge1[List[Stat], Begin]
