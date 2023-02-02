@@ -83,7 +83,6 @@ object SemanticChecker {
                 case Free(x) => ??? // checkRValue(x, Seq(PairType, ArrayType))
                 case Return(x) => ??? 
                 case Exit(x) => checkExpressionType(x, Seq(IntType))
-                case Print(x, end) => checkExpressionType(x, Seq(StringType))
                 case If(p, xs, ys) => {
                     checkExpressionType(p, Seq(BoolType))
                     val newChildVars = createChildVars(vars, childVars)
