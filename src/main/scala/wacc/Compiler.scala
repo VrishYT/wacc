@@ -29,7 +29,6 @@ class Compiler {
         return true
     }
 
-    // TODO
     def parse(): Boolean = {
         val pNode = Parser.program
         val result = pNode.parse(fileData)
@@ -42,11 +41,9 @@ class Compiler {
         }
     }
     
-    // TODO
-    def typecheck = true
+    def typecheck = 0
 
-    // TODO
-    def compile = true
+    def compile = ???
 
 }
 
