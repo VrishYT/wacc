@@ -14,7 +14,7 @@ class ValidParseTests extends AnyFunSuite {
 
     val examples = Paths.get("src/test/scala/wacc/wacc_examples/valid")
     Files.walk(examples).iterator().asScala.filter(_.getFileName.toString().endsWith(".wacc")).foreach(path => {
-        test(path.getFileName.toString.replace(".wacc", "") + " are valid wacc files") {
+        test(path.getFileName.toString.replace(".wacc", "") + " have valid syntax") {
             val c = Compiler(path.toString)
             
             val readSuccess = c.readTarget
@@ -31,7 +31,7 @@ class SemanticErrorParseTests extends AnyFunSuite {
 
     val examples = Paths.get("src/test/scala/wacc/wacc_examples/invalid/semanticErr")
     Files.walk(examples).iterator().asScala.filter(_.getFileName.toString().endsWith(".wacc")).foreach(path => {
-        test(path.getFileName.toString.replace(".wacc", "") + " are semantically invalid") {
+        test(path.getFileName.toString.replace(".wacc", "") + " have valid syntax") {
             val c = Compiler(path.toString)
             
             val readSuccess = c.readTarget
