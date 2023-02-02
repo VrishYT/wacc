@@ -10,7 +10,8 @@ object Main {
 
         val compiler = Compiler(args(0))
         compiler.readTarget()
-        return compiler.compile
+        if (!compiler.parse) sys.exit(100)
+        sys.exit(compiler.typecheck)
     }
 
 }
