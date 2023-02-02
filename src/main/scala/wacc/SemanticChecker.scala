@@ -21,6 +21,13 @@ object SemanticChecker {
         checkStatements(func.stats, vars ++ childVars)
     }
 
+    def getTypeFromVars(id: String, parent: Map[String, Type], child: MapM[String, Type]): Option[Type] {
+        childVars.get(id) match {
+            case None => parent.get(id)
+            case x => x
+        }
+    }
+
     def checkStatements(statements: List[Stat], vars: Map[String, Type]): Unit = {
 
         val childVars = MapM[String, Type]()
@@ -38,12 +45,7 @@ object SemanticChecker {
             case _: CharLiteral => Some(CharType)
             case _: StrLiteral => Some(StringType)
             case _: BoolLiteral => Some(BoolType)
-            case Ident(id) => {
-                val varType = childVars.get(id)
-                varType match {
-                    case None => vars.get(id)
-                    case x => x
-                }
+            case Ident(id) => getTypeFromVars(id, vars, childVars)
             }
             case ArrayElem(_, exp :: _) => getExpressionReturnType(exp)
             case UnaryOpExpr(op, exp) => {
@@ -79,7 +81,7 @@ object SemanticChecker {
                 case Declare(t, id, rhs) => ???
                 case Assign(x, y) => ???
                 case Read(x) => ??? 
-                case Free(x) => ???
+                case Free(x) => ??? // checkRValue(x, Seq(PairType, ArrayType))
                 case Return(x) => ??? 
                 case Exit(x) => checkExpressionType(x, Seq(IntType))
                 case Print(x, end) => checkExpressionType(x, Seq(StringType))
