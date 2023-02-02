@@ -21,8 +21,8 @@ object SemanticChecker {
         checkStatements(func.stats, vars ++ childVars)
     }
 
-    def getTypeFromVars(id: String, parent: Map[String, Type], child: MapM[String, Type]): Option[Type] {
-        childVars.get(id) match {
+    def getTypeFromVars(id: String, parent: Map[String, Type], child: MapM[String, Type]): Option[Type] = {
+        child.get(id) match {
             case None => parent.get(id)
             case x => x
         }
@@ -46,7 +46,6 @@ object SemanticChecker {
             case _: StrLiteral => Some(StringType)
             case _: BoolLiteral => Some(BoolType)
             case Ident(id) => getTypeFromVars(id, vars, childVars)
-            }
             case ArrayElem(_, exp :: _) => getExpressionReturnType(exp)
             case UnaryOpExpr(op, exp) => {
                 Some(op match {
