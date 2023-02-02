@@ -1,8 +1,9 @@
 package wacc
 import parsley.Parsley
+import parsley.Parsley.pure
 object Parser{
     import parsley.combinator.{sepBy1, sepEndBy}
-    import parsley.expr.{precedence, Ops, InfixL, Prefix}
+    import parsley.expr.{precedence, Ops, InfixL, Prefix, Postfix}
     import Lexing.lexer
     import Lexing._
     import implicits.implicitSymbol
@@ -40,13 +41,19 @@ object Parser{
 
     val ARRAY_LITER = ArrayLiteral("[" *> (sepBy1(expr, ",") <* "]"))
     
-    lazy val PAIR_ELEM_TYPE = lexer.lexeme.symbol("pair") #> Pair <|> BASE_TYPE <|> ARRAY_TYPE
+    lazy val PAIR_ELEM_TYPE = lexer.lexeme.symbol("pair") #> Pair <|> BASE_TYPE //<|> ARRAY_TYPE
     
     lazy val PAIR_TYPE = PairType(lexer.lexeme.symbol("pair") *> "(" *> PAIR_ELEM_TYPE, "," *> PAIR_ELEM_TYPE <~ ")")
     
-    lazy val ARRAY_TYPE = ArrayType(types <~ "[]")
+        // lazy val ARRAY_TYPE: Parsley[Type] = precedence[Type](
+        //     BASE_TYPE, PAIR_TYPE
+        // )(
+        //     Ops(Postfix)("[]" #> ArrayType(types))
+        // )
+
     
-    lazy val types: Parsley[Type] = BASE_TYPE <|> PAIR_TYPE <|> ARRAY_TYPE
+    
+    lazy val types: Parsley[Type] = /* ARRAY_TYPE <|> */ BASE_TYPE <|> PAIR_TYPE 
 
     val ARG_LIST = sepEndBy(expr, ",")
 
@@ -84,7 +91,7 @@ object Parser{
 
     val func = Func(types, IDENT, "(" *> paramList <~ ")", lexer.lexeme.symbol("is") *> stats <~ lexer.lexeme.symbol("end"))
  
-    val program = Program(lexer.lexeme.symbol("begin") *> sepEndBy(func, ""), stats <~ lexer.lexeme.symbol("end"))
+    val program = Program(lexer.lexeme.symbol("begin") *> sepEndBy(func, pure("")), stats <~ lexer.lexeme.symbol("end"))
 }
 
 
