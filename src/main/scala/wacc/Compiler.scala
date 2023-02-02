@@ -4,9 +4,13 @@ class Compiler {
     
     import java.nio.file.{Files, Paths}
     import scala.io.Source
+    import Parser._
+    import AST.Program
+    import parsley.{Success, Failure}
 
     private var filename = ""
     private var fileData = ""
+    private var program: Option[Program] = None 
 
     def readTarget(): Boolean = {
 
@@ -26,7 +30,17 @@ class Compiler {
     }
 
     // TODO
-    def parse = true
+    def parse(): Boolean = {
+        val pNode = Parser.program
+        val result = pNode.parse(fileData)
+        result match {
+            case Success(x) => {
+                program = Some(x)
+                true
+            }
+            case _: Failure[_] => false 
+        }
+    }
     
     // TODO
     def typecheck = true
