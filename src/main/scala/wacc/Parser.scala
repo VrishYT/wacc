@@ -3,7 +3,7 @@ import parsley.Parsley
 import parsley.Parsley.attempt
 import parsley.Parsley.pure
 object Parser{
-    import parsley.combinator.{sepBy1, sepEndBy, sepEndBy1}
+    import parsley.combinator.{endBy1, sepBy1, sepEndBy, sepEndBy1}
     import parsley.expr.{precedence, Ops, InfixL, Prefix}
     import parsley.expr.chain
     import Lexing.lexer
@@ -17,7 +17,7 @@ object Parser{
                                  
     val PAIR_LIT = lexer.lexeme.symbol("null") #> PairLiteralNull
     
-    lazy val ARRAY_ELEM = ArrayElem(IDENT, "[" *> sepBy1(expr, "][") <* "]")
+    lazy val ARRAY_ELEM = ArrayElem(IDENT, endBy1("[" *> expr, "]"))
 
     val BASE_TYPE = lexer.lexeme.symbol("int") #> IntType <|>
                     lexer.lexeme.symbol("string") #> StringType <|>
