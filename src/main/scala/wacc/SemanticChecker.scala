@@ -7,6 +7,8 @@ object SemanticChecker {
     import scala.collection.immutable.Map
     import scala.collection.mutable.{Map => MapM}
 
+    import ErrorLogger._
+
     def typecheck(program: Program): Unit = {
         val statements = program.stats
         val functions = program.fs
@@ -27,7 +29,7 @@ object SemanticChecker {
             case Some(x) => x
             case None => parent.get(id) match {
                 case Some(x) => x
-                case None => ??? // err
+                case None => ErrorLogger.log("Variable " + id + " not found")
             }
         }
     }
@@ -106,8 +108,7 @@ object SemanticChecker {
             val returnType = getRValueReturnType(rval)
             
             if (!(t contains returnType)) {
-                println(returnType + " should be in " + t)
-                ???
+                ErrorLogger.log(returnType.toString + " should be of type: " + t.mkString(","))
             }
 
         }
@@ -126,7 +127,7 @@ object SemanticChecker {
                 case Free(x) => x match {
                     case x: ArrayType => 
                     case x: PairType => 
-                    case default => ??? // err
+                    case x => ErrorLogger.log(x.toString + " should be of type: Array, Pair")
                 }
                 case Return(x) => checkReturnType(x, Seq(IntType)) 
                 case Exit(x) => checkReturnType(x, Seq(IntType))
