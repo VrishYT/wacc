@@ -39,7 +39,10 @@ class Compiler {
                 program = Some(x)
                 true
             }
-            case _: Failure[_] => false 
+            case x: Failure[_] => {
+                println(x)
+                false
+            } 
         }
     }
     

@@ -3,7 +3,8 @@ import parsley.Parsley
 import parsley.Parsley.pure
 object Parser{
     import parsley.combinator.{sepBy1, sepEndBy}
-    import parsley.expr.{precedence, Ops, InfixL, Prefix, Postfix}
+    import parsley.expr.{precedence, Ops, InfixL, Prefix}
+    import parsley.expr.chain
     import Lexing.lexer
     import Lexing._
     import implicits.implicitSymbol
@@ -41,19 +42,16 @@ object Parser{
 
     val ARRAY_LITER = ArrayLiteral("[" *> (sepBy1(expr, ",") <* "]"))
     
-    lazy val PAIR_ELEM_TYPE = lexer.lexeme.symbol("pair") #> Pair <|> BASE_TYPE //<|> ARRAY_TYPE
+    lazy val PAIR_ELEM_TYPE = lexer.lexeme.symbol("pair") #> Pair <|> chain.postfix(BASE_TYPE, ArrayType <# "[]")
     
-    lazy val PAIR_TYPE = PairType(lexer.lexeme.symbol("pair") *> "(" *> PAIR_ELEM_TYPE, "," *> PAIR_ELEM_TYPE <~ ")")
+    val PAIR_TYPE = PairType(lexer.lexeme.symbol("pair") *> "(" *> PAIR_ELEM_TYPE, "," *> PAIR_ELEM_TYPE <~ ")")
     
-        // lazy val ARRAY_TYPE: Parsley[Type] = precedence[Type](
-        //     BASE_TYPE, PAIR_TYPE
-        // )(
-        //     Ops(Postfix)("[]" #> ArrayType(types))
-        // )
+    private lazy val atom2: Parsley[Type] = BASE_TYPE <|> PAIR_TYPE
+
+    val ARRAY_TYPE: Parsley[Type] = chain.postfix(atom2, ArrayType <# "[]")
 
     
-    
-    lazy val types: Parsley[Type] = /* ARRAY_TYPE <|> */ BASE_TYPE <|> PAIR_TYPE 
+    lazy val types: Parsley[Type] = ARRAY_TYPE <|> BASE_TYPE <|> PAIR_TYPE 
 
     val ARG_LIST = sepEndBy(expr, ",")
 
