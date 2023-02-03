@@ -1,5 +1,6 @@
 package wacc
 import parsley.Parsley
+import parsley.Parsley.attempt
 import parsley.Parsley.pure
 object Parser{
     import parsley.combinator.{sepBy1, sepEndBy}
@@ -87,9 +88,13 @@ object Parser{
 
     val paramList = sepEndBy(param, ",")
 
-    val func = Func(types, IDENT, "(" *> paramList <~ ")", lexer.lexeme.symbol("is") *> stats <~ lexer.lexeme.symbol("end"))
+    val func_ = attempt(Func_(types, IDENT <~ "("))
+
+    val func = Func(func_, paramList <~ ")", lexer.lexeme.symbol("is") *> stats <~ lexer.lexeme.symbol("end"))
  
-    val program = Program(lexer.lexeme.symbol("begin") *> sepEndBy(func, pure("")), stats <~ lexer.lexeme.symbol("end"))
+    val program_ = Program(lexer.lexeme.symbol("begin") *> sepEndBy(func, pure("")), stats <~ lexer.lexeme.symbol("end"))
+
+    val program = fully(program_)
 }
 
 
