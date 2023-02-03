@@ -32,65 +32,89 @@ object SemanticChecker {
 
         val childVars = MapM[String, Type]()
 
-        def checkExpressionType(x: Expr, t: Seq[Type]): Unit = {
-            val returnType = getExpressionReturnType(x)
+        def getLValType(lval: LValue): Option[Type] = ???
+
+        def checkReturnType(rval: RValue, t: Seq[Type]): Unit = {
+            
+            def getRValueReturnType(rval: RValue): Option[Type] = rval match {
+                case ArrayLiteral(xs) => ???
+                case NewPair(fst, snd) => ???
+                case Call(id, args) => ???
+                case x: Expr => x match {
+                    case _: IntLiteral => Some(IntType)
+                    case _: CharLiteral => Some(CharType)
+                    case _: StrLiteral => Some(StringType)
+                    case _: BoolLiteral => Some(BoolType)
+                    case Ident(id) => getTypeFromVars(id, vars, childVars)
+                    case ArrayElem(_, exp :: _) => getRValueReturnType(exp)
+                    case UnaryOpExpr(op, exp) => {
+                        val returnType = op match {
+                            case Not => BoolType
+                            case Negate => IntType
+                            case Length => IntType
+                            case Ord => IntType
+                            case Chr => CharType
+                        }
+                        checkReturnType(exp, Seq(returnType))
+                        Some(returnType)
+                    }
+                    case BinaryOpExpr(op, exp1, exp2) => {
+                        val returnType = op match {
+                            case Mul => IntType
+                            case Div => IntType
+                            case Mod => IntType
+                            case Add => IntType
+                            case Sub => IntType
+                            case Greater => BoolType
+                            case GreaterEquals => BoolType
+                            case Less => BoolType
+                            case LessEquals => BoolType
+                            case Equal => BoolType
+                            case NotEqual => BoolType
+                            case And => BoolType
+                            case Or => BoolType
+                        }
+                        checkReturnType(exp1, Seq(returnType))
+                        checkReturnType(exp2, Seq(returnType))
+                        Some(returnType)
+                    }
+                }
+            }
+
+            val returnType = getRValueReturnType(rval)
             returnType match {
                 case Some(x) => if (!(t contains x)) ???
                 case None => ???
             }
-        }
-        
-        def getExpressionReturnType(x: Expr): Option[Type] = x match {
-            case _: IntLiteral => Some(IntType)
-            case _: CharLiteral => Some(CharType)
-            case _: StrLiteral => Some(StringType)
-            case _: BoolLiteral => Some(BoolType)
-            case Ident(id) => getTypeFromVars(id, vars, childVars)
-            case ArrayElem(_, exp :: _) => getExpressionReturnType(exp)
-            case UnaryOpExpr(op, exp) => {
-                Some(op match {
-                    case Not => BoolType
-                    case Negate => IntType
-                    case Length => IntType
-                    case Ord => IntType
-                    case Chr => CharType
-                })
-            }
-            case BinaryOpExpr(op, exp1, exp2) => {
-                Some(op match {
-                    case Mul => IntType
-                    case Div => IntType
-                    case Mod => IntType
-                    case Add => IntType
-                    case Sub => IntType
-                    case Greater => BoolType
-                    case GreaterEquals => BoolType
-                    case Less => BoolType
-                    case LessEquals => BoolType
-                    case Equal => BoolType
-                    case NotEqual => BoolType
-                    case And => BoolType
-                    case Or => BoolType
-                })
-            }
+
         }
         
         statements.foreach(statement => {
             statement match {
-                case Declare(t, id, rhs) => ???
-                case Assign(x, y) => ???
+                case Declare(t, id, rhs) => {
+                    checkReturnType(rhs, Seq(t))
+                    childVars(id) = t
+                }
+                case Assign(x, y) => {
+                    val lType = getLValType(x)
+                    lType match {
+                        case Some(x) => checkReturnType(y, Seq(x))
+                        case None => ???
+                    }
+                    
+                }
                 case Read(x) => ??? 
-                case Free(x) => ??? // checkRValue(x, Seq(PairType, ArrayType))
-                case Return(x) => ??? 
-                case Exit(x) => checkExpressionType(x, Seq(IntType))
+                case Free(x) => ??? // checkReturnType(x, Seq(PairType, ArrayType))
+                case Return(x) => checkReturnType(x, Seq(IntType)) 
+                case Exit(x) => checkReturnType(x, Seq(IntType))
                 case If(p, xs, ys) => {
-                    checkExpressionType(p, Seq(BoolType))
+                    checkReturnType(p, Seq(BoolType))
                     val newChildVars = createChildVars(vars, childVars)
                     checkStatements(xs, newChildVars)
                     checkStatements(ys, newChildVars)
                 }
                 case While(p, xs) => {
-                    checkExpressionType(p, Seq(BoolType))
+                    checkReturnType(p, Seq(BoolType))
                     checkStatements(xs, createChildVars(vars, childVars))
                 }
                 case Begin(xs) => checkStatements(xs, createChildVars(vars, childVars))
