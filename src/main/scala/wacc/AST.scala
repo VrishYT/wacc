@@ -65,6 +65,7 @@ object AST {
 
     // Types
     sealed trait Type
+    case object AnyType extends Type
     case class ArrayType(t: Type) extends Type with PairElemType
     case class PairType(fst: PairElemType, snd: PairElemType) extends Type
 

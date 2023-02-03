@@ -13,6 +13,7 @@ object SemanticChecker {
 
         val vars = functions.map(func => (func.id -> func.t)).toMap
         functions.foreach(func => checkFunction(func, vars))
+        checkStatements(statements, vars)
 
     }
 
@@ -21,10 +22,13 @@ object SemanticChecker {
         checkStatements(func.stats, vars ++ childVars)
     }
 
-    def getTypeFromVars(id: String, parent: Map[String, Type], child: MapM[String, Type]): Option[Type] = {
+    def getTypeFromVars(id: String, parent: Map[String, Type], child: MapM[String, Type]): Type = {
         child.get(id) match {
-            case None => parent.get(id)
-            case x => x
+            case Some(x) => x
+            case None => parent.get(id) match {
+                case Some(x) => x
+                case None => ??? // err
+            }
         }
     }
 
@@ -32,31 +36,49 @@ object SemanticChecker {
 
         val childVars = MapM[String, Type]()
 
-        def getLValType(lval: LValue): Option[Type] = ???
+        def getLValType(lVal: LValue): Type = 
+            lVal match {
+                case Ident(id) => getTypeFromVars(id, vars, childVars)                               
+                case ArrayElem(id, _) => ???
+                case x: PairElem => x match {
+                    case Fst(x) => getLValType(x)
+                    case Snd(x) => getLValType(x)
+                }
+        }
+
 
         def checkReturnType(rval: RValue, t: Seq[Type]): Unit = {
             
-            def getRValueReturnType(rval: RValue): Option[Type] = rval match {
-                case ArrayLiteral(xs) => ???
-                case NewPair(fst, snd) => ???
+            def getRValueReturnType(rval: RValue): Type = rval match {
+                case ArrayLiteral(xs) => {
+                    if (xs.length > 1) {
+                        new ArrayType(getRValueReturnType(xs.head))
+                    } else {
+                        new ArrayType(AnyType)
+                    }
+                }
+                case NewPair(fst, snd) => new PairType(
+                    getRValueReturnType(fst).asInstanceOf[PairElemType], 
+                    getRValueReturnType(snd).asInstanceOf[PairElemType]
+                )
                 case Call(id, args) => ???
                 case x: Expr => x match {
-                    case _: IntLiteral => Some(IntType)
-                    case _: CharLiteral => Some(CharType)
-                    case _: StrLiteral => Some(StringType)
-                    case _: BoolLiteral => Some(BoolType)
+                    case _: IntLiteral => IntType
+                    case _: CharLiteral => CharType
+                    case _: StrLiteral => StringType
+                    case _: BoolLiteral => BoolType
                     case Ident(id) => getTypeFromVars(id, vars, childVars)
                     case ArrayElem(_, exp :: _) => getRValueReturnType(exp)
                     case UnaryOpExpr(op, exp) => {
-                        val returnType = op match {
-                            case Not => BoolType
-                            case Negate => IntType
-                            case Length => IntType
-                            case Ord => IntType
-                            case Chr => CharType
+                        val types = op match {
+                            case Not => (BoolType, BoolType)
+                            case Negate => (IntType, IntType)
+                            case Length => (IntType, IntType)
+                            case Ord => (CharType, IntType)
+                            case Chr => (IntType, CharType)
                         }
-                        checkReturnType(exp, Seq(returnType))
-                        Some(returnType)
+                        checkReturnType(exp, Seq(types._1))
+                        types._2
                     }
                     case BinaryOpExpr(op, exp1, exp2) => {
                         val returnType = op match {
@@ -76,15 +98,16 @@ object SemanticChecker {
                         }
                         checkReturnType(exp1, Seq(returnType))
                         checkReturnType(exp2, Seq(returnType))
-                        Some(returnType)
+                        returnType
                     }
                 }
             }
 
             val returnType = getRValueReturnType(rval)
-            returnType match {
-                case Some(x) => if (!(t contains x)) ???
-                case None => ???
+            
+            if (!(t contains returnType)) {
+                println(returnType + " should be in " + t)
+                ???
             }
 
         }
@@ -97,14 +120,14 @@ object SemanticChecker {
                 }
                 case Assign(x, y) => {
                     val lType = getLValType(x)
-                    lType match {
-                        case Some(x) => checkReturnType(y, Seq(x))
-                        case None => ???
-                    }
-                    
+                    checkReturnType(y, Seq(lType))                    
                 }
                 case Read(x) => ??? 
-                case Free(x) => ??? // checkReturnType(x, Seq(PairType, ArrayType))
+                case Free(x) => x match {
+                    case x: ArrayType => 
+                    case x: PairType => 
+                    case default => ??? // err
+                }
                 case Return(x) => checkReturnType(x, Seq(IntType)) 
                 case Exit(x) => checkReturnType(x, Seq(IntType))
                 case If(p, xs, ys) => {
