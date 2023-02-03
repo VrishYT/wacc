@@ -3,7 +3,7 @@ import parsley.Parsley
 import parsley.Parsley.attempt
 import parsley.Parsley.pure
 object Parser{
-    import parsley.combinator.{sepBy1, sepEndBy}
+    import parsley.combinator.{sepBy1, sepEndBy, sepEndBy1}
     import parsley.expr.{precedence, Ops, InfixL, Prefix}
     import parsley.expr.chain
     import Lexing.lexer
@@ -56,7 +56,7 @@ object Parser{
 
     val ARG_LIST = sepEndBy(expr, ",")
 
-    lazy val PAIR_ELEM = Fst(lexer.lexeme.symbol("fst") *> lvalue) <|> Snd(lexer.lexeme.symbol("fst") *> lvalue)
+    lazy val PAIR_ELEM = Fst(lexer.lexeme.symbol("fst") *> lvalue) <|> Snd(lexer.lexeme.symbol("snd") *> lvalue)
 
     lazy val rvalue: Parsley[RValue] = expr <|> 
                                        ARRAY_LITER <|> 
@@ -92,7 +92,7 @@ object Parser{
 
     val func = Func(func_, paramList <~ ")", lexer.lexeme.symbol("is") *> stats <~ lexer.lexeme.symbol("end"))
  
-    val program_ = Program(lexer.lexeme.symbol("begin") *> sepEndBy(func, pure("")), stats <~ lexer.lexeme.symbol("end"))
+    val program_ = Program(lexer.lexeme.symbol("begin") *> sepEndBy(func, pure("")), sepEndBy1(stat, ";") <~ lexer.lexeme.symbol("end"))
 
     val program = fully(program_)
 }
