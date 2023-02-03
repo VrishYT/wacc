@@ -31,7 +31,7 @@ object Lexing{
             identifierLetter = Basic(c => Character.isLetterOrDigit(c) || c == '_')
         ),
         symbolDesc = SymbolDesc.plain.copy(
-            hardKeywords = Set("begin", "end", "is", "skip", "read", "free", 
+            hardKeywords = Set("begin", "null", "end", "is", "skip", "read", "free", 
                                 "return", "exit", "print", "println", "if", "then", "else",
                                 "fi", "while", "do", "done", "fst", "snd", "newpair", "call", 
                                 "int", "bool", "char", "string", "pair", "true", "false"),
@@ -70,7 +70,7 @@ object Lexing{
     val UNOP = ('+' <|> '-') *> notFollowedBy(digit)
 
     val STR_LIT = lexer.lexeme.text.string.ascii
-    val CHR_LIT = lexer.lexeme.text.character.ascii
+    val CHR_LIT = lexer.lexeme.text.character.ascii 
 
     def fully[A](p: Parsley[A]) = lexer.fully(p)
     val implicits = lexer.lexeme.symbol.implicits
