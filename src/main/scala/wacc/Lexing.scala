@@ -54,7 +54,8 @@ object Lexing{
             binaryExponentDesc = numeric.ExponentDesc.NoExponents
         ),
         textDesc = text.TextDesc.plain.copy(
-            escapeSequences = escapeConfigs
+            escapeSequences = escapeConfigs,
+            graphicCharacter = Basic((c) => c >= ' '.toInt && c != '\\' && c != '\'' && c != '\"')
         ),
         spaceDesc = SpaceDesc.plain.copy(
             commentLine = "#"
