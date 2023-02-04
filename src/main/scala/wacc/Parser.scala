@@ -6,6 +6,7 @@ object Parser{
     import parsley.combinator._
     import parsley.expr.{precedence, Ops, InfixL, Prefix}
     import parsley.expr.chain
+    import parsley.errors.combinator.ErrorMethods
     import Lexing.lexer
     import Lexing._
     import implicits.implicitSymbol
@@ -90,9 +91,25 @@ object Parser{
 
     val func_ = attempt(Func_(types, IDENT <~ "("))
 
-    val func = Func(func_, paramList <~ ")", lexer.lexeme.symbol("is") *> stats <~ lexer.lexeme.symbol("end"))
+    def validReturn(stats: List[Stat]): Boolean = stats.last match {
+        case x: Return => true
+        case _ => {
+            var valid = false 
+            stats.foreach(stat => stat match {
+                case x: If => {
+                    valid |= validReturn(x.x) && validReturn(x.y)
+                }
+                case _ => 
+            })
+            valid
+        }
+    }
+
+    val func = Func(func_, paramList <~ ")", lexer.lexeme.symbol("is") *> stats <* lexer.lexeme.symbol("end"))
  
-    val program_ = Program(lexer.lexeme.symbol("begin") *> sepEndBy(func, pure("")), stats <~ lexer.lexeme.symbol("end"))
+    val program_ = Program(lexer.lexeme.symbol("begin") *> sepEndBy(func.filterOut {
+        case func if !validReturn(func.stats) => "function does not have a return/exit"
+    }, pure("")), stats <* lexer.lexeme.symbol("end"))
 
     val program = fully(program_)
 }
