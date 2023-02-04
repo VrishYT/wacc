@@ -30,16 +30,16 @@ object Parser{
 
     val operators: Parsley[Expr] = precedence[Expr](
         atom)(
-                      Ops(Prefix)(Length <# "len", Ord <# "ord", Chr <# "chr", Negate <# UNOP_MINUS, Not <# "!"),
-                      Ops(InfixL)(Mul <# "*", Div <# "/", Mod <# "%"),
-                      Ops(InfixL)(Add <# "+", Sub <# "-"),
-                      Ops(InfixL)(Greater <# ">", GreaterEquals <# ">=", Less <# "<", LessEquals <# "<="),
-                      Ops(InfixL)(Equal <# "==", NotEqual <# "!="),
-                      Ops(InfixL)(And <# "&&"),
-                      Ops(InfixL)(Or <# "||")
+                      Ops(Prefix)(Length <# lexer.lexeme.symbol("len"), Ord <# lexer.lexeme.symbol("ord"), Chr <# lexer.lexeme.symbol("chr"), Negate <# UNOP_MINUS, Not <# lexer.lexeme.symbol("!")),
+                      Ops(InfixL)(Mul <# lexer.lexeme.symbol("*"), Div <# lexer.lexeme.symbol("/"), Mod <# lexer.lexeme.symbol("%")),
+                      Ops(InfixL)(Add <# lexer.lexeme.symbol("+"), Sub <# lexer.lexeme.symbol("-")),
+                      Ops(InfixL)(Greater <# lexer.lexeme.symbol(">"), GreaterEquals <# lexer.lexeme.symbol(">="), Less <# lexer.lexeme.symbol("<"), LessEquals <# lexer.lexeme.symbol("<=")),
+                      Ops(InfixL)(Equal <# lexer.lexeme.symbol("=="), NotEqual <# lexer.lexeme.symbol("!=")),
+                      Ops(InfixL)(And <# lexer.lexeme.symbol("&&")),
+                      Ops(InfixL)(Or <# lexer.lexeme.symbol("||"))
                    )
     
-    val expr: Parsley[Expr] = atom <|> ARRAY_ELEM <|> operators
+    val expr: Parsley[Expr] = operators <|> atom <|> ARRAY_ELEM 
 
     val ARRAY_LITER = ArrayLiteral("[" *> (sepBy1(expr, ",") <* "]"))
     
@@ -60,9 +60,9 @@ object Parser{
 
     lazy val rvalue: Parsley[RValue] = expr <|> 
                                        ARRAY_LITER <|> 
-                                       NewPair(lexer.lexeme.symbol("newpair") *> "(" *> expr, expr <~ ")") <|> 
+                                       NewPair(lexer.lexeme.symbol("newpair") *> "(" *> expr <~ ",", expr <~ ")") <|> 
                                        PAIR_ELEM <|> 
-                                       Call(IDENT, "(" *> ARG_LIST <~ ")")
+                                       Call(lexer.lexeme.symbol("call") *> IDENT, "(" *> ARG_LIST <~ ")")
 
     lazy val lvalue: Parsley[LValue] = Ident(IDENT) <|>  ARRAY_ELEM <|> PAIR_ELEM
 
