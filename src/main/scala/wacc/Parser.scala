@@ -81,7 +81,7 @@ object Parser{
                                   lexer.lexeme.symbol("else") *> stats <~ lexer.lexeme.symbol("fi"))) <|>
                               (While(lexer.lexeme.symbol("while") *> expr,
                                   lexer.lexeme.symbol("do") *> stats <~ lexer.lexeme.symbol("done"))) <|>
-                              (Begin(lexer.lexeme.symbol("stat") *> stats <~ lexer.lexeme.symbol("end"))) 
+                              (Begin(lexer.lexeme.symbol("begin") *> stats <~ lexer.lexeme.symbol("end"))) 
     
     private lazy val stats = sepBy1(stat, ";")
 
