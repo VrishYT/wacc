@@ -38,7 +38,7 @@ class Compiler {
                 true
             }
             case x: Failure[_] => {
-                println(x)
+                // println(x)
                 false
             } 
         }
