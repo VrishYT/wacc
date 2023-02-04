@@ -92,12 +92,15 @@ object Parser{
     val func_ = attempt(Func_(types, IDENT <~ "("))
 
     def validReturn(stats: List[Stat]): Boolean = stats.last match {
-        case x: Return => true
+        case _: Return | _: Exit => true
         case _ => {
             var valid = false 
             stats.foreach(stat => stat match {
-                case x: If => {
-                    valid |= validReturn(x.x) && validReturn(x.y)
+                case If(_, x, y) => {
+                    valid |= validReturn(x) && validReturn(y)
+                }
+                case Begin(xs) => {
+                    valid |= validReturn(xs)
                 }
                 case _ => 
             })
