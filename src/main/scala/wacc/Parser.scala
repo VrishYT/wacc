@@ -18,7 +18,7 @@ object Parser{
                                  
     val PAIR_LIT = lexer.lexeme.symbol("null") #> PairLiteralNull
     
-    lazy val ARRAY_ELEM = ArrayElem(IDENT, endBy1("[" *> expr, "]"))
+    lazy val ARRAY_ELEM = ArrayElem(IDENT, "[" *> sepBy(expr, "][") <* "]")
 
     val BASE_TYPE = lexer.lexeme.symbol("int") #> IntType <|>
                     lexer.lexeme.symbol("string") #> StringType <|>
@@ -26,8 +26,8 @@ object Parser{
                     lexer.lexeme.symbol("char") #> CharType
     
     private lazy val atom: Parsley[Expr] = 
-                    "(" *> expr <* ")" <|> IntLiteral(INTEGER) <|> CharLiteral(CHR_LIT) <|>
-                    StrLiteral(STR_LIT) <|> BoolLiteral(BOOL_LIT) <|> Ident(IDENT) <|> PAIR_LIT
+                    "(" *> expr <* ")" <|> attempt(ARRAY_ELEM) <|> IntLiteral(INTEGER) <|> CharLiteral(CHR_LIT) <|>
+                    StrLiteral(STR_LIT) <|> BoolLiteral(BOOL_LIT)  <|> Ident(IDENT) <|> PAIR_LIT
 
     val operators: Parsley[Expr] = precedence[Expr](
         atom)(
@@ -40,7 +40,7 @@ object Parser{
                       Ops(InfixL)(Or <# lexer.lexeme.symbol("||"))
                    )
     
-    val expr: Parsley[Expr] = operators <|> atom <|> ARRAY_ELEM 
+    val expr: Parsley[Expr] = operators <|> atom  
 
     val ARRAY_LITER = ArrayLiteral("[" *> (sepBy(expr, ",") <* "]"))
     
@@ -65,7 +65,7 @@ object Parser{
                                        PAIR_ELEM <|> 
                                        Call(lexer.lexeme.symbol("call") *> IDENT, "(" *> ARG_LIST <~ ")")
 
-    lazy val lvalue: Parsley[LValue] = Ident(IDENT) <|>  ARRAY_ELEM <|> PAIR_ELEM
+    lazy val lvalue: Parsley[LValue] = attempt(ARRAY_ELEM) <|> PAIR_ELEM <|> Ident(IDENT) 
 
     val stat: Parsley[Stat] = (lexer.lexeme.symbol("skip") #> Skip) <|> 
                               (Declare(types, IDENT, lexer.lexeme.symbol("=") *> rvalue)) <|>
