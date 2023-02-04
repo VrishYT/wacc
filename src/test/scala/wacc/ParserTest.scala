@@ -21,7 +21,7 @@ class ValidParseTests extends AnyFunSuite {
             assert(readSuccess)
 
             val parseSuccess: Boolean = c.parse
-            assert(parseSuccess, c.toString)
+            assert(parseSuccess, "\n" + c.toString)
         }
     })
 
@@ -38,7 +38,7 @@ class SemanticErrorParseTests extends AnyFunSuite {
             assert(readSuccess)
 
             val parseSuccess: Boolean = c.parse
-            assert(parseSuccess, c.toString)
+            assert(parseSuccess, "\n" + c.toString)
         }
     })
 
@@ -55,7 +55,7 @@ class SyntacticErrorParseTests extends AnyFunSuite {
             assert(readSuccess)
 
             val parseSuccess: Boolean = c.parse
-            assert(!parseSuccess, c.toString)
+            assert(!parseSuccess, "\n" + c.toString)
         }
     })
 
