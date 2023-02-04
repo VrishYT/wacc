@@ -82,17 +82,17 @@ object Parser{
                                   lexer.lexeme.symbol("do") *> stats <~ lexer.lexeme.symbol("done"))) <|>
                               (Begin(lexer.lexeme.symbol("stat") *> stats <~ lexer.lexeme.symbol("end"))) 
     
-    private lazy val stats = sepEndBy(stat, ";")
+    private lazy val stats = sepBy1(stat, ";")
 
     val param = Param(types, IDENT)
 
-    val paramList = sepEndBy(param, ",")
+    val paramList = sepBy(param, ",")
 
     val func_ = attempt(Func_(types, IDENT <~ "("))
 
     val func = Func(func_, paramList <~ ")", lexer.lexeme.symbol("is") *> stats <~ lexer.lexeme.symbol("end"))
  
-    val program_ = Program(lexer.lexeme.symbol("begin") *> sepEndBy(func, pure("")), sepBy1(stat, ";") <~ lexer.lexeme.symbol("end"))
+    val program_ = Program(lexer.lexeme.symbol("begin") *> sepEndBy(func, pure("")), stats <~ lexer.lexeme.symbol("end"))
 
     val program = fully(program_)
 }
