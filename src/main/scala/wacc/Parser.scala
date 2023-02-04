@@ -42,7 +42,7 @@ object Parser{
     
     val expr: Parsley[Expr] = operators <|> atom <|> ARRAY_ELEM 
 
-    val ARRAY_LITER = ArrayLiteral("[" *> (sepBy1(expr, ",") <* "]"))
+    val ARRAY_LITER = ArrayLiteral("[" *> (sepBy(expr, ",") <* "]"))
     
     lazy val PAIR_ELEM_TYPE = lexer.lexeme.symbol("pair") #> Pair <|> chain.postfix(BASE_TYPE, ArrayType <# "[]")
     
