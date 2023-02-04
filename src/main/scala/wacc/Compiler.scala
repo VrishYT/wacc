@@ -11,6 +11,15 @@ class Compiler {
     private var filename = ""
     private var fileData = ""
     private var program: Option[Program] = None 
+    private var failure: Option[Failure[_]] = None
+
+    override def toString: String = {
+        failure match {
+            case Some(x) => return x.toString
+            case None =>
+        }
+        return program.toString
+    }
 
     def readTarget(): Boolean = {
 
@@ -38,7 +47,7 @@ class Compiler {
                 true
             }
             case x: Failure[_] => {
-                // println(x)
+                failure = Some(x)
                 false
             } 
         }
