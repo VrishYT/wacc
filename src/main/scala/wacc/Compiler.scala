@@ -22,12 +22,10 @@ class Compiler {
 
         val builder = new StringBuilder()
         for (line <- Source.fromFile(filename).getLines()) {
-            if (!line.trim.startsWith("#")) {
-                builder.append(line.trim)
-                builder.append("\n")
-            }
+            builder.append(line.trim)
+            builder.append("\n")
         }
-        fileData = builder.toString().trim
+        fileData = builder.toString()
         return true
     }
 

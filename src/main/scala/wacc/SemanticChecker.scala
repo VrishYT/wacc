@@ -11,7 +11,7 @@ object SemanticChecker {
         val statements = program.stats
         val functions = program.fs
 
-        val vars = functions.map(func => (func.id -> func.t)).toMap
+        val vars = functions.map(func => (func.fs.id -> func.fs.t)).toMap
         functions.foreach(func => checkFunction(func, vars))
 
     }
