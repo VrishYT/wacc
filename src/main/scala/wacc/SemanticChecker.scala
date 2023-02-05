@@ -55,6 +55,8 @@ object SemanticChecker {
         def checkReturnType(rval: RValue, t: Seq[Type]): Unit = {
             
             def getRValueReturnType(rval: RValue): Type = rval match {
+                case Fst(lval) => getLValType(lval) 
+                case Snd(lval) => getLValType(lval) 
                 case ArrayLiteral(xs) => {
                     if (xs.length > 1) {
                         new ArrayType(getRValueReturnType(xs.head))
