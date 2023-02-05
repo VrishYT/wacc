@@ -117,6 +117,7 @@ object SemanticChecker {
                         checkReturnType(exp2, Seq(returnType))
                         returnType
                     }
+                    case _ => ErrorLogger.log("")
                 }
             }
 
@@ -138,7 +139,7 @@ object SemanticChecker {
                     val lType = getLValType(x)
                     checkReturnType(y, Seq(lType))                    
                 }
-                case Read(x) => ??? 
+                case Read(x) => 
                 case Free(x) => x match {
                     case x: ArrayType => 
                     case x: PairType => 
@@ -157,6 +158,7 @@ object SemanticChecker {
                     checkStatements(xs, createChildVars(vars, childVars))
                 }
                 case Begin(xs) => checkStatements(xs, createChildVars(vars, childVars))
+                case default => 
             }
         })
     }
