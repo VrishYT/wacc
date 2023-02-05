@@ -12,9 +12,9 @@ import java.nio.file.{Files, Paths}
 
 class ValidParseTests extends AnyFunSuite {
 
-    val examples = Paths.get("src/test/scala/wacc/wacc_examples/valid")
+    var examples = Paths.get("src/test/scala/wacc/wacc_examples/valid")
     Files.walk(examples).iterator().asScala.filter(_.getFileName.toString().endsWith(".wacc")).foreach(path => {
-        test(path.getFileName.toString.replace(".wacc", "") + " have valid syntax") {
+        test(path.getFileName.toString.replace(".wacc", "") + " has valid syntax") {
             val c = Compiler(path.toString)
             
             val readSuccess = c.readTarget
@@ -25,13 +25,9 @@ class ValidParseTests extends AnyFunSuite {
         }
     })
 
-}
-
-class SemanticErrorParseTests extends AnyFunSuite {
-
-    val examples = Paths.get("src/test/scala/wacc/wacc_examples/invalid/semanticErr")
+    examples = Paths.get("src/test/scala/wacc/wacc_examples/invalid/semanticErr")
     Files.walk(examples).iterator().asScala.filter(_.getFileName.toString().endsWith(".wacc")).foreach(path => {
-        test(path.getFileName.toString.replace(".wacc", "") + " have valid syntax") {
+        test(path.getFileName.toString.replace(".wacc", "") + " has valid syntax") {
             val c = Compiler(path.toString)
             
             val readSuccess = c.readTarget
@@ -48,7 +44,7 @@ class SyntacticErrorParseTests extends AnyFunSuite {
 
     val examples = Paths.get("src/test/scala/wacc/wacc_examples/invalid/syntaxErr")
     Files.walk(examples).iterator().asScala.filter(_.getFileName.toString().endsWith(".wacc")).foreach(path => {
-        test(path.getFileName.toString.replace(".wacc", "") + " have invalid syntax") {
+        test(path.getFileName.toString.replace(".wacc", "") + " has invalid syntax") {
             val c = Compiler(path.toString)
             
             val readSuccess = c.readTarget
