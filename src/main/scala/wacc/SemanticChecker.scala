@@ -65,8 +65,14 @@ object SemanticChecker {
                     }
                 }
                 case NewPair(fst, snd) => new PairType(
-                    getRValueReturnType(fst).asInstanceOf[PairElemType], 
-                    getRValueReturnType(snd).asInstanceOf[PairElemType]
+                    getRValueReturnType(fst) match {
+                        case x: PairElemType => x
+                        case _ => ErrorLogger.log("not a pair elem type") 
+                    }, 
+                    getRValueReturnType(snd) match {
+                        case x: PairElemType => x
+                        case _ => ErrorLogger.log("not a pair elem type") 
+                    }
                 )
                 case Call(id, args) => ???
                 case x: Expr => x match {
