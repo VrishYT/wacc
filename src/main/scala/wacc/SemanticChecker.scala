@@ -85,6 +85,7 @@ object SemanticChecker {
                     case _: BoolLiteral => BoolType
                     case Ident(id) => getTypeFromVars(id, vars, childVars)
                     case ArrayElem(_, exp :: _) => getRValueReturnType(exp)
+                    case ArrayElem(_, Nil) => ErrorLogger.log("cannot have array elem with no expr")
                     case UnaryOpExpr(op, exp) => {
                         val types = op match {
                             case Not => (BoolType, BoolType)
