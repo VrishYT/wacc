@@ -12,8 +12,13 @@ class Compiler {
     private var fileData = ""
     private var program: Option[Program] = None 
     private var failure: Option[Failure[_]] = None
+    private var exception: Option[TypeException] = None
 
     override def toString: String = {
+        exception match {
+            case Some(x) => return x.toString
+            case None =>
+        }
         failure match {
             case Some(x) => return x.toString
             case None =>
@@ -58,7 +63,10 @@ class Compiler {
             try {
                 SemanticChecker.typecheck(x)
             } catch {
-                case e: TypeException => return false
+                case e: TypeException => {
+                    exception = Some(e)
+                    return false
+                }
             }
             return true
         }
