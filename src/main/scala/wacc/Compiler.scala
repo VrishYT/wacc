@@ -53,7 +53,13 @@ class Compiler {
         }
     }
     
-    def typecheck = true
+    def typecheck = program match {
+        case Some(x) => {
+            SemanticChecker.typecheck(x)
+            true
+        }
+        case None => false
+    }
 
     def compile = ???
 

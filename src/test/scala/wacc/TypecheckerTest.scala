@@ -11,7 +11,6 @@ import org.scalatest.Tag
 
 import java.nio.file.{Files, Paths, Path}
 
-@Ignore
 class ValidTypecheckerTests extends AnyFunSuite {
 
     val examples = Paths.get("src/test/scala/wacc/wacc_examples/valid")
@@ -32,7 +31,6 @@ class ValidTypecheckerTests extends AnyFunSuite {
 
 }
 
-@Ignore
 class InvalidTypecheckerTests extends AnyFunSuite {
 
     val examples = Paths.get("src/test/scala/wacc/wacc_examples/invalid/semanticErr")
