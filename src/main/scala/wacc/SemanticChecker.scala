@@ -41,7 +41,10 @@ object SemanticChecker {
         def getLValType(lVal: LValue): Type = 
             lVal match {
                 case Ident(id) => getTypeFromVars(id, vars, childVars)                               
-                case ArrayElem(id, _) => ???
+                case ArrayElem(id, _) => getTypeFromVars(id, vars, childVars) match {
+                    case ArrayType(t) => t
+                    case _ => ErrorLogger.log("unable to access non-array var as an array") // TODO
+                }
                 case x: PairElem => x match {
                     case Fst(x) => getLValType(x)
                     case Snd(x) => getLValType(x)
