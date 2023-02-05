@@ -74,7 +74,10 @@ object SemanticChecker {
                         case _ => ErrorLogger.log("not a pair elem type") 
                     }
                 )
-                case Call(id, args) => ???
+                case Call(id, args) => {
+                    // TODO: verify args type
+                    getTypeFromVars(id, vars, childVars)
+                }
                 case x: Expr => x match {
                     case _: IntLiteral => IntType
                     case _: CharLiteral => CharType
