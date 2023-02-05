@@ -25,7 +25,7 @@ class ValidTypecheckerTests extends AnyFunSuite {
             assert(parseSuccess)
 
             val semanticSuccess: Boolean = c.typecheck
-            assert(semanticSuccess) 
+            assert(semanticSuccess, "\n" + c.toString) 
         }
     })
 
@@ -45,7 +45,7 @@ class InvalidTypecheckerTests extends AnyFunSuite {
             assert(parseSuccess)
 
             val semanticSuccess: Boolean = c.typecheck
-            assert(!semanticSuccess) 
+            assert(!semanticSuccess, "\n" + c.toString) 
         }
     })
 
