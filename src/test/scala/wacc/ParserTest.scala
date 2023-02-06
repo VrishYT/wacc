@@ -14,7 +14,10 @@ class ValidParseTests extends AnyFunSuite {
 
     var examples = Paths.get("src/test/scala/wacc/wacc_examples/valid")
     Files.walk(examples).iterator().asScala.filter(_.getFileName.toString().endsWith(".wacc")).foreach(path => {
-        test(path.getFileName.toString.replace(".wacc", "") + " has valid syntax") {
+        val filename = path.getFileName.toString.replace(".wacc", "")
+        val parentPath = path.getParent.toString
+        val parent = parentPath.substring(parentPath.lastIndexOf("/") + 1) + "/"
+        test(parent + filename + " has valid syntax") {
             val c = Compiler(path.toString)
             
             val readSuccess = c.readTarget
@@ -27,7 +30,10 @@ class ValidParseTests extends AnyFunSuite {
 
     examples = Paths.get("src/test/scala/wacc/wacc_examples/invalid/semanticErr")
     Files.walk(examples).iterator().asScala.filter(_.getFileName.toString().endsWith(".wacc")).foreach(path => {
-        test(path.getFileName.toString.replace(".wacc", "") + " has valid syntax") {
+        val filename = path.getFileName.toString.replace(".wacc", "")
+        val parentPath = path.getParent.toString
+        val parent = parentPath.substring(parentPath.lastIndexOf("/") + 1) + "/"
+        test(parent + filename + " has valid syntax") {
             val c = Compiler(path.toString)
             
             val readSuccess = c.readTarget
@@ -44,7 +50,10 @@ class SyntacticErrorParseTests extends AnyFunSuite {
 
     val examples = Paths.get("src/test/scala/wacc/wacc_examples/invalid/syntaxErr")
     Files.walk(examples).iterator().asScala.filter(_.getFileName.toString().endsWith(".wacc")).foreach(path => {
-        test(path.getFileName.toString.replace(".wacc", "") + " has invalid syntax") {
+        val filename = path.getFileName.toString.replace(".wacc", "")
+        val parentPath = path.getParent.toString
+        val parent = parentPath.substring(parentPath.lastIndexOf("/") + 1) + "/"
+        test(parent + filename + " has invalid syntax") {
             val c = Compiler(path.toString)
             
             val readSuccess = c.readTarget

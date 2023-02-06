@@ -15,7 +15,10 @@ class ValidTypecheckerTests extends AnyFunSuite {
 
     val examples = Paths.get("src/test/scala/wacc/wacc_examples/valid")
     Files.walk(examples).iterator().asScala.filter(_.getFileName.toString().endsWith(".wacc")).foreach(path => {
-        test(path.getFileName.toString.replace(".wacc", "") + " are valid wacc files") {
+        val filename = path.getFileName.toString.replace(".wacc", "")
+        val parentPath = path.getParent.toString
+        val parent = parentPath.substring(parentPath.lastIndexOf("/") + 1) + "/"
+        test(parent + filename + " are valid wacc files") {
             val c = Compiler(path.toString)
             
             val readSuccess = c.readTarget
@@ -35,7 +38,10 @@ class InvalidTypecheckerTests extends AnyFunSuite {
 
     val examples = Paths.get("src/test/scala/wacc/wacc_examples/invalid/semanticErr")
     Files.walk(examples).iterator().asScala.filter(_.getFileName.toString().endsWith(".wacc")).foreach(path => {
-        test(path.getFileName.toString.replace(".wacc", "") + " are semantically invalid") {
+        val filename = path.getFileName.toString.replace(".wacc", "")
+        val parentPath = path.getParent.toString
+        val parent = parentPath.substring(parentPath.lastIndexOf("/") + 1) + "/"
+        test(parent + filename + " are semantically invalid") {
             val c = Compiler(path.toString)
             
             val readSuccess = c.readTarget
