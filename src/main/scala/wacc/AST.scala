@@ -2,6 +2,7 @@ package wacc
 
 import parsley.Parsley
 import scala.language.implicitConversions
+import ParserBridge._
 
 object AST {
     import parsley.genericbridges._
@@ -74,8 +75,8 @@ object AST {
     object PairType extends ParserBridge2[PairElemType, PairElemType, PairType]
 
     sealed trait BaseType extends Type with PairElemType
-    case object IntType extends BaseType with ParserBridge0[BaseType] {
-        def apply() = IntType
+    case object IntType extends BaseType with ParserBridgePos0[BaseType] {
+        def apply()(pos: (Int, Int)) = IntType()(pos)
     }
     case object BoolType extends BaseType with ParserBridge0[BaseType] {
         def apply() = BoolType
