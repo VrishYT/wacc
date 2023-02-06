@@ -68,8 +68,23 @@ object AST {
     // Types
     sealed trait Type
     case object AnyType extends Type
-    case class ArrayType(t: Type) extends Type with PairElemType
-    case class PairType(fst: PairElemType, snd: PairElemType) extends Type {
+    case class ArrayType(t: Type) extends Type with PairElemType {
+
+        override def equals(that: Any): Boolean = {
+            that match {
+                case ArrayType(t) => {
+                    if (this.t == AnyType || t == AnyType) {
+                        return true
+                    } else {
+                        return this.t == t
+                    }
+                }
+                case _ => return false
+            }
+        }
+
+    }
+    case class PairType(fst: PairElemType, snd: PairElemType) extends Type with PairElemType {
 
         override def equals(that: Any): Boolean = {
             def pairEq(p: PairType) = {
@@ -107,7 +122,7 @@ object AST {
 
     sealed trait PairElemType extends Type
     case object Pair extends PairElemType with ParserBridge0[PairElemType]
-    
+
     // Expressions
     sealed trait Expr extends RValue
     case class IntLiteral(x: Int) extends Expr
@@ -126,7 +141,7 @@ object AST {
     object Ident extends ParserBridge1[String, Ident]
     object ArrayElem extends ParserBridge2[String, List[Expr], ArrayElem]
 
-    case object PairLiteralNull extends Expr with ParserBridge0[Expr]
+    case object PairLiteralNull extends Expr with ParserBridge0[Expr] 
     
     // Operators
     sealed trait UnaryOp

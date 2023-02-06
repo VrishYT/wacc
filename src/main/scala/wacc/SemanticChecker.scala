@@ -20,8 +20,11 @@ object SemanticChecker {
     }
 
     def checkFunction(func: Func, vars: Map[String, Type]): Unit = {
-        val childVars = func.args.map(param => (param.id -> param.t)).toMap
-        checkStatements(func.stats, vars ++ childVars)
+        val childVars = MapM[String, Type]()
+        func.args.foreach(param => childVars(param.id) = param.t)
+        childVars("\\func") = func.fs.t 
+
+        checkStatements(func.stats, createChildVars(vars, childVars))
     }
 
     def getTypeFromVars(id: String, parent: Map[String, Type], child: MapM[String, Type]): Type = {
@@ -38,102 +41,100 @@ object SemanticChecker {
 
         val childVars = MapM[String, Type]()
 
-        def getLValType(lVal: LValue): Type = lVal match {
-            case Ident(id) => getTypeFromVars(id, vars, childVars)                               
-            case ArrayElem(id, _) => getTypeFromVars(id, vars, childVars) match {
-                case ArrayType(t) => t
-                case _ => ErrorLogger.log("unable to access non-array var as an array") // TODO
-            }
-            case x: PairElem => x match {
-                case Fst(x) => getLValType(x) match {
-                    case p: PairType => p.fst 
-                    case _ => ErrorLogger.log("cannot evaluate fst on non-pair type")
-                } 
-                case Snd(x) => getLValType(x) match {
-                    case p: PairType => p.snd 
-                    case _ => ErrorLogger.log("cannot evaluate snd on non-pair type")
-                } 
+        def getPairElem(x: Type): PairElemType = x match {
+            case x: PairType => Pair
+            case x: PairElemType => x
+            case x => ErrorLogger.log("not a pair elem type. expected: <? extends PairElemType>, actual: " + x) 
+        }
+
+        def getLValType(lVal: LValue): Type = {
+
+            lVal match {
+                case Ident(id) => getTypeFromVars(id, vars, childVars)                               
+                case ArrayElem(id, _) => getTypeFromVars(id, vars, childVars) match {
+                    case ArrayType(t) => t
+                    case _ => ErrorLogger.log("unable to access non-array var as an array") // TODO
+                }
+                case x: PairElem => x match {
+                    case Fst(x) => getLValType(x) match {
+                        case p: PairType => p.fst 
+                        case _ => ErrorLogger.log("cannot evaluate fst on non-pair type")
+                    } 
+                    case Snd(x) => getLValType(x) match {
+                        case p: PairType => p.snd 
+                        case _ => ErrorLogger.log("cannot evaluate snd on non-pair type")
+                    } 
+                }
             }
         }
             
-        def getRValType(rval: RValue): Type = rval match {
-            case Fst(lval) => getLValType(lval) match {
-                case p: PairType => p.fst 
-                case _ => ErrorLogger.log("cannot evaluate fst on non-pair type")
-            } 
-            case Snd(lval) => getLValType(lval) match {
-                case p: PairType => p.snd 
-                case _ => ErrorLogger.log("cannot evaluate snd on non-pair type")
-            } 
-            case ArrayLiteral(xs) => {
-                if (xs.length > 1) {
-                    // TODO: verify type of all elems
-                    new ArrayType(getRValType(xs.head))
-                } else {
-                    new ArrayType(AnyType)
-                }
-            }
-            case NewPair(fst, snd) => new PairType(
-                getRValType(fst) match {
-                    case x: PairElemType => x
-                    case _ => ErrorLogger.log("not a pair elem type") 
-                    }, 
-                    getRValType(snd) match {
-                        case x: PairElemType => x
-                        case _ => ErrorLogger.log("not a pair elem type") 
-                    }
-                )
-            case Call(id, args) => {
-                // TODO: verify args type
-                getTypeFromVars(id, vars, childVars)
-            }
-            case x: Expr => x match {
-                case _: IntLiteral => IntType
-                case _: CharLiteral => CharType
-                case _: StrLiteral => StringType
-                case _: BoolLiteral => BoolType
-                case PairLiteralNull => PairType(null, null)
-                case Ident(id) => getTypeFromVars(id, vars, childVars)
-                case ArrayElem(_, exp :: _) => getRValType(exp)
-                case ArrayElem(_, Nil) => ErrorLogger.log("cannot have array elem with no expr")
-                case UnaryOpExpr(op, exp) => {
-                    val types = op match {
-                        case Not => (BoolType, BoolType)
-                        case Negate => (IntType, IntType)
-                        case Length => (IntType, IntType)
-                        case Ord => (CharType, IntType)
-                        case Chr => (IntType, CharType)
-                    }
-                    if (getRValType(exp) != types._1) ErrorLogger.log("invalid type for unary op param")
-                    types._2
-                }
-                case BinaryOpExpr(op, exp1, exp2) => {
-                    def checkType(exp: Expr, ReturnType: Type): Unit = {
-                        if (ReturnType == AnyType) return
-                        getRValType(exp) match {
-                            case ReturnType => 
-                            case _ => ErrorLogger.log("invalid binary op type")
-                        }
-                    }
-                    val returnType = op match {
-                        case Mul | Div | Mod | Add | Sub => (IntType, IntType, IntType)
-                        case Equal | NotEqual => (AnyType, AnyType, BoolType)
-                        case And | Or => (BoolType, BoolType, BoolType)
-                        case Greater | GreaterEquals | Less | LessEquals => {
-                            val t1 = getRValType(exp1)
-                            val t2 = getRValType(exp2)
+        def getRValType(rval: RValue): Type = {
 
-                            def validType(t: Type) = t == CharType || t == IntType 
-
-                            if (validType(t1) && validType(t2) && t1 == t2) return BoolType
-                            else ErrorLogger.log("invalid equality type for binary op")
-                        }
+            rval match {
+                case Fst(lval) => getPairElem(getLValType(lval))
+                case Snd(lval) => getPairElem(getLValType(lval))
+                
+                case ArrayLiteral(xs) => {
+                    if (xs.length > 0) {
+                        // TODO: verify type of all elems
+                        new ArrayType(getRValType(xs.head))
+                    } else {
+                        new ArrayType(AnyType)
                     }
-                    checkType(exp1, returnType._1)
-                    checkType(exp1, returnType._2)
-                    returnType._3
                 }
-                case _ => ErrorLogger.log("")
+                case NewPair(fst, snd) => new PairType(getPairElem(getRValType(fst)), getPairElem(getRValType(snd)))
+                case Call(id, args) => {
+                    // TODO: verify args type
+                    getTypeFromVars(id, vars, childVars)
+                }
+                case x: Expr => x match {
+                    case _: IntLiteral => IntType
+                    case _: CharLiteral => CharType
+                    case _: StrLiteral => StringType
+                    case _: BoolLiteral => BoolType
+                    case PairLiteralNull => PairType(null, null)
+                    case Ident(id) => getTypeFromVars(id, vars, childVars)
+                    case ArrayElem(_, exp :: _) => getRValType(exp)
+                    case ArrayElem(_, Nil) => ErrorLogger.log("cannot have array elem with no expr")
+                    case UnaryOpExpr(op, exp) => {
+                        val types = op match {
+                            case Not => (BoolType, BoolType)
+                            case Negate => (IntType, IntType)
+                            case Length => (IntType, IntType)
+                            case Ord => (CharType, IntType)
+                            case Chr => (IntType, CharType)
+                        }
+                        if (getRValType(exp) != types._1) ErrorLogger.log("invalid type for unary op param")
+                        types._2
+                    }
+                    case BinaryOpExpr(op, exp1, exp2) => {
+                        def checkType(exp: Expr, ReturnType: Type): Unit = {
+                            if (ReturnType == AnyType) return
+                            getRValType(exp) match {
+                                case ReturnType => 
+                                case _ => ErrorLogger.log("invalid binary op type")
+                            }
+                        }
+                        val returnType = op match {
+                            case Mul | Div | Mod | Add | Sub => (IntType, IntType, IntType)
+                            case Equal | NotEqual => (AnyType, AnyType, BoolType)
+                            case And | Or => (BoolType, BoolType, BoolType)
+                            case Greater | GreaterEquals | Less | LessEquals => {
+                                val t1 = getRValType(exp1)
+                                val t2 = getRValType(exp2)
+
+                                def validType(t: Type) = t == CharType || t == IntType 
+
+                                if (validType(t1) && validType(t2) && t1 == t2) return BoolType
+                                else ErrorLogger.log("invalid equality type for binary op")
+                            }
+                        }
+                        checkType(exp1, returnType._1)
+                        checkType(exp1, returnType._2)
+                        returnType._3
+                    }
+                    case _ => ErrorLogger.log("")
+                }
             }
         }
         
@@ -161,7 +162,11 @@ object SemanticChecker {
                         case x => ErrorLogger.log("invalid type for free. expected: <Array, Pair>, actual: " + rType)
                     }
                 }
-                case Return(x) => if (getRValType(x) != IntType) ErrorLogger.log("invalid type for assign")
+                case Return(x) => {
+                    val rVal = getRValType(x)
+                    val rType = getTypeFromVars("\\func", vars, childVars)
+                    if (rVal != rType) ErrorLogger.log("invalid type for return. expected: IntType, actual: " + rVal)
+                }
                 case Exit(x) => {
                     if (getRValType(x) != IntType) ErrorLogger.log("invalid type for exit")              
                 }
