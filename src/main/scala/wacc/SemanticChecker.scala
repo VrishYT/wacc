@@ -71,8 +71,14 @@ object SemanticChecker {
         def getRValType(rval: RValue): Type = {
 
             rval match {
-                case Fst(lval) => getPairElem(getLValType(lval))
-                case Snd(lval) => getPairElem(getLValType(lval))
+                case Fst(lval) => getLValType(lval) match {
+                    case PairType(fst, _) => fst
+                    case x => ErrorLogger.log("unable to get fst of non-pair type") 
+                }
+                case Snd(lval) => getLValType(lval) match {
+                    case PairType(_, snd) => snd
+                    case x => ErrorLogger.log("unable to get snd of non-pair type") 
+                }
                 
                 case ArrayLiteral(xs) => {
                     if (xs.length > 0) {
