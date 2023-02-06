@@ -58,11 +58,11 @@ object SemanticChecker {
                 case x: PairElem => x match {
                     case Fst(x) => getLValType(x) match {
                         case PairType(fst, _) => fst
-                        case _ => ErrorLogger.log("cannot evaluate fst on non-pair type")
+                        case x => ErrorLogger.log("cannot evaluate fst on non-pair type: " + x)
                     } 
                     case Snd(x) => getLValType(x) match {
                         case PairType(_, snd) => snd
-                        case _ => ErrorLogger.log("cannot evaluate snd on non-pair type")
+                        case x => ErrorLogger.log("cannot evaluate snd on non-pair type: " + x)
                     } 
                 }
             }
@@ -73,11 +73,11 @@ object SemanticChecker {
             rval match {
                 case Fst(lval) => getLValType(lval) match {
                     case PairType(fst, _) => fst
-                    case x => ErrorLogger.log("unable to get fst of non-pair type") 
+                    case x => ErrorLogger.log("unable to get fst of non-pair type: " + x) 
                 }
                 case Snd(lval) => getLValType(lval) match {
                     case PairType(_, snd) => snd
-                    case x => ErrorLogger.log("unable to get snd of non-pair type") 
+                    case x => ErrorLogger.log("unable to get snd of non-pair type: " + x) 
                 }
                 
                 case ArrayLiteral(xs) => {
@@ -139,7 +139,7 @@ object SemanticChecker {
                         checkType(exp1, returnType._2)
                         returnType._3
                     }
-                    case _ => ErrorLogger.log("")
+                    case _ => ErrorLogger.log("unknown")
                 }
             }
         }

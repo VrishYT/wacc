@@ -38,7 +38,7 @@ class SemanticUnitTests extends AnyFunSuite {
         val stats = List(Declare(BoolType, "b", IntLiteral(1)))
         val p = Program(fs, stats)
 
-        assertThrows[scala.NotImplementedError] {
+        assertThrows[TypeException] {
             SemanticChecker.typecheck(p)
         }
     }
