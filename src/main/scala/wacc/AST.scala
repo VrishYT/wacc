@@ -69,7 +69,24 @@ object AST {
     sealed trait Type
     case object AnyType extends Type
     case class ArrayType(t: Type) extends Type with PairElemType
-    case class PairType(fst: PairElemType, snd: PairElemType) extends Type
+    case class PairType(fst: PairElemType, snd: PairElemType) extends Type {
+
+        override def equals(that: Any): Boolean = {
+            def pairEq(p: PairType) = {
+                this.fst == p.fst && this.snd == p.snd
+            }
+            this match {
+                case PairType (null, null) => return true
+                case x: PairType => pairEq(x)
+            }
+            that match {
+                case PairType(null, null) => return true
+                case x: PairType => pairEq(x)
+                case _ => return false
+            }
+        }
+
+    }
 
     object ArrayType extends ParserBridge1[Type, ArrayType]
     object PairType extends ParserBridge2[PairElemType, PairElemType, PairType]

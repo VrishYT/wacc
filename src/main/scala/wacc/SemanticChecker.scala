@@ -45,16 +45,29 @@ object SemanticChecker {
                 case _ => ErrorLogger.log("unable to access non-array var as an array") // TODO
             }
             case x: PairElem => x match {
-                case Fst(x) => getLValType(x)
-                case Snd(x) => getLValType(x)
+                case Fst(x) => getLValType(x) match {
+                    case p: PairType => p.fst 
+                    case _ => ErrorLogger.log("cannot evaluate fst on non-pair type")
+                } 
+                case Snd(x) => getLValType(x) match {
+                    case p: PairType => p.snd 
+                    case _ => ErrorLogger.log("cannot evaluate snd on non-pair type")
+                } 
             }
         }
             
         def getRValType(rval: RValue): Type = rval match {
-            case Fst(lval) => getLValType(lval) 
-            case Snd(lval) => getLValType(lval) 
+            case Fst(lval) => getLValType(lval) match {
+                case p: PairType => p.fst 
+                case _ => ErrorLogger.log("cannot evaluate fst on non-pair type")
+            } 
+            case Snd(lval) => getLValType(lval) match {
+                case p: PairType => p.snd 
+                case _ => ErrorLogger.log("cannot evaluate snd on non-pair type")
+            } 
             case ArrayLiteral(xs) => {
                 if (xs.length > 1) {
+                    // TODO: verify type of all elems
                     new ArrayType(getRValType(xs.head))
                 } else {
                     new ArrayType(AnyType)
