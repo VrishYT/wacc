@@ -57,11 +57,11 @@ object SemanticChecker {
                 }
                 case x: PairElem => x match {
                     case Fst(x) => getLValType(x) match {
-                        case p: PairType => p.fst 
+                        case PairType(fst, _) => fst
                         case _ => ErrorLogger.log("cannot evaluate fst on non-pair type")
                     } 
                     case Snd(x) => getLValType(x) match {
-                        case p: PairType => p.snd 
+                        case PairType(_, snd) => snd
                         case _ => ErrorLogger.log("cannot evaluate snd on non-pair type")
                     } 
                 }
