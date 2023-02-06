@@ -13,8 +13,8 @@ object Parser{
     import AST._
 
 
-    val BOOL_LIT = lexer.lexeme.symbol("true") #> true <|> 
-                   lexer.lexeme.symbol("false") #> false
+    val BOOL_LIT = (lexer.lexeme.symbol("true") #> true <|> 
+                   lexer.lexeme.symbol("false") #> false).label("boolean")
                                  
     val PAIR_LIT = lexer.lexeme.symbol("null") #> PairLiteralNull
     
@@ -31,7 +31,7 @@ object Parser{
 
     val operators: Parsley[Expr] = precedence[Expr](
         atom)(
-                      Ops(Prefix)(Length <# lexer.lexeme.symbol("len"), Ord <# lexer.lexeme.symbol("ord"), Chr <# lexer.lexeme.symbol("chr"), Negate <# UNOP_MINUS, Not <# lexer.lexeme.symbol("!")),
+                      Ops(Prefix)(Length <# lexer.lexeme.symbol("len").label("unary operator"), Ord <# lexer.lexeme.symbol("ord").label("unary operator"), Chr <# lexer.lexeme.symbol("chr").label("unary operator"), Negate <# UNOP_MINUS.label("unary operator"), Not <# lexer.lexeme.symbol("!").label("unary operator")),
                       Ops(InfixL)(Mul <# lexer.lexeme.symbol("*"), Div <# lexer.lexeme.symbol("/"), Mod <# lexer.lexeme.symbol("%")),
                       Ops(InfixL)(Add <# lexer.lexeme.symbol("+"), Sub <# lexer.lexeme.symbol("-")),
                       Ops(InfixL)(Greater <# lexer.lexeme.symbol(">"), GreaterEquals <# lexer.lexeme.symbol(">="), Less <# lexer.lexeme.symbol("<"), LessEquals <# lexer.lexeme.symbol("<=")),
@@ -57,7 +57,7 @@ object Parser{
 
     val ARG_LIST = sepEndBy(expr, ",")
 
-    lazy val PAIR_ELEM = Fst(lexer.lexeme.symbol("fst") *> lvalue) <|> Snd(lexer.lexeme.symbol("snd") *> lvalue)
+    lazy val PAIR_ELEM = Fst(lexer.lexeme.symbol("fst").label("pair operator") *> lvalue) <|> Snd(lexer.lexeme.symbol("snd").label("pair operator") *> lvalue)
 
     lazy val rvalue: Parsley[RValue] = expr <|> 
                                        ARRAY_LITER <|> 

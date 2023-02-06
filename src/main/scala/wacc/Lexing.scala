@@ -9,6 +9,7 @@ object Lexing{
     import parsley.token.predicate.Basic
     import parsley.token.descriptions.{LexicalDesc, NameDesc, SymbolDesc}
     import parsley.token.descriptions._
+    import parsley.errors.combinator._
 
     val escapeConfigs = text.EscapeDesc.plain.copy(escBegin = '\\',
                            literals = Set('\'', '\"', '\\'),
@@ -67,12 +68,12 @@ object Lexing{
 
     val lexer = new Lexer(desc)
 
-    val IDENT = lexer.lexeme.names.identifier
-    val INTEGER = lexer.lexeme.numeric.integer.decimal32
+    val IDENT = lexer.lexeme.names.identifier.label("identifier")
+    val INTEGER = lexer.lexeme.numeric.integer.decimal32.label("number")
     val UNOP_MINUS = lexer.lexeme(attempt('-' *> notFollowedBy(digit)))
 
-    val STR_LIT = lexer.lexeme.text.string.ascii
-    val CHR_LIT = lexer.lexeme.text.character.ascii 
+    val STR_LIT = lexer.lexeme.text.string.ascii.label("string")
+    val CHR_LIT = lexer.lexeme.text.character.ascii.label("character")
 
     def fully[A](p: Parsley[A]) = lexer.fully(p)
     val implicits = lexer.lexeme.symbol.implicits
