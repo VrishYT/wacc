@@ -6,7 +6,7 @@ object Parser{
     import parsley.combinator._
     import parsley.expr.{precedence, Ops, InfixL, Prefix}
     import parsley.expr.chain
-    import parsley.errors.combinator.ErrorMethods
+    import parsley.errors.combinator._
     import Lexing.lexer
     import Lexing._
     import implicits.implicitSymbol
@@ -14,58 +14,68 @@ object Parser{
 
 
     val BOOL_LIT = (lexer.lexeme.symbol("true") #> true <|> 
-                   lexer.lexeme.symbol("false") #> false).label("boolean")
+                   lexer.lexeme.symbol("false") #> false).label("boolean (true or false)")
                                  
-    val PAIR_LIT = lexer.lexeme.symbol("null") #> PairLiteralNull
+    val PAIR_LIT = ("null") #> PairLiteralNull
     
     lazy val ARRAY_ELEM = ArrayElem(IDENT, "[" *> sepBy(expr, "][") <* "]")
 
-    val BASE_TYPE = lexer.lexeme.symbol("int") #> IntType <|>
-                    lexer.lexeme.symbol("string") #> StringType <|>
-                    lexer.lexeme.symbol("bool") #> BoolType <|> 
-                    lexer.lexeme.symbol("char") #> CharType
+    val BASE_TYPE = lexer.lexeme.symbol("int").label("type \'int\'") #> IntType <|>
+                    lexer.lexeme.symbol("string").label("type \'string\'") #> StringType <|>
+                    lexer.lexeme.symbol("bool").label("type \'bool\'") #> BoolType <|> 
+                    lexer.lexeme.symbol("char").label("type \'char\'") #> CharType
     
     private lazy val atom: Parsley[Expr] = 
                     "(" *> expr <* ")" <|> attempt(ARRAY_ELEM) <|> IntLiteral(INTEGER) <|> CharLiteral(CHR_LIT) <|>
                     StrLiteral(STR_LIT) <|> BoolLiteral(BOOL_LIT)  <|> Ident(IDENT) <|> PAIR_LIT
 
+
+    def unary_op(x: Parsley[Unit]) = x.label("unary operator").explain("unary operators include len, ord, chr, ! and -")
+
+    def arith_op(x: Parsley[Unit]) = x.label("arithmetic operator").explain("arithmetic operators include *, /, %, + and -")
+
+    def comp_op(x: Parsley[Unit]) = x.label("comparison operator").explain("comparison operators include >, >=, <, <=, != and ==")
+
+    def logic_op(x: Parsley[Unit]) = x.label("logical operator").explain("logical operators include && and ||")
+
     val operators: Parsley[Expr] = precedence[Expr](
         atom)(
-                      Ops(Prefix)(Length <# lexer.lexeme.symbol("len").label("unary operator"), Ord <# lexer.lexeme.symbol("ord").label("unary operator"), Chr <# lexer.lexeme.symbol("chr").label("unary operator"), Negate <# UNOP_MINUS.label("unary operator"), Not <# lexer.lexeme.symbol("!").label("unary operator")),
-                      Ops(InfixL)(Mul <# lexer.lexeme.symbol("*"), Div <# lexer.lexeme.symbol("/"), Mod <# lexer.lexeme.symbol("%")),
-                      Ops(InfixL)(Add <# lexer.lexeme.symbol("+"), Sub <# lexer.lexeme.symbol("-")),
-                      Ops(InfixL)(Greater <# lexer.lexeme.symbol(">"), GreaterEquals <# lexer.lexeme.symbol(">="), Less <# lexer.lexeme.symbol("<"), LessEquals <# lexer.lexeme.symbol("<=")),
-                      Ops(InfixL)(Equal <# lexer.lexeme.symbol("=="), NotEqual <# lexer.lexeme.symbol("!=")),
-                      Ops(InfixL)(And <# lexer.lexeme.symbol("&&")),
-                      Ops(InfixL)(Or <# lexer.lexeme.symbol("||"))
+                      Ops(Prefix)(Length <# unary_op(lexer.lexeme.symbol("len")), Ord <# unary_op(lexer.lexeme.symbol("ord")), Chr <# unary_op(lexer.lexeme.symbol("chr")), Negate <# unary_op(UNOP_MINUS), Not <# unary_op(lexer.lexeme.symbol("!"))),
+                      Ops(InfixL)(Mul <# arith_op(lexer.lexeme.symbol("*")), Div <# arith_op(lexer.lexeme.symbol("/")), Mod <# arith_op(lexer.lexeme.symbol("%"))),
+                      Ops(InfixL)(Add <# arith_op(lexer.lexeme.symbol("+")), Sub <# arith_op(lexer.lexeme.symbol("-"))),
+                      Ops(InfixL)(Greater <# comp_op(lexer.lexeme.symbol(">")), GreaterEquals <# comp_op(lexer.lexeme.symbol(">=")),
+                                  Less <# comp_op(lexer.lexeme.symbol("<")), LessEquals <# comp_op(lexer.lexeme.symbol("<="))),
+                      Ops(InfixL)(Equal <# comp_op(lexer.lexeme.symbol("==")), NotEqual <# comp_op(lexer.lexeme.symbol("!="))),
+                      Ops(InfixL)(And <# logic_op(lexer.lexeme.symbol("&&"))),
+                      Ops(InfixL)(Or <# logic_op(lexer.lexeme.symbol("||")))
                    )
-    
+
     val expr: Parsley[Expr] = operators <|> atom  
 
-    val ARRAY_LITER = ArrayLiteral("[" *> (sepBy(expr, ",") <* "]"))
+    val ARRAY_LITER = ArrayLiteral("[" *> (sepBy(expr, ",") <* "]")).label("array literal")
     
-    lazy val PAIR_ELEM_TYPE = lexer.lexeme.symbol("pair") #> Pair <|> chain.postfix(BASE_TYPE, ArrayType <# "[]")
+    lazy val PAIR_ELEM_TYPE = ("pair") #> Pair <|> chain.postfix(BASE_TYPE, ArrayType <# "[]")
     
-    val PAIR_TYPE = PairType(lexer.lexeme.symbol("pair") *> "(" *> PAIR_ELEM_TYPE, "," *> PAIR_ELEM_TYPE <~ ")")
+    val PAIR_TYPE = PairType(lexer.lexeme.symbol("pair") *> "(" *> PAIR_ELEM_TYPE, "," *> PAIR_ELEM_TYPE <~ ")").label("type \'pair\'") // explain
     
     private lazy val atom2: Parsley[Type] = BASE_TYPE <|> PAIR_TYPE
 
-    val ARRAY_TYPE: Parsley[Type] = chain.postfix(atom2, ArrayType <# "[]")
+    val ARRAY_TYPE: Parsley[Type] = chain.postfix(atom2, ArrayType <# "[]").label("array type") // explain
 
     
     lazy val types: Parsley[Type] = ARRAY_TYPE <|> BASE_TYPE <|> PAIR_TYPE 
 
     val ARG_LIST = sepEndBy(expr, ",")
 
-    lazy val PAIR_ELEM = Fst(lexer.lexeme.symbol("fst").label("pair operator") *> lvalue) <|> Snd(lexer.lexeme.symbol("snd").label("pair operator") *> lvalue)
+    lazy val PAIR_ELEM = Fst(("fst").label("pair operator") *> lvalue) <|> Snd(("snd").label("pair operator") *> lvalue)
 
     lazy val rvalue: Parsley[RValue] = expr <|> 
                                        ARRAY_LITER <|> 
-                                       NewPair(lexer.lexeme.symbol("newpair") *> "(" *> expr <~ ",", expr <~ ")") <|> 
+                                       NewPair(lexer.lexeme.symbol("newpair") *> "(" *> expr <~ ",", expr <~ ")") <|> // explain
                                        PAIR_ELEM <|> 
-                                       Call(lexer.lexeme.symbol("call") *> IDENT, "(" *> ARG_LIST <~ ")")
+                                       Call(lexer.lexeme.symbol("call") *> IDENT, "(" *> ARG_LIST <~ ")") // explain
 
-    lazy val lvalue: Parsley[LValue] = attempt(ARRAY_ELEM) <|> PAIR_ELEM <|> Ident(IDENT) 
+    lazy val lvalue: Parsley[LValue] = attempt(ARRAY_ELEM) <|> PAIR_ELEM <|> Ident(IDENT) // remove attempt?
 
     val stat: Parsley[Stat] = (lexer.lexeme.symbol("skip") #> Skip) <|> 
                               (Declare(types, IDENT, lexer.lexeme.symbol("=") *> rvalue)) <|>
@@ -81,11 +91,11 @@ object Parser{
                                   lexer.lexeme.symbol("else") *> stats <~ lexer.lexeme.symbol("fi"))) <|>
                               (While(lexer.lexeme.symbol("while") *> expr,
                                   lexer.lexeme.symbol("do") *> stats <~ lexer.lexeme.symbol("done"))) <|>
-                              (Begin(lexer.lexeme.symbol("begin") *> stats <~ lexer.lexeme.symbol("end"))) 
+                              (Begin(lexer.lexeme.symbol("begin") *> stats <~ lexer.lexeme.symbol("end"))) // explain where needed for each
     
     private lazy val stats = sepBy1(stat, ";")
 
-    val param = Param(types, IDENT)
+    val param = Param(types, IDENT).label("parameter")
 
     val paramList = sepBy(param, ",")
 
@@ -116,6 +126,19 @@ object Parser{
 
     val program = fully(program_)
 }
+
+/*
+turn func_ into a zipped thing
+
+take out all lexer.lexeme.symbol calls
+
+use a verified fail on function calls as an OR after attempting to parse type/ident/(
+
+use factory bridges on array elems to make sure they identify no brackets as identifiers, so we remove the attempts
+
+move the valid return stuff into the Func node, removing all stuff from the AST
+
+ */
 
 
  
