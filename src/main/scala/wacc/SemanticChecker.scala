@@ -32,7 +32,7 @@ object SemanticChecker {
             case Some(x) => x
             case None => parent.get(id) match {
                 case Some(x) => x
-                case None => ErrorLogger.log("Variable " + id + " not found")
+                case None => ErrorLogger.err("Variable " + id + " not found")
             }
         }
     }
@@ -44,7 +44,7 @@ object SemanticChecker {
         def getPairElem(x: Type): PairElemType = x match {
             case x: PairType => Pair
             case x: PairElemType => x
-            case x => ErrorLogger.log("not a pair elem type. expected: <? extends PairElemType>, actual: " + x) 
+            case x => ErrorLogger.err("not a pair elem type. expected: <? extends PairElemType>, actual: " + x) 
         }
 
         def getLValType(lVal: LValue): Type = {
@@ -53,16 +53,16 @@ object SemanticChecker {
                 case Ident(id) => getTypeFromVars(id, vars, childVars)                               
                 case ArrayElem(id, _) => getTypeFromVars(id, vars, childVars) match {
                     case ArrayType(t) => t
-                    case _ => ErrorLogger.log("unable to access non-array var as an array") // TODO
+                    case _ => ErrorLogger.err("unable to access non-array var as an array") // TODO
                 }
                 case x: PairElem => x match {
                     case Fst(x) => getLValType(x) match {
                         case PairType(fst, _) => fst
-                        case x => ErrorLogger.log("cannot evaluate fst on non-pair type: " + x)
+                        case x => ErrorLogger.err("cannot evaluate fst on non-pair type: " + x)
                     } 
                     case Snd(x) => getLValType(x) match {
                         case PairType(_, snd) => snd
-                        case x => ErrorLogger.log("cannot evaluate snd on non-pair type: " + x)
+                        case x => ErrorLogger.err("cannot evaluate snd on non-pair type: " + x)
                     } 
                 }
             }
@@ -73,11 +73,11 @@ object SemanticChecker {
             rval match {
                 case Fst(lval) => getLValType(lval) match {
                     case PairType(fst, _) => fst
-                    case x => ErrorLogger.log("unable to get fst of non-pair type: " + x) 
+                    case x => ErrorLogger.err("unable to get fst of non-pair type: " + x) 
                 }
                 case Snd(lval) => getLValType(lval) match {
                     case PairType(_, snd) => snd
-                    case x => ErrorLogger.log("unable to get snd of non-pair type: " + x) 
+                    case x => ErrorLogger.err("unable to get snd of non-pair type: " + x) 
                 }
                 
                 case ArrayLiteral(xs) => {
@@ -101,7 +101,7 @@ object SemanticChecker {
                     case PairLiteralNull => PairType(null, null)
                     case Ident(id) => getTypeFromVars(id, vars, childVars)
                     case ArrayElem(_, exp :: _) => getRValType(exp)
-                    case ArrayElem(_, Nil) => ErrorLogger.log("cannot have array elem with no expr")
+                    case ArrayElem(_, Nil) => ErrorLogger.err("cannot have array elem with no expr")
                     case UnaryOpExpr(op, exp) => {
                         val types = op match {
                             case Not => (BoolType, BoolType)
@@ -110,7 +110,7 @@ object SemanticChecker {
                             case Ord => (CharType, IntType)
                             case Chr => (IntType, CharType)
                         }
-                        if (getRValType(exp) != types._1) ErrorLogger.log("invalid type for unary op param")
+                        if (getRValType(exp) != types._1) ErrorLogger.err("invalid type for unary op param")
                         types._2
                     }
                     case BinaryOpExpr(op, exp1, exp2) => {
@@ -118,7 +118,7 @@ object SemanticChecker {
                             if (ReturnType == AnyType) return
                             getRValType(exp) match {
                                 case ReturnType => 
-                                case _ => ErrorLogger.log("invalid binary op type")
+                                case _ => ErrorLogger.err("invalid binary op type")
                             }
                         }
                         val returnType = op match {
@@ -132,14 +132,14 @@ object SemanticChecker {
                                 def validType(t: Type) = t == CharType || t == IntType 
 
                                 if (validType(t1) && validType(t2) && t1 == t2) return BoolType
-                                else ErrorLogger.log("invalid equality type for binary op")
+                                else ErrorLogger.err("invalid equality type for binary op")
                             }
                         }
                         checkType(exp1, returnType._1)
                         checkType(exp1, returnType._2)
                         returnType._3
                     }
-                    case _ => ErrorLogger.log("unknown")
+                    case _ => ErrorLogger.err("unknown")
                 }
             }
         }
@@ -148,42 +148,42 @@ object SemanticChecker {
             statement match {
                 case Declare(t, id, rhs) => {
                     val rType = getRValType(rhs)
-                    if (rType != t) ErrorLogger.log("invalid type for declare. expected: " + t  + ", actual: " + rType)
+                    if (rType != t) ErrorLogger.err("invalid type for declare. expected: " + t  + ", actual: " + rType)
                     childVars(id) = t
                 }
                 case Assign(x, y) => {
                     val lType = getLValType(x)
                     val rType = getRValType(y)
-                    if (lType != rType) ErrorLogger.log("invalid type for assign. expected : " + lType + ", actual : " + rType)              
+                    if (lType != rType) ErrorLogger.err("invalid type for assign. expected : " + lType + ", actual : " + rType)              
                 }
                 case Read(x) => {
                     val ltype = getLValType(x)
-                    if (ltype != IntType && ltype != CharType) ErrorLogger.log("invalid type for read. expected: <IntType, CharType>, actual: " + ltype)  
+                    if (ltype != IntType && ltype != CharType) ErrorLogger.err("invalid type for read. expected: <IntType, CharType>, actual: " + ltype)  
                 }
                 case Free(x) => {
                     val rType = getRValType(x)
                     rType match {
                         case x: ArrayType => 
                         case x: PairType =>
-                        case x => ErrorLogger.log("invalid type for free. expected: <Array, Pair>, actual: " + rType)
+                        case x => ErrorLogger.err("invalid type for free. expected: <Array, Pair>, actual: " + rType)
                     }
                 }
                 case Return(x) => {
                     val rVal = getRValType(x)
                     val rType = getTypeFromVars("\\func", vars, childVars)
-                    if (rVal != rType) ErrorLogger.log("invalid type for return. expected: IntType, actual: " + rVal)
+                    if (rVal != rType) ErrorLogger.err("invalid type for return. expected: IntType, actual: " + rVal)
                 }
                 case Exit(x) => {
-                    if (getRValType(x) != IntType) ErrorLogger.log("invalid type for exit")              
+                    if (getRValType(x) != IntType) ErrorLogger.err("invalid type for exit")              
                 }
                 case If(p, xs, ys) => {
-                    if (getRValType(p) != BoolType) ErrorLogger.log("invalid type for if cond") 
+                    if (getRValType(p) != BoolType) ErrorLogger.err("invalid type for if cond") 
                     val newChildVars = createChildVars(vars, childVars)
                     checkStatements(xs, newChildVars)
                     checkStatements(ys, newChildVars)
                 }
                 case While(p, xs) => {
-                    if (getRValType(p) != BoolType) ErrorLogger.log("invalid type for while cond") 
+                    if (getRValType(p) != BoolType) ErrorLogger.err("invalid type for while cond") 
                     checkStatements(xs, createChildVars(vars, childVars))
                 }
                 case Begin(xs) => checkStatements(xs, createChildVars(vars, childVars))
