@@ -7,6 +7,7 @@ object Parser{
     import parsley.expr.{precedence, Ops, InfixL, Prefix}
     import parsley.expr.chain
     import parsley.errors.combinator._
+    import parsley.errors.patterns._
     import Lexing.lexer
     import Lexing._
     import implicits.implicitSymbol
@@ -116,7 +117,10 @@ object Parser{
         }
     }
 
-    val func = Func(attempt(types <~> IDENT <~ "("), paramList <~ ")", "is" *> stats <* "end")
+    val invalid_function = IDENT <~ "("
+
+    val func = Func(attempt(types <~> IDENT <~ "("), paramList <~ ")", "is" *> stats <* "end") <|>
+                invalid_function.verifiedFail("missing return type of function")
  
     val program_ = Program("begin" *> sepEndBy(func.filterOut {
         case func if !validReturn(func.stats) => "function does not have a return/exit"
