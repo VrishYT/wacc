@@ -16,7 +16,7 @@ class ValidParseTests extends AnyFunSuite {
     Files.walk(examples).iterator().asScala.filter(_.getFileName.toString().endsWith(".wacc")).foreach(path => {
         val filename = path.getFileName.toString.replace(".wacc", "")
         val parentPath = path.getParent.toString
-        val parent = parentPath.substring(parentPath.lastIndexOf("/") + 1) + "/"
+        val parent = parentPath.substring(parentPath.lastIndexOf("valid/") + 6) + "/"
         test(parent + filename + " has valid syntax") {
             val c = Compiler(path.toString)
             
@@ -28,12 +28,13 @@ class ValidParseTests extends AnyFunSuite {
         }
     })
 
-    examples = Paths.get("src/test/scala/wacc/wacc_examples/invalid/semanticErr")
+    val subdir = "semanticErr/"
+    examples = Paths.get("src/test/scala/wacc/wacc_examples/invalid/" + subdir)
     Files.walk(examples).iterator().asScala.filter(_.getFileName.toString().endsWith(".wacc")).foreach(path => {
         val filename = path.getFileName.toString.replace(".wacc", "")
         val parentPath = path.getParent.toString
-        val parent = parentPath.substring(parentPath.lastIndexOf("/") + 1) + "/"
-        test(parent + filename + " has valid syntax") {
+        val parent = parentPath.substring(parentPath.lastIndexOf(subdir) + subdir.length) + "/"
+        test(subdir + parent + filename + " has valid syntax") {
             val c = Compiler(path.toString)
             
             val readSuccess = c.readTarget
@@ -46,21 +47,23 @@ class ValidParseTests extends AnyFunSuite {
 
 }
 
-class SyntacticErrorParseTests extends AnyFunSuite {
+class InvalidParseTests extends AnyFunSuite {
 
-    val examples = Paths.get("src/test/scala/wacc/wacc_examples/invalid/syntaxErr")
+    val subdir = "syntaxErr/"
+    val examples = Paths.get("src/test/scala/wacc/wacc_examples/invalid/" + subdir)
     Files.walk(examples).iterator().asScala.filter(_.getFileName.toString().endsWith(".wacc")).foreach(path => {
         val filename = path.getFileName.toString.replace(".wacc", "")
         val parentPath = path.getParent.toString
-        val parent = parentPath.substring(parentPath.lastIndexOf("/") + 1) + "/"
+        val parent = parentPath.substring(parentPath.lastIndexOf(subdir) + subdir.length) + "/"
         test(parent + filename + " has invalid syntax") {
             val c = Compiler(path.toString)
             
             val readSuccess = c.readTarget
             assert(readSuccess)
 
-            val parseSuccess: Boolean = c.parse
-            assert(!parseSuccess, "\n" + c.toString)
+            assertThrows[SyntaxException] {
+                c.parse
+            }
         }
     })
 
