@@ -13,9 +13,12 @@ object SemanticChecker {
         val statements = program.stats
         val functions = program.fs
 
-        val vars = functions.map(func => (func.fs.id -> func.fs.t)).toMap
-        functions.foreach(func => checkFunction(func, vars))
-        checkStatements(statements, vars)
+        val vars = MapM[String, Type]()
+        functions.foreach(func => vars(func.fs.id) = func.fs.t)
+        vars("\\null") = PairType(Pair, Pair)
+        val varsImm = vars.toMap
+        functions.foreach(func => checkFunction(func, varsImm))
+        checkStatements(statements, varsImm)
 
     }
 
@@ -41,10 +44,30 @@ object SemanticChecker {
 
         val childVars = MapM[String, Type]()
 
-        def getPairElem(x: Type): PairElemType = x match {
+        def getPairElemType(t: Type): Type = t match {
+            case PairIdent(id) => getTypeFromVars(id, vars, childVars)
             case x: PairType => Pair
             case x: PairElemType => x
             case x => ErrorLogger.err("not a pair elem type. expected: <? extends PairElemType>, actual: " + x) 
+        }
+
+        def getLValPairElem(p: PairElem) = p match {
+            case Fst(x) => getLValType(x) match {
+                case PairIdent(id) => getTypeFromVars(id, vars, childVars) match {
+                    case PairType(fst, _) => getPairElemType(fst)
+                    case _ => ErrorLogger.err("cannot evaluate fst on non-pair type: " + p)
+                }
+                case PairType(fst, _) => getPairElemType(fst)
+                case x => ErrorLogger.err("cannot evaluate fst on non-pair type: " + x)
+            } 
+            case Snd(x) => getLValType(x) match {
+                case PairIdent(id) => getTypeFromVars(id, vars, childVars) match {
+                    case PairType(_, snd) => getPairElemType(snd)
+                    case _ => ErrorLogger.err("cannot evaluate fst on non-pair type: " + p)
+                }
+                case PairType(_, snd) => getPairElemType(snd)
+                case x => ErrorLogger.err("cannot evaluate snd on non-pair type: " + x)
+            } 
         }
 
         def getLValType(lVal: LValue): Type = {
@@ -55,30 +78,14 @@ object SemanticChecker {
                     case ArrayType(t) => t
                     case _ => ErrorLogger.err("unable to access non-array var as an array") // TODO
                 }
-                case x: PairElem => x match {
-                    case Fst(x) => getLValType(x) match {
-                        case PairType(fst, _) => fst
-                        case x => ErrorLogger.err("cannot evaluate fst on non-pair type: " + x)
-                    } 
-                    case Snd(x) => getLValType(x) match {
-                        case PairType(_, snd) => snd
-                        case x => ErrorLogger.err("cannot evaluate snd on non-pair type: " + x)
-                    } 
-                }
+                case x: PairElem => getLValPairElem(x)
             }
         }
             
         def getRValType(rval: RValue): Type = {
 
             rval match {
-                case Fst(lval) => getLValType(lval) match {
-                    case PairType(fst, _) => fst
-                    case x => ErrorLogger.err("unable to get fst of non-pair type: " + x) 
-                }
-                case Snd(lval) => getLValType(lval) match {
-                    case PairType(_, snd) => snd
-                    case x => ErrorLogger.err("unable to get snd of non-pair type: " + x) 
-                }
+                case x: PairElem => getLValPairElem(x)
                 
                 case ArrayLiteral(xs) => {
                     if (xs.length > 0) {
@@ -88,7 +95,18 @@ object SemanticChecker {
                         new ArrayType(AnyType)
                     }
                 }
-                case NewPair(fst, snd) => new PairType(getPairElem(getRValType(fst)), getPairElem(getRValType(snd)))
+                case NewPair(fst, snd) => {
+                    def getPairElem(rval: RValue): PairElemType = rval match {
+                        case Ident(id) => PairIdent(id)
+                        case PairLiteralNull => PairIdent("\\null")
+                        case x => getPairElemType(getRValType(x)) match {
+                            case x: PairElemType => x
+                            case x => ErrorLogger.err("not a pair elem type. expected: <? extends PairElemType>, actual: " + x) 
+                        } 
+                    }
+
+                    new PairType(getPairElem(fst), getPairElem(snd))
+                }
                 case Call(id, args) => {
                     // TODO: verify args type
                     getTypeFromVars(id, vars, childVars)
@@ -98,7 +116,7 @@ object SemanticChecker {
                     case _: CharLiteral => CharType
                     case _: StrLiteral => StringType
                     case _: BoolLiteral => BoolType
-                    case PairLiteralNull => PairType(null, null)
+                    case PairLiteralNull => PairIdent("\\null")
                     case Ident(id) => getTypeFromVars(id, vars, childVars)
                     case ArrayElem(_, exp :: _) => getRValType(exp)
                     case ArrayElem(_, Nil) => ErrorLogger.err("cannot have array elem with no expr")
@@ -149,7 +167,7 @@ object SemanticChecker {
                 case Declare(t, id, rhs) => {
                     val rType = getRValType(rhs)
                     if (rType != t) ErrorLogger.err("invalid type for declare. expected: " + t  + ", actual: " + rType)
-                    childVars(id) = t
+                    childVars(id) = rType
                 }
                 case Assign(x, y) => {
                     val lType = getLValType(x)
