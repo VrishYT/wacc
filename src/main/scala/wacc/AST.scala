@@ -12,12 +12,10 @@ object AST {
 
     object Program extends ParserBridgePos2[List[Func], List[Stat], Program]
 
-    case class Func_(t: Type, id: String)(val pos: (Int, Int))
-    case class Func(fs: Func_, args: List[Param], stats: List[Stat])(val pos: (Int, Int))
+    case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int))
     case class Param(t: Type, id: String)(val pos: (Int, Int))
 
-    object Func_ extends ParserBridgePos2[Type, String, Func_]
-    object Func extends ParserBridgePos3[Func_, List[Param], List[Stat], Func]
+    object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Func]
     object Param extends ParserBridgePos2[Type, String, Param]
 
     // Statements

@@ -99,8 +99,6 @@ object Parser{
 
     val paramList = sepBy(param, ",")
 
-    val func_ = attempt(Func_(types, IDENT <~ "("))
-
     def validReturn(stats: List[Stat]): Boolean = stats.last match {
         case _: Return | _: Exit => true
         case _ => {
@@ -118,7 +116,7 @@ object Parser{
         }
     }
 
-    val func = Func(func_, paramList <~ ")", "is" *> stats <* "end")
+    val func = Func(attempt(types <~> IDENT <~ "("), paramList <~ ")", "is" *> stats <* "end")
  
     val program_ = Program("begin" *> sepEndBy(func.filterOut {
         case func if !validReturn(func.stats) => "function does not have a return/exit"
@@ -128,10 +126,6 @@ object Parser{
 }
 
 /*
-turn func_ into a zipped thing
-
-take out all lexer.lexeme.symbol calls
-
 use a verified fail on function calls as an OR after attempting to parse type/ident/(
 
 use factory bridges on array elems to make sure they identify no brackets as identifiers, so we remove the attempts
