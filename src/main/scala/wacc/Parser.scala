@@ -2,7 +2,9 @@ package wacc
 import parsley.Parsley
 import parsley.Parsley.attempt
 import parsley.Parsley.pure
-object Parser{
+
+object Parser {
+
     import parsley.combinator._
     import parsley.expr.{precedence, Ops, InfixL, Prefix}
     import parsley.expr.chain
@@ -12,7 +14,6 @@ object Parser{
     import Lexing._
     import implicits.implicitSymbol
     import AST._
-
 
     val BOOL_LIT = ("true" #> true <|> 
                    "false" #> false).label("boolean (true or false)")
@@ -74,7 +75,7 @@ object Parser{
                                        PAIR_ELEM <|> 
                                        Call("call" *> IDENT, "(" *> ARG_LIST <~ ")") // explain
 
-    lazy val lvalue: Parsley[LValue] = IdentOrArrayElem(IDENT, option("[" *> sepBy(expr, "][") <* "]")) <|> PAIR_ELEM // remove attempt?
+    lazy val lvalue: Parsley[LValue] = IdentOrArrayElem(IDENT, option("[" *> sepBy(expr, "][") <* "]")) <|> PAIR_ELEM
 
     val stat: Parsley[Stat] = ("skip" #> Skip) <|> 
                               (Declare(types, IDENT, "=" *> rvalue)) <|>
@@ -98,35 +99,26 @@ object Parser{
 
     val paramList = sepBy(param, ",")
 
-    def validReturn(stats: List[Stat]): Boolean = stats.last match {
-        case _: Return | _: Exit => true
-        case _ => {
-            var valid = false 
-            stats.foreach(stat => stat match {
-                case If(_, x, y) => {
-                    valid |= validReturn(x) && validReturn(y)
-                }
-                case Begin(xs) => {
-                    valid |= validReturn(xs)
-                }
-                case _ => 
-            })
-            valid
-        }
-    }
-
-    val invalid_function = IDENT <~ "("
+    val invalid_function = IDENT <~ "(" // move into separate file (or object if it is the only one)
 
     val func = Func(attempt(types <~> IDENT <~ "("), paramList <~ ")", "is" *> stats <* "end") <|>
                 invalid_function.verifiedFail("missing return type of function")
  
-    val program_ = Program("begin" *> sepEndBy(func.filterOut {
-        case func if !validReturn(func.stats) => "function does not have a return/exit"
+    // val program_ = Program("begin" *> sepEndBy(func, pure("")).guardAgainst {
+    //     case fs if fs.nonEmpty && fs.map(fs.tail).exi
+    // }, stats <* "end")
+
+    val program_ = Program("begin" *> sepEndBy(func.guardAgainst {
+        case func if !func.validReturn => Seq("function not return/exit")
     }, pure("")), stats <* "end")
 
     val program = fully(program_)
 }
 
+/*func.filterOut {
+        case func if !validReturn(func.stats) => "function does not have a return/exit"
+    },
+*/
 /*
 move the valid return stuff into the Func node, removing all stuff from the AST
 

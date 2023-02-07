@@ -12,7 +12,25 @@ object AST {
 
     object Program extends ParserBridgePos2[List[Func], List[Stat], Program]
 
-    case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int))
+    case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
+        def validReturn: Boolean = validReturn(stats)
+        def validReturn(stats: List[Stat]): Boolean = stats.last match {
+            case _: Return | _: Exit => true
+            case _ => {
+                var valid = false 
+                stats.foreach(stat => stat match {
+                    case If(_, x, y) => {
+                        valid |= validReturn(x) && validReturn(y)
+                    }
+                    case Begin(xs) => {
+                        valid |= validReturn(xs)
+                    }
+                    case _ => 
+                })
+                valid
+            }
+        }
+    }
     case class Param(t: Type, id: String)(val pos: (Int, Int))
 
     object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Func]
