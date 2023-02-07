@@ -67,7 +67,6 @@ object AST {
 
     // Types
     sealed trait Type
-    case object AnyType extends Type
     case class ArrayType(t: Type) extends Type with PairElemType {
 
         override def equals(that: Any): Boolean = {
@@ -90,23 +89,19 @@ object AST {
             def pairEq(p: PairType) = {
                 this.fst == p.fst && this.snd == p.snd
             }
-            this match {
-                // case x: PairType => pairEq(x)
-                case _ =>
-            }
             that match {
-                case PairIdent(_) => return true
+                case Pair => true
                 case x: PairType => pairEq(x)
-                case _ => return false
+                case _ => false
             }
         }
-
     }
 
     object ArrayType extends ParserBridge1[Type, ArrayType]
     object PairType extends ParserBridge2[PairElemType, PairElemType, PairType]
 
     sealed trait BaseType extends Type with PairElemType
+    
     case object IntType extends BaseType with ParserBridge0[BaseType] {
         def apply() = IntType
     }
@@ -119,23 +114,13 @@ object AST {
     case object StringType extends BaseType with ParserBridge0[BaseType] {
         def apply() = StringType
     }
-
-    sealed trait PairElemType extends Type
-    case object Pair extends PairElemType with ParserBridge0[PairElemType]
-    case class PairIdent(id: String) extends PairElemType {
-        def equals(that: PairIdent) = true
-        override def equals(that: Any): Boolean = {
-            val isPair = that == Pair
-            val isPairType = that match {
-                case x: PairType => true
-                case _ => false
-            }
-            return isPair | isPairType
-        }
+    case object AnyType extends BaseType with PairElemType {
+        override def equals(that: Any): Boolean = true
     }
 
-    object PairIdent extends ParserBridge1[String, PairIdent] {
-        def apply(id: String): PairIdent = new PairIdent(id)
+    sealed trait PairElemType extends Type
+    case object Pair extends PairElemType with ParserBridge0[PairElemType] {
+        override def equals(that: Any): Boolean = true
     }
 
     // Expressions

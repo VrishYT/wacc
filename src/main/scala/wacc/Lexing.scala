@@ -36,8 +36,8 @@ object Lexing{
             hardKeywords = Set("begin", "null", "end", "is", "skip", "read", "free", 
                                 "return", "exit", "print", "println", "if", "then", "else",
                                 "fi", "while", "do", "done", "fst", "snd", "newpair", "call", 
-                                "int", "bool", "char", "string", "pair", "true", "false"),
-            hardOperators = Set("*", "+", "-", "/", ">", ">=", "<", "<=", "==", "!=", "&&", "||", "len", "ord", "chr"),
+                                "int", "bool", "char", "string", "pair", "true", "false", "len", "ord", "chr"),
+            hardOperators = Set("*", "+", "-", "/", ">", ">=", "<", "<=", "==", "!=", "&&", "||"),
             //TODO: check whether len ord chr should be in keywords or operators 
             caseSensitive = false
         ),

@@ -19,24 +19,28 @@ object SemanticChecker {
            Checks semantics of each statement. */
 
         val vars = MapM[String, Type]()
-        functions.foreach(func => vars(func.fs.id) = func.fs.t)
-        vars("\\null") = PairType(Pair, Pair)
+        val funcArgs = MapM[String, List[Type]]()
+        functions.foreach(func => {
+            vars(func.fs.id) = func.fs.t
+            funcArgs(func.fs.id) = func.args.map(arg => arg.t)
+        })
         val varsImm = vars.toMap
-        functions.foreach(func => checkFunction(func, varsImm))
-        checkStatements(statements, varsImm)
+        val funcArgsImm = funcArgs.toMap
+        functions.foreach(func => checkFunction(func, varsImm, funcArgsImm))
+        checkStatements(statements, varsImm, funcArgsImm)
 
     }
 
     /** Checks for invalid semantics within a specific function.
         @param func 
     */
-    def checkFunction(func: Func, vars: Map[String, Type]): Unit = {
+    def checkFunction(func: Func, vars: Map[String, Type], funcArgs: Map[String, List[Type]]): Unit = {
         val childVars = MapM[String, Type]()
         func.args.foreach(param => childVars(param.id) = param.t)
         childVars("\\func") = func.fs.t 
 
         /* Checks semantics of each statement in the function. */
-        checkStatements(func.stats, createChildVars(vars, childVars))
+        checkStatements(func.stats, createChildVars(vars, childVars), funcArgs)
     }
 
     /* Return the type of an identifier from the scope map. */
@@ -51,13 +55,14 @@ object SemanticChecker {
     }
 
     
-    def checkStatements(statements: List[Stat], vars: Map[String, Type]): Unit = {
+    def checkStatements(statements: List[Stat], vars: Map[String, Type], funcArgs: Map[String, List[Type]]): Unit = {
 
         val childVars = MapM[String, Type]()
 
         /* Returns the type of the contents of a pairElem (fst(x) or snd(x), where x is passed in) */
         def getPairElemType(t: Type): Type = t match {
-            case PairIdent(id) => getTypeFromVars(id, vars, childVars)
+            case null => Pair
+            case PairType(null, null) => Pair
             case x: PairType => Pair
             case x: PairElemType => x
             case x => ErrorLogger.err("not a pair elem type. expected: <? extends PairElemType>, actual: " + x) 
@@ -66,18 +71,12 @@ object SemanticChecker {
         /* Returns the type of a pairElem (fst or snd) */
         def getLValPairElem(p: PairElem) = p match {
             case Fst(x) => getLValType(x) match {
-                // case PairIdent(id) => getTypeFromVars(id, vars, childVars) match {
-                //     case PairType(fst, _) => getPairElemType(fst)
-                //     case _ => ErrorLogger.err("cannot evaluate fst on non-pair type: " + p)
-                // }
+                case Pair => Pair
                 case PairType(fst, _) => getPairElemType(fst)
                 case x => ErrorLogger.err("cannot evaluate fst on non-pair type: " + x)
             } 
             case Snd(x) => getLValType(x) match {
-                // case PairIdent(id) => getTypeFromVars(id, vars, childVars) match {
-                //     case PairType(_, snd) => getPairElemType(snd)
-                //     case _ => ErrorLogger.err("cannot evaluate fst on non-pair type: " + p)
-                // }
+                case Pair => Pair
                 case PairType(_, snd) => getPairElemType(snd)
                 case x => ErrorLogger.err("cannot evaluate snd on non-pair type: " + x)
             } 
@@ -89,7 +88,7 @@ object SemanticChecker {
                 case Ident(id) => getTypeFromVars(id, vars, childVars)                               
                 case ArrayElem(id, _) => getTypeFromVars(id, vars, childVars) match {
                     case ArrayType(t) => t
-                    case _ => ErrorLogger.err("unable to access non-array var as an array") // TODO
+                    case _ => ErrorLogger.err("unable to access non-array var as an array") // TODO : check :(
                 }
                 case x: PairElem => getLValPairElem(x)
             }
@@ -104,7 +103,13 @@ object SemanticChecker {
                 case ArrayLiteral(xs) => {
                     if (xs.length > 0) {
                         // TODO: verify type of all elems
-                        new ArrayType(getRValType(xs.head))
+                        val head::tail = xs
+                        val t = getRValType(head)
+                        // val sameTypes = (xs.foreach(elem -> getRValType(elem))).fold(t)(_==_)
+                        // if (!sameTypes) ErrorLogger.err("Types in array not the same") 
+                        tail.foreach(exp => if (getRValType(exp) != t) ErrorLogger.err("Types in array not the same"))
+
+                        ArrayType(getRValType(xs.head))
                     } else {
                         new ArrayType(AnyType)
                     }
@@ -112,8 +117,6 @@ object SemanticChecker {
                 /*  */
                 case NewPair(fst, snd) => {
                     def getPairElem(rval: RValue): PairElemType = rval match {
-                        case Ident(id) => PairIdent(id)
-                        case PairLiteralNull => PairIdent("\\null")
                         case x => getPairElemType(getRValType(x)) match {
                             case x: PairElemType => x
                             case x => ErrorLogger.err("not a pair elem type. expected: <? extends PairElemType>, actual: " + x) 
@@ -123,7 +126,17 @@ object SemanticChecker {
                     new PairType(getPairElem(fst), getPairElem(snd))
                 }
                 case Call(id, args) => {
-                    // TODO: verify args type
+                    val currentArgs = funcArgs.get(id) match {
+                        case Some(x) => x
+                        case _ => List()
+                    }
+                    if (args.length != currentArgs.length) ErrorLogger.err("Invalid number of arguments for function '" + id + "'. expected: " + currentArgs.length + ". actual: " + args.length)
+                    for (i <- 0 to args.length - 1) {
+                        val expArgType = currentArgs(i)
+                        val actArgType = getRValType(args(i))
+                        if (actArgType != expArgType) ErrorLogger.err("Invalid type for arg.  expected: " + expArgType + ". actual: " + actArgType)
+                    }
+
                     getTypeFromVars(id, vars, childVars)
                 }
                 case x: Expr => x match {
@@ -131,19 +144,29 @@ object SemanticChecker {
                     case _: CharLiteral => CharType
                     case _: StrLiteral => StringType
                     case _: BoolLiteral => BoolType
-                    case PairLiteralNull => PairIdent("\\null")
+                    case PairLiteralNull => Pair
                     case Ident(id) => getTypeFromVars(id, vars, childVars)
-                    case ArrayElem(_, exp :: _) => getRValType(exp)
+                    case ArrayElem(id, exps) => {
+                        exps.foreach(exp => {
+                            val rType = getRValType(exp)
+                            if (rType != IntType) ErrorLogger.err("cannot access array '" + id + "' at non-int elems. type found: " + rType)
+                        })
+                        getTypeFromVars(id, vars, childVars) match { 
+                            case ArrayType(t) => t
+                            case x => ErrorLogger.err("cannot get elem from non-array type")
+                        }
+                    }
                     case ArrayElem(_, Nil) => ErrorLogger.err("cannot have array elem with no expr")
                     case UnaryOpExpr(op, exp) => {
                         val types = op match {
                             case Not => (BoolType, BoolType)
                             case Negate => (IntType, IntType)
-                            case Length => (IntType, IntType)
                             case Ord => (CharType, IntType)
                             case Chr => (IntType, CharType)
+                            case Length => (ArrayType(AnyType), IntType)
                         }
-                        if (getRValType(exp) != types._1) ErrorLogger.err("invalid type for unary op param")
+                        val rType = getRValType(exp)
+                        if (rType != types._1) ErrorLogger.err("invalid type for unary op param. expected: " + types._1 + ". actual: " + rType)
                         types._2
                     }
                     case BinaryOpExpr(op, exp1, exp2) => {
@@ -184,12 +207,12 @@ object SemanticChecker {
                 case Declare(t, id, rhs) => {
                     val rType = getRValType(rhs)
                     if (rType != t) ErrorLogger.err("invalid type for declare. expected: " + t  + ", actual: " + rType)
-                    childVars(id) = rType
+                    childVars(id) = t
                 }
                 case Assign(x, y) => {
                     val lType = getLValType(x)
                     val rType = getRValType(y)
-                    if (lType != rType) ErrorLogger.err("invalid type for assign. expected : " + lType + ", actual : " + rType)              
+                    if (lType != rType && rType != lType) ErrorLogger.err("invalid type for assign. expected : " + lType + ", actual : " + rType)              
                 }
                 case Read(x) => {
                     val ltype = getLValType(x)
@@ -214,14 +237,14 @@ object SemanticChecker {
                 case If(p, xs, ys) => {
                     if (getRValType(p) != BoolType) ErrorLogger.err("invalid type for if cond") 
                     val newChildVars = createChildVars(vars, childVars)
-                    checkStatements(xs, newChildVars)
-                    checkStatements(ys, newChildVars)
+                    checkStatements(xs, newChildVars, funcArgs)
+                    checkStatements(ys, newChildVars, funcArgs)
                 }
                 case While(p, xs) => {
                     if (getRValType(p) != BoolType) ErrorLogger.err("invalid type for while cond") 
-                    checkStatements(xs, createChildVars(vars, childVars))
+                    checkStatements(xs, createChildVars(vars, childVars), funcArgs)
                 }
-                case Begin(xs) => checkStatements(xs, createChildVars(vars, childVars))
+                case Begin(xs) => checkStatements(xs, createChildVars(vars, childVars), funcArgs)
                 case default => 
             }
         })
