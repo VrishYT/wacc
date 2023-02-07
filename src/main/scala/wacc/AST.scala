@@ -95,19 +95,30 @@ object AST {
     case class CharLiteral(x: Char)(val pos: (Int, Int)) extends Expr
     case class StrLiteral(xs: String)(val pos: (Int, Int)) extends Expr
     case class BoolLiteral(x: Boolean)(val pos: (Int, Int)) extends Expr
-    case class Ident(id: String)(val pos: (Int, Int)) extends Expr with LValue
-    case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends Expr with LValue
+    
     case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr
     case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int)) extends Expr
+
+    sealed trait LExpr extends Expr with LValue
+    case class Ident(id: String) extends LExpr
+    case class ArrayElem(id: String, xs: List[Expr]) extends LExpr
+    case class IdentOrArrayElem(id: String, xs: List[Expr]) extends LExpr
     
     object IntLiteral extends ParserBridgePos1[Int, IntLiteral]
     object CharLiteral extends ParserBridgePos1[Char, CharLiteral]
     object StrLiteral extends ParserBridgePos1[String, StrLiteral]
     object BoolLiteral extends ParserBridgePos1[Boolean, BoolLiteral]
-    object Ident extends ParserBridgePos1[String, Ident]
-    object ArrayElem extends ParserBridgePos2[String, List[Expr], ArrayElem]
+    object Ident extends ParserBridge1[String, Ident]
+    object ArrayElem extends ParserBridge2[String, List[Expr], ArrayElem]
 
     case object PairLiteralNull extends Expr with ParserBridge0[Expr]
+
+    object IdentOrArrayElem extends ParserBridge2[String, Option[List[Expr]], LExpr] {
+        def apply(id: String, xs: Option[List[Expr]]): LExpr = xs match {
+            case None => Ident(id)
+            case Some(xs) => ArrayElem(id, xs)
+        }
+    }
     
     // Operators
     sealed trait UnaryOp

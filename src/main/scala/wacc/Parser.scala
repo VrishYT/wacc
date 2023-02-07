@@ -18,8 +18,6 @@ object Parser{
                    "false" #> false).label("boolean (true or false)")
                                  
     val PAIR_LIT = ("null") #> PairLiteralNull
-    
-    lazy val ARRAY_ELEM = ArrayElem(IDENT, "[" *> sepBy(expr, "][") <* "]")
 
     val BASE_TYPE = "int".label("type \'int\'") #> IntType <|>
                     "string".label("type \'string\'") #> StringType <|>
@@ -27,8 +25,8 @@ object Parser{
                     "char".label("type \'char\'") #> CharType
     
     private lazy val atom: Parsley[Expr] = 
-                    "(" *> expr <* ")" <|> attempt(ARRAY_ELEM) <|> IntLiteral(INTEGER) <|> CharLiteral(CHR_LIT) <|>
-                    StrLiteral(STR_LIT) <|> BoolLiteral(BOOL_LIT)  <|> Ident(IDENT) <|> PAIR_LIT
+                    "(" *> expr <* ")" <|> IdentOrArrayElem(IDENT, option("[" *> sepBy(expr, "][") <* "]")) <|> IntLiteral(INTEGER) <|> CharLiteral(CHR_LIT) <|>
+                    StrLiteral(STR_LIT) <|> BoolLiteral(BOOL_LIT) <|> PAIR_LIT
 
 
     def unary_op(x: Parsley[Unit]) = x.label("unary operator").explain("unary operators include len, ord, chr, ! and -")
@@ -76,7 +74,7 @@ object Parser{
                                        PAIR_ELEM <|> 
                                        Call("call" *> IDENT, "(" *> ARG_LIST <~ ")") // explain
 
-    lazy val lvalue: Parsley[LValue] = attempt(ARRAY_ELEM) <|> PAIR_ELEM <|> Ident(IDENT) // remove attempt?
+    lazy val lvalue: Parsley[LValue] = IdentOrArrayElem(IDENT, option("[" *> sepBy(expr, "][") <* "]")) <|> PAIR_ELEM // remove attempt?
 
     val stat: Parsley[Stat] = ("skip" #> Skip) <|> 
                               (Declare(types, IDENT, "=" *> rvalue)) <|>
@@ -130,10 +128,6 @@ object Parser{
 }
 
 /*
-use a verified fail on function calls as an OR after attempting to parse type/ident/(
-
-use factory bridges on array elems to make sure they identify no brackets as identifiers, so we remove the attempts
-
 move the valid return stuff into the Func node, removing all stuff from the AST
 
  */
