@@ -91,11 +91,11 @@ object AST {
                 this.fst == p.fst && this.snd == p.snd
             }
             this match {
-                case PairType (null, null) => return true
-                case x: PairType => pairEq(x)
+                // case x: PairType => pairEq(x)
+                case _ =>
             }
             that match {
-                case PairType(null, null) => return true
+                case PairIdent(_) => return true
                 case x: PairType => pairEq(x)
                 case _ => return false
             }
@@ -122,6 +122,21 @@ object AST {
 
     sealed trait PairElemType extends Type
     case object Pair extends PairElemType with ParserBridge0[PairElemType]
+    case class PairIdent(id: String) extends PairElemType {
+        def equals(that: PairIdent) = true
+        override def equals(that: Any): Boolean = {
+            val isPair = that == Pair
+            val isPairType = that match {
+                case x: PairType => true
+                case _ => false
+            }
+            return isPair | isPairType
+        }
+    }
+
+    object PairIdent extends ParserBridge1[String, PairIdent] {
+        def apply(id: String): PairIdent = new PairIdent(id)
+    }
 
     // Expressions
     sealed trait Expr extends RValue
