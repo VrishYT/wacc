@@ -120,7 +120,11 @@ object AST {
 
     sealed trait PairElemType extends Type
     case object Pair extends PairElemType with ParserBridge0[PairElemType] {
-        override def equals(that: Any): Boolean = true
+        override def equals(that: Any): Boolean = that match {
+            case _: BaseType => false
+            case _: ArrayType => false
+            case _ => true
+        }
     }
 
     // Expressions
