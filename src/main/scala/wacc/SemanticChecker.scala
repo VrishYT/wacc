@@ -248,6 +248,8 @@ object SemanticChecker {
                 case Exit(x) => {
                     if (getRValType(x) != IntType) ErrorLogger.err("invalid type for exit")              
                 }
+                case Print(x) => getRValType(x)
+                case Println(x) => getRValType(x)
                 case If(p, xs, ys) => {
                     if (getRValType(p) != BoolType) ErrorLogger.err("invalid type for if cond") 
                     val newChildVars = createChildVars(vars, childVars)
