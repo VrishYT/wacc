@@ -106,7 +106,7 @@ object AST {
 
     sealed trait PairElemType extends Type
     case object Pair extends PairElemType with ParserBridge0[PairElemType]
-    
+
     // Expressions
     sealed trait Expr extends RValue
     case class IntLiteral(x: Int)(val pos: (Int, Int)) extends Expr
