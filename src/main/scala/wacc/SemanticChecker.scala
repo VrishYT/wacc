@@ -121,8 +121,7 @@ object SemanticChecker {
                 }
                 /*  */
                 case NewPair(fst, snd) => {
-                    def getPairElem(rval: RValue): PairElemType = rval match {
-                        case x => getPairElemType(getRValType(x)) match {
+                    def getPairElem(rval: RValue): PairElemType = getPairElemType(getRValType(rval)) match {
                             case x: PairElemType => x
                             case x => ErrorLogger.err("not a pair elem type. expected: <? extends PairElemType>, actual: " + x) 
                         } 
