@@ -21,15 +21,20 @@ object SemanticChecker {
         val vars = MapM[String, Type]()
         val funcArgs = MapM[String, List[Type]]()
         functions.foreach(func => {
+            /* Check if the functions already exists */
             if (vars.keySet.exists(_ == func.fs.id)) ErrorLogger.err("Cannot redeclare function '" + func.fs.id + "'")
             vars(func.fs.id) = func.fs.t
             funcArgs(func.fs.id) = func.args.map(arg => arg.t)
         })
+        /* Produce maps of variables and functions to model the global scope */
         val varsImm = vars.toMap
         val funcArgsImm = funcArgs.toMap
-        functions.foreach(func => checkFunction(func, varsImm, funcArgsImm))
-        checkStatements(statements, varsImm, funcArgsImm)
 
+        /* Check semantics of each function's statements */
+        functions.foreach(func => checkFunction(func, varsImm, funcArgsImm))
+
+        /* Check semantics of program's statements */
+        checkStatements(statements, varsImm, funcArgsImm)
     }
 
     def addToVars(id: String, t: Type, vars: MapM[String, Type]): Unit = {
