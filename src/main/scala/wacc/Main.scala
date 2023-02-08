@@ -2,7 +2,7 @@ package wacc
 
 object Main {
 
-    import ErrorLogger._
+    import error._
 
     def main(args: Array[String]): Unit = {
         try {

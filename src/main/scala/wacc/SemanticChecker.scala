@@ -7,7 +7,7 @@ object SemanticChecker {
     import scala.collection.immutable.Map
     import scala.collection.mutable.{Map => MapM}
 
-    import ErrorLogger._
+    import error._
 
     def typecheck(program: Program): Unit = {
         val statements = program.stats

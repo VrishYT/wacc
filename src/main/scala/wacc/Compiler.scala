@@ -7,6 +7,7 @@ class Compiler {
     import Parser._
     import AST.Program
     import parsley.{Success, Failure}
+    import error._
 
     private var filename = ""
     private var fileData = ""
