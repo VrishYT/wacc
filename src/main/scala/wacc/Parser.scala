@@ -56,11 +56,11 @@ object Parser {
 
     val ARRAY_LITER = ArrayLiteral("[" *> (sepBy(expr, ",") <* "]")).label("array literal")
     
-    lazy val PAIR_ELEM_TYPE = ("pair") #> Pair <|> chain.postfix(BASE_TYPE, ArrayType <# "[]") // separate these
+    lazy val PAIR_ELEM_TYPE = (("pair").hide #> Pair <|> chain.postfix(BASE_TYPE, ArrayType <# "[]")) // separate these
     
-    val PAIR_TYPE = PairType("pair" *> "(".label("type \'pair\'") *> PAIR_ELEM_TYPE, "," *> PAIR_ELEM_TYPE <~ ")") // explain
+    val PAIR_TYPE = PairType("pair".hide *> "(" *> PAIR_ELEM_TYPE, "," *> PAIR_ELEM_TYPE <~ ")") // explain
     
-    private lazy val atom2: Parsley[Type] = BASE_TYPE <|> PAIR_TYPE
+    private lazy val atom2: Parsley[Type] = BASE_TYPE <|> PAIR_TYPE.label("type \'pair\'")
 
     val ARRAY_TYPE: Parsley[Type] = chain.postfix(atom2, ArrayType <# "[]".label("array type")) // explain
 
