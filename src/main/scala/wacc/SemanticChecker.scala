@@ -22,9 +22,9 @@ object SemanticChecker {
         val funcArgs = MapM[String, List[Type]]()
         functions.foreach(func => {
             /* Check if the functions already exists */
-            if (vars.keySet.exists(_ == func.fs.id)) ErrorLogger.err("Cannot redeclare function '" + func.fs.id + "'")
-            vars(func.fs.id) = func.fs.t
-            funcArgs(func.fs.id) = func.args.map(arg => arg.t)
+            if (vars.keySet.exists(_ == func.fs._2)) ErrorLogger.err("Cannot redeclare function '" + func.fs._2 + "'")
+            vars(func.fs._2) = func.fs._1
+            funcArgs(func.fs._2) = func.args.map(arg => arg.t)
         })
         /* Produce maps of variables and functions to model the global scope */
         val varsImm = vars.toMap
@@ -48,7 +48,7 @@ object SemanticChecker {
     def checkFunction(func: Func, vars: Map[String, Type], funcArgs: Map[String, List[Type]]): Unit = {
         val childVars = MapM[String, Type]()
         func.args.foreach(param => addToVars(param.id, param.t, childVars))
-        addToVars("\\func", func.fs.t, childVars) 
+        addToVars("\\func", func.fs._1, childVars) 
 
         /* Checks semantics of each statement in the function. */
         checkStatements(func.stats, createChildVars(vars, childVars), funcArgs)

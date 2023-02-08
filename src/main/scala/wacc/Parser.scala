@@ -2,117 +2,124 @@ package wacc
 import parsley.Parsley
 import parsley.Parsley.attempt
 import parsley.Parsley.pure
-object Parser{
+
+object Parser {
+
     import parsley.combinator._
     import parsley.expr.{precedence, Ops, InfixL, Prefix}
     import parsley.expr.chain
-    import parsley.errors.combinator.ErrorMethods
+    import parsley.errors.combinator._
+    import parsley.errors.patterns._
     import Lexing.lexer
     import Lexing._
     import implicits.implicitSymbol
     import AST._
 
+    def unary_op(x: Parsley[Unit]) = x.label("unary operator").explain("unary operators include len, ord, chr, ! and -")
 
-    val BOOL_LIT = lexer.lexeme.symbol("true") #> true <|> 
-                   lexer.lexeme.symbol("false") #> false
+    def arith_op(x: Parsley[Unit]) = x.label("arithmetic operator").explain("arithmetic operators include *, /, %, + and -")
+
+    def comp_op(x: Parsley[Unit]) = x.label("comparison operator").explain("comparison operators include >, >=, <, <=, != and ==")
+
+    def logic_op(x: Parsley[Unit]) = x.label("logical operator").explain("logical operators include && and ||")
+
+    def base_type_desc(x: Parsley[Unit]) = x.label("base type").explain("base types include int, string, char and bool")
+
+    def pair_type_desc(x: Parsley[Unit]) = x.label("pair type").explain("")
+
+    def array_type_desc(x: Parsley[Unit]) = x.label("[] (array type)").explain("")
+
+    def pair_op(x: Parsley[Unit]) = x.label("pair operator").explain("pair operators include \'fst\' and \'snd\'")
+
+    val BOOL_LIT = ("true" #> true <|> 
+                   "false" #> false).label("boolean literal (true or false)")
                                  
-    val PAIR_LIT = lexer.lexeme.symbol("null") #> PairLiteralNull
-    
-    lazy val ARRAY_ELEM = ArrayElem(IDENT, "[" *> sepBy(expr, "][") <* "]")
+    val PAIR_LIT = (("null") #> PairLiteralNull).label("pair null type")
 
-    val BASE_TYPE = lexer.lexeme.symbol("int") #> IntType <|>
-                    lexer.lexeme.symbol("string") #> StringType <|>
-                    lexer.lexeme.symbol("bool") #> BoolType <|> 
-                    lexer.lexeme.symbol("char") #> CharType
+    val BASE_TYPE = base_type_desc("int") #> IntType <|>
+                    base_type_desc("string") #> StringType <|>
+                    base_type_desc("bool") #> BoolType <|> 
+                    base_type_desc("char") #> CharType
+
+    val IDENT_OR_ARRAY_ELEM = IdentOrArrayElem(IDENT.label("identifier"), option("[".label("index (like \'xs[idx]\')") *> sepBy(expr, "][") <* "]"))
     
     private lazy val atom: Parsley[Expr] = 
-                    "(" *> expr <* ")" <|> attempt(ARRAY_ELEM) <|> IntLiteral(INTEGER) <|> CharLiteral(CHR_LIT) <|>
-                    StrLiteral(STR_LIT) <|> BoolLiteral(BOOL_LIT)  <|> Ident(IDENT) <|> PAIR_LIT
+                    "(".label("open parenthesis") *> expr <* ")" <|> IDENT_OR_ARRAY_ELEM <|> IntLiteral(INTEGER) <|> CharLiteral(CHR_LIT) <|>
+                    StrLiteral(STR_LIT) <|> BoolLiteral(BOOL_LIT) <|> PAIR_LIT
+
 
     val operators: Parsley[Expr] = precedence[Expr](
         atom)(
-                      Ops(Prefix)(Length <# lexer.lexeme.symbol("len"), Ord <# lexer.lexeme.symbol("ord"), Chr <# lexer.lexeme.symbol("chr"), Negate <# UNOP_MINUS, Not <# lexer.lexeme.symbol("!")),
-                      Ops(InfixL)(Mul <# lexer.lexeme.symbol("*"), Div <# lexer.lexeme.symbol("/"), Mod <# lexer.lexeme.symbol("%")),
-                      Ops(InfixL)(Add <# lexer.lexeme.symbol("+"), Sub <# lexer.lexeme.symbol("-")),
-                      Ops(InfixL)(Greater <# lexer.lexeme.symbol(">"), GreaterEquals <# lexer.lexeme.symbol(">="), Less <# lexer.lexeme.symbol("<"), LessEquals <# lexer.lexeme.symbol("<=")),
-                      Ops(InfixL)(Equal <# lexer.lexeme.symbol("=="), NotEqual <# lexer.lexeme.symbol("!=")),
-                      Ops(InfixL)(And <# lexer.lexeme.symbol("&&")),
-                      Ops(InfixL)(Or <# lexer.lexeme.symbol("||"))
+                      Ops(Prefix)(Length <# unary_op("len"), Ord <# unary_op("ord"), Chr <# unary_op("chr"), Negate <# unary_op(UNOP_MINUS), Not <# unary_op("!")),
+                      Ops(InfixL)(Mul <# arith_op("*"), Div <# arith_op("/"), Mod <# arith_op("%")),
+                      Ops(InfixL)(Add <# arith_op("+"), Sub <# arith_op("-")),
+                      Ops(InfixL)(Greater <# comp_op(">"), GreaterEquals <# comp_op(">="),
+                                  Less <# comp_op("<"), LessEquals <# comp_op("<=")),
+                      Ops(InfixL)(Equal <# comp_op("=="), NotEqual <# comp_op("!=")),
+                      Ops(InfixL)(And <# logic_op("&&")),
+                      Ops(InfixL)(Or <# logic_op("||"))
                    )
-    
+
     val expr: Parsley[Expr] = operators <|> atom  
 
-    val ARRAY_LITER = ArrayLiteral("[" *> (sepBy(expr, ",") <* "]"))
+    val ARRAY_LITER = ArrayLiteral("[" *> (sepBy(expr, ",") <* "]")).label("array literal")
     
-    lazy val PAIR_ELEM_TYPE = lexer.lexeme.symbol("pair") #> Pair <|> chain.postfix(BASE_TYPE, ArrayType <# "[]")
+    lazy val PAIR_ELEM_TYPE = ("pair" #> Pair <|> chain.postfix(BASE_TYPE, ArrayType <# "[]")) // separate these
     
-    val PAIR_TYPE = PairType(lexer.lexeme.symbol("pair") *> "(" *> PAIR_ELEM_TYPE, "," *> PAIR_ELEM_TYPE <~ ")")
+    val PAIR_TYPE = PairType(pair_type_desc("pair" *> "(") *> PAIR_ELEM_TYPE, "," *> PAIR_ELEM_TYPE <~ ")") // explain
     
     private lazy val atom2: Parsley[Type] = BASE_TYPE <|> PAIR_TYPE
 
-    val ARRAY_TYPE: Parsley[Type] = chain.postfix(atom2, ArrayType <# "[]")
+    val ARRAY_TYPE: Parsley[Type] = chain.postfix(atom2, ArrayType <# array_type_desc("[]")) // explain
 
     
     lazy val types: Parsley[Type] = ARRAY_TYPE <|> BASE_TYPE <|> PAIR_TYPE 
 
     val ARG_LIST = sepEndBy(expr, ",")
 
-    lazy val PAIR_ELEM = Fst(lexer.lexeme.symbol("fst") *> lvalue) <|> Snd(lexer.lexeme.symbol("snd") *> lvalue)
+    lazy val PAIR_ELEM = Fst(pair_op("fst") *> lvalue) <|> Snd(pair_op("snd") *> lvalue)
 
     lazy val rvalue: Parsley[RValue] = expr <|> 
                                        ARRAY_LITER <|> 
-                                       NewPair(lexer.lexeme.symbol("newpair") *> "(" *> expr <~ ",", expr <~ ")") <|> 
+                                       NewPair("newpair" *> "(" *> expr <~ ",", expr <~ ")") <|> // explain
                                        PAIR_ELEM <|> 
-                                       Call(lexer.lexeme.symbol("call") *> IDENT, "(" *> ARG_LIST <~ ")")
+                                       Call("call".label("function call") *> IDENT, "(" *> ARG_LIST <~ ")") // explain
 
-    lazy val lvalue: Parsley[LValue] = attempt(ARRAY_ELEM) <|> PAIR_ELEM <|> Ident(IDENT) 
+    lazy val lvalue: Parsley[LValue] = IDENT_OR_ARRAY_ELEM <|> PAIR_ELEM
 
-    val stat: Parsley[Stat] = (lexer.lexeme.symbol("skip") #> Skip) <|> 
-                              (Declare(types, IDENT, lexer.lexeme.symbol("=") *> rvalue)) <|>
-                              (Assign(lvalue, lexer.lexeme.symbol("=") *> rvalue)) <|>
-                              (Read(lexer.lexeme.symbol("read") *> lvalue)) <|>
-                              (Free(lexer.lexeme.symbol("free") *> expr)) <|>
-                              (Return(lexer.lexeme.symbol("return") *> expr)) <|>
-                              (Exit(lexer.lexeme.symbol("exit") *> expr)) <|>
-                              (Print(lexer.lexeme.symbol("print") *> expr)) <|>
-                              (Println(lexer.lexeme.symbol("println") *> expr)) <|>
-                              (If(lexer.lexeme.symbol("if") *> expr,
-                                  lexer.lexeme.symbol("then") *> stats, 
-                                  lexer.lexeme.symbol("else") *> stats <~ lexer.lexeme.symbol("fi"))) <|>
-                              (While(lexer.lexeme.symbol("while") *> expr,
-                                  lexer.lexeme.symbol("do") *> stats <~ lexer.lexeme.symbol("done"))) <|>
-                              (Begin(lexer.lexeme.symbol("begin") *> stats <~ lexer.lexeme.symbol("end"))) 
+    val stat: Parsley[Stat] = ("skip" #> Skip) <|> 
+                              (Declare(types, IDENT, "=" *> rvalue)) <|>
+                              (Assign(lvalue, "=".label("assignment") *> rvalue)) <|>
+                              (Read("read" *> lvalue)) <|>
+                              (Free("free" *> expr)) <|>
+                              (Return("return" *> expr)) <|>
+                              (Exit("exit" *> expr)) <|>
+                              (Print("print" *> expr)) <|>
+                              (Println("println" *> expr)) <|>
+                              (If("if" *> expr,
+                                  "then" *> stats, 
+                                  "else" *> stats <~ "fi")).label("if statement") <|>
+                              (While("while" *> expr,
+                                  "do" *> stats <~ ("done" /*<|> _done_check*/))).label("while statement") <|>
+                              (Begin("begin" *> stats <~ "end")) // explain where needed for each
+
+    val _done_check = amend(eof.hide *> unexpected("end of input").explain("unclosed while loop"))
     
     private lazy val stats = sepBy1(stat, ";")
 
-    val param = Param(types, IDENT)
+    val param = Param(types, IDENT).label("parameter")
 
     val paramList = sepBy(param, ",")
 
-    val func_ = attempt(Func_(types, IDENT <~ "("))
+    val _invalid_function = (IDENT <~ "(").verifiedFail("missing return type of function") // move into separate file (or object if it is the only one)
 
-    def validReturn(stats: List[Stat]): Boolean = stats.last match {
-        case _: Return | _: Exit => true
-        case _ => {
-            var valid = false 
-            stats.foreach(stat => stat match {
-                case If(_, x, y) => {
-                    valid |= validReturn(x) && validReturn(y)
-                }
-                case Begin(xs) => {
-                    valid |= validReturn(xs)
-                }
-                case _ => 
-            })
-            valid
-        }
-    }
-
-    val func = Func(func_, paramList <~ ")", lexer.lexeme.symbol("is") *> stats <* lexer.lexeme.symbol("end"))
+    val func = Func(attempt(types <~> IDENT <~ "(").label("function declaration"), paramList <~ ")", "is" *> stats <* "end") <|>
+                _invalid_function
  
-    val program_ = Program(lexer.lexeme.symbol("begin") *> sepEndBy(func.filterOut {
-        case func if !validReturn(func.stats) => "function does not have a return/exit"
-    }, pure("")), stats <* lexer.lexeme.symbol("end"))
+
+    val program_ = Program("begin" *> sepEndBy(func.guardAgainst {
+        case func if !func.validReturn => Seq("function not return/exit")
+    }, pure("")), stats <* "end")
 
     val program = fully(program_)
 }
