@@ -67,8 +67,6 @@ object SemanticChecker {
 
         /* Returns the type of the contents of a pairElem (fst(x) or snd(x), where x is passed in) */
         def getPairElemType(t: Type): Type = t match {
-            case null => Pair
-            case PairType(null, null) => Pair
             case x: PairType => Pair
             case x: PairElemType => x
             case x => ErrorLogger.err("not a pair elem type. expected: <? extends PairElemType>, actual: " + x) 
@@ -77,13 +75,13 @@ object SemanticChecker {
         /* Returns the type of a pairElem (fst or snd) */
         def getLValPairElem(p: PairElem) = p match {
             case Fst(x) => getLValType(x) match {
-                case Pair | AnyType => AnyType
                 case PairType(fst, _) => getPairElemType(fst)
+                case Pair | AnyType => AnyType
                 case x => ErrorLogger.err("cannot evaluate fst on non-pair type: " + x)
             } 
             case Snd(x) => getLValType(x) match {
-                case Pair | AnyType => AnyType
                 case PairType(_, snd) => getPairElemType(snd)
+                case Pair | AnyType => AnyType
                 case x => ErrorLogger.err("cannot evaluate snd on non-pair type: " + x)
             } 
         }
@@ -126,7 +124,6 @@ object SemanticChecker {
                         case x: PairElemType => x
                         case x => ErrorLogger.err("not a pair elem type. expected: <? extends PairElemType>, actual: " + x) 
                     } 
-
                     return new PairType(getPairElem(fst), getPairElem(snd))
                 }
                 case Call(id, args) => {
@@ -179,7 +176,7 @@ object SemanticChecker {
 
                     }
                     case ArrayElem(_, Nil) => ErrorLogger.err("cannot have array elem with no expr")
-                    case UnaryOpExpr(op, exp) => {
+                    case UnaryOpExpr(op, exp) => { 
                         val types = op match {
                             case Not => (BoolType, BoolType)
                             case Negate => (IntType, IntType)
@@ -228,6 +225,7 @@ object SemanticChecker {
             statement match {
                 case Declare(t, id, rhs) => {
                     val rType = getRValType(rhs)
+                    // println("declare: " + t)
                     if (rType != t) ErrorLogger.err("invalid type for declare. expected: " + t  + ", actual: " + rType)
                     addToVars(id, t, childVars)
                 }
@@ -237,9 +235,11 @@ object SemanticChecker {
                         case _ => 
                     }
                     val lType = getLValType(x)
+                    // println("ltype: " + lType)
                     val rType = getRValType(y)
+                    // println("rtype: " + rType)
                     if (lType == AnyType && rType == AnyType) ErrorLogger.err("Assignment is not legal when both sides types are not known. ltype: " + lType + ",rtype: " + rType)        
-                    if (lType != rType && rType != lType) ErrorLogger.err("valid type for assign. expected : " + lType + ", actual : " + rType)              
+                    if (lType != rType && rType != lType) ErrorLogger.err("invalid type for assign. expected : " + lType + ", actual : " + rType)              
                 }
                 case Read(x) => {
                     val ltype = getLValType(x)
