@@ -54,7 +54,7 @@ object SemanticChecker {
         checkStatements(func.stats, createChildVars(vars, childVars), funcArgs)
     }
 
-    /* Return the type of an identifier from the scope map. */
+    /* Return the type of an identifier from the parent and child scope maps. */
     def getTypeFromVars(id: String, parent: Map[String, Type], child: MapM[String, Type]): Type = {
         child.get(id) match {
             case Some(x) => x
@@ -65,7 +65,7 @@ object SemanticChecker {
         }
     }
 
-    
+    /* Traverse a list of statements and error on semantic errors. */
     def checkStatements(statements: List[Stat], vars: Map[String, Type], funcArgs: Map[String, List[Type]]): Unit = {
 
         val childVars = MapM[String, Type]()
@@ -77,7 +77,7 @@ object SemanticChecker {
             case x => ErrorLogger.err("not a pair elem type. expected: <? extends PairElemType>, actual: " + x) 
         }
 
-        /* Returns the type of a pairElem (fst or snd) */
+        /* Returns the type of a pairElem (fst or snd), errors if its not a PairElemType */
         def getLValPairElem(p: PairElem) = p match {
             case Fst(x) => getLValType(x) match {
                 case PairType(fst, _) => getPairElemType(fst)
@@ -97,13 +97,14 @@ object SemanticChecker {
                 case Ident(id) => getTypeFromVars(id, vars, childVars)                               
                 case ArrayElem(id, _) => getTypeFromVars(id, vars, childVars) match {
                     case ArrayType(t) => t
+                    /* Error if a non array ident is being accessed. */
                     case _ => ErrorLogger.err("unable to access non-array var as an array") // TODO : check :(
                 }
                 case x: PairElem => getLValPairElem(x)
             }
         }
             
-        /* Returns the type of an rvalue*/    
+        /* Returns the type of an rvalue. */    
         def getRValType(rval: RValue): Type = {
 
             rval match {
@@ -111,11 +112,11 @@ object SemanticChecker {
                 
                 case ArrayLiteral(xs) => {
                     if (xs.length > 0) {
-                        // TODO: verify type of all elems
+                        
                         val head::tail = xs
                         val t = getRValType(head)
-                        // val sameTypes = (xs.foreach(elem -> getRValType(elem))).fold(t)(_==_)
-                        // if (!sameTypes) ErrorLogger.err("Types in array not the same") 
+
+                        /* Error if not all array elements are the same type as the first. */
                         tail.foreach(exp => if (getRValType(exp) != t) ErrorLogger.err("Types in array not the same"))
 
                         ArrayType(getRValType(xs.head))
@@ -123,7 +124,7 @@ object SemanticChecker {
                         new ArrayType(AnyType)
                     }
                 }
-                /*  */
+
                 case NewPair(fst, snd) => {
                     def getPairElem(rval: RValue): PairElemType = getPairElemType(getRValType(rval)) match {
                         case x: PairElemType => x
@@ -174,10 +175,6 @@ object SemanticChecker {
                             case ArrayType(t) => checkArrayIndex(exps, t)
                             case x => ErrorLogger.err("cannot get elem from non-array type")
                         }
-                        // exps.foreach(exp => {
-                        //     val rType = getRValType(exp)
-                        //     if (rType != IntType) ErrorLogger.err("cannot access array '" + id + "' at non-int elems. type found: " + rType)
-                        // })
 
                     }
                     case ArrayElem(_, Nil) => ErrorLogger.err("cannot have array elem with no expr")
@@ -235,23 +232,27 @@ object SemanticChecker {
                     addToVars(id, t, childVars)
                 }
                 case Assign(x, y) => {
+                    /* Throw error if the ident being reassigned is a function. */
                     x match {
                         case Ident(id) => if (funcArgs.keySet.exists(_ == id)) ErrorLogger.err("Cannot re-assign value for a function: " + id) 
                         case _ => 
                     }
                     val lType = getLValType(x)
-                    // println("ltype: " + lType)
+                    
                     val rType = getRValType(y)
-                    // println("rtype: " + rType)
+                    /* Throw error when attempting to assign type deleted pair to a type deleted pair */
                     if (lType == AnyType && rType == AnyType) ErrorLogger.err("Assignment is not legal when both sides types are not known. ltype: " + lType + ",rtype: " + rType)        
+                    /* Throw error when attempting to assign to a different type */
                     if (lType != rType && rType != lType) ErrorLogger.err("invalid type for assign. expected : " + lType + ", actual : " + rType)              
                 }
                 case Read(x) => {
                     val ltype = getLValType(x)
+                    /* Throw error if attempt to read to non int or char type. */
                     if (ltype != IntType && ltype != CharType) ErrorLogger.err("invalid type for read. expected: <IntType, CharType>, actual: " + ltype)  
                 }
                 case Free(x) => {
                     val rType = getRValType(x)
+                    /* Error when freeing a non array or pair type. */
                     rType match {
                         case x: ArrayType => 
                         case x: PairType =>
@@ -269,7 +270,10 @@ object SemanticChecker {
                 case Print(x) => getRValType(x)
                 case Println(x) => getRValType(x)
                 case If(p, xs, ys) => {
+                    /* Error if condition not boolean type */
                     if (getRValType(p) != BoolType) ErrorLogger.err("invalid type for if cond") 
+
+                    /* Check semantics of both branches. */
                     val newChildVars = createChildVars(vars, childVars)
                     checkStatements(xs, newChildVars, funcArgs)
                     checkStatements(ys, newChildVars, funcArgs)
