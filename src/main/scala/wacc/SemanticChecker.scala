@@ -21,6 +21,7 @@ object SemanticChecker {
         val vars = MapM[String, Type]()
         val funcArgs = MapM[String, List[Type]]()
         functions.foreach(func => {
+            if (vars.keySet.exists(_ == func.fs.id)) ErrorLogger.err("Cannot redeclare function '" + func.fs.id + "'")
             vars(func.fs.id) = func.fs.t
             funcArgs(func.fs.id) = func.args.map(arg => arg.t)
         })
