@@ -77,12 +77,12 @@ object SemanticChecker {
         /* Returns the type of a pairElem (fst or snd) */
         def getLValPairElem(p: PairElem) = p match {
             case Fst(x) => getLValType(x) match {
-                case Pair => Pair
+                case Pair | AnyType => AnyType
                 case PairType(fst, _) => getPairElemType(fst)
                 case x => ErrorLogger.err("cannot evaluate fst on non-pair type: " + x)
             } 
             case Snd(x) => getLValType(x) match {
-                case Pair => Pair
+                case Pair | AnyType => AnyType
                 case PairType(_, snd) => getPairElemType(snd)
                 case x => ErrorLogger.err("cannot evaluate snd on non-pair type: " + x)
             } 
