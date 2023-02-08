@@ -12,7 +12,7 @@ object AST {
 
     object Program extends ParserBridge2[List[Func], List[Stat], Program]
 
-    case class Func(fs: (Type, String), args: List[Param], stats: List[Stat]) {
+    case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
         def validReturn: Boolean = validReturn(stats)
         def validReturn(stats: List[Stat]): Boolean = stats.last match {
             case _: Return | _: Exit => true
@@ -33,7 +33,7 @@ object AST {
     }
     case class Param(t: Type, id: String)
 
-    object Func extends ParserBridge3[(Type, String), List[Param], List[Stat], Func]
+    object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Func]
     object Param extends ParserBridge2[Type, String, Param]
 
     // Statements
