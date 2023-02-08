@@ -90,8 +90,9 @@ object AST {
                 this.fst == p.fst && this.snd == p.snd
             }
             that match {
-                case Pair => true
                 case x: PairType => pairEq(x)
+                case x: BaseType => false
+                case Pair => true
                 case _ => false
             }
         }
