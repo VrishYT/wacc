@@ -225,7 +225,8 @@ object SemanticChecker {
                     }
                     val lType = getLValType(x)
                     val rType = getRValType(y)
-                    if (lType != rType && rType != lType) ErrorLogger.err("invalid type for assign. expected : " + lType + ", actual : " + rType)              
+                    if (lType == AnyType && rType == AnyType) ErrorLogger.err("Assignment is not legal when both sides types are not known. ltype: " + lType + ",rtype: " + rType)        
+                    if (lType != rType && rType != lType) ErrorLogger.err("valid type for assign. expected : " + lType + ", actual : " + rType)              
                 }
                 case Read(x) => {
                     val ltype = getLValType(x)
