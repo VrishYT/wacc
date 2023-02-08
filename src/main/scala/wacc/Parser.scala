@@ -15,23 +15,6 @@ object Parser {
     import implicits.implicitSymbol
     import AST._
 
-    val BOOL_LIT = ("true" #> true <|> 
-                   "false" #> false).label("boolean literal (true or false)")
-                                 
-    val PAIR_LIT = (("null") #> PairLiteralNull).label("pair null type")
-
-    def type_desc(x: Parsley[Unit]) = x.label("type").explain("types include int, string, char and bool")
-
-    val BASE_TYPE = type_desc("int") #> IntType <|>
-                    type_desc("string") #> StringType <|>
-                    type_desc("bool") #> BoolType <|> 
-                    type_desc("char") #> CharType
-    
-    private lazy val atom: Parsley[Expr] = 
-                    "(".label("open parenthesis") *> expr <* ")" <|> IdentOrArrayElem(IDENT, option("[" *> sepBy(expr, "][") <* "]")) <|> IntLiteral(INTEGER) <|> CharLiteral(CHR_LIT) <|>
-                    StrLiteral(STR_LIT) <|> BoolLiteral(BOOL_LIT) <|> PAIR_LIT
-
-
     def unary_op(x: Parsley[Unit]) = x.label("unary operator").explain("unary operators include len, ord, chr, ! and -")
 
     def arith_op(x: Parsley[Unit]) = x.label("arithmetic operator").explain("arithmetic operators include *, /, %, + and -")
@@ -39,6 +22,31 @@ object Parser {
     def comp_op(x: Parsley[Unit]) = x.label("comparison operator").explain("comparison operators include >, >=, <, <=, != and ==")
 
     def logic_op(x: Parsley[Unit]) = x.label("logical operator").explain("logical operators include && and ||")
+
+    def base_type_desc(x: Parsley[Unit]) = x.label("base type").explain("base types include int, string, char and bool")
+
+    def pair_type_desc(x: Parsley[Unit]) = x.label("pair type").explain("")
+
+    def array_type_desc(x: Parsley[Unit]) = x.label("[] (array type)").explain("")
+
+    def pair_op(x: Parsley[Unit]) = x.label("pair operator").explain("pair operators include \'fst\' and \'snd\'")
+
+    val BOOL_LIT = ("true" #> true <|> 
+                   "false" #> false).label("boolean literal (true or false)")
+                                 
+    val PAIR_LIT = (("null") #> PairLiteralNull).label("pair null type")
+
+    val BASE_TYPE = base_type_desc("int") #> IntType <|>
+                    base_type_desc("string") #> StringType <|>
+                    base_type_desc("bool") #> BoolType <|> 
+                    base_type_desc("char") #> CharType
+
+    val IDENT_OR_ARRAY_ELEM = IdentOrArrayElem(IDENT.label("identifier"), option("[".label("index (like \'xs[idx]\')") *> sepBy(expr, "][") <* "]"))
+    
+    private lazy val atom: Parsley[Expr] = 
+                    "(".label("open parenthesis") *> expr <* ")" <|> IDENT_OR_ARRAY_ELEM <|> IntLiteral(INTEGER) <|> CharLiteral(CHR_LIT) <|>
+                    StrLiteral(STR_LIT) <|> BoolLiteral(BOOL_LIT) <|> PAIR_LIT
+
 
     val operators: Parsley[Expr] = precedence[Expr](
         atom)(
@@ -56,20 +64,20 @@ object Parser {
 
     val ARRAY_LITER = ArrayLiteral("[" *> (sepBy(expr, ",") <* "]")).label("array literal")
     
-    lazy val PAIR_ELEM_TYPE = (("pair").hide #> Pair <|> chain.postfix(BASE_TYPE, ArrayType <# "[]")) // separate these
+    lazy val PAIR_ELEM_TYPE = ("pair" #> Pair <|> chain.postfix(BASE_TYPE, ArrayType <# "[]")) // separate these
     
-    val PAIR_TYPE = PairType("pair".hide *> "(" *> PAIR_ELEM_TYPE, "," *> PAIR_ELEM_TYPE <~ ")") // explain
+    val PAIR_TYPE = PairType(pair_type_desc("pair" *> "(") *> PAIR_ELEM_TYPE, "," *> PAIR_ELEM_TYPE <~ ")") // explain
     
-    private lazy val atom2: Parsley[Type] = BASE_TYPE <|> PAIR_TYPE.label("type \'pair\'")
+    private lazy val atom2: Parsley[Type] = BASE_TYPE <|> PAIR_TYPE
 
-    val ARRAY_TYPE: Parsley[Type] = chain.postfix(atom2, ArrayType <# "[]".label("array type")) // explain
+    val ARRAY_TYPE: Parsley[Type] = chain.postfix(atom2, ArrayType <# array_type_desc("[]")) // explain
 
     
     lazy val types: Parsley[Type] = ARRAY_TYPE <|> BASE_TYPE <|> PAIR_TYPE 
 
     val ARG_LIST = sepEndBy(expr, ",")
 
-    lazy val PAIR_ELEM = Fst(("fst").label("pair operator").explain("pair operators include fst and snd") *> lvalue) <|> Snd(("snd").label("pair operator").explain("pair operators include fst and snd") *> lvalue)
+    lazy val PAIR_ELEM = Fst(pair_op("fst") *> lvalue) <|> Snd(pair_op("snd") *> lvalue)
 
     lazy val rvalue: Parsley[RValue] = expr <|> 
                                        ARRAY_LITER <|> 
@@ -77,7 +85,7 @@ object Parser {
                                        PAIR_ELEM <|> 
                                        Call("call".label("function call") *> IDENT, "(" *> ARG_LIST <~ ")") // explain
 
-    lazy val lvalue: Parsley[LValue] = IdentOrArrayElem(IDENT.label("identifier"), option("[".label("index (like \'xs[idx]\')") *> sepBy(expr, "][") <* "]")) <|> PAIR_ELEM
+    lazy val lvalue: Parsley[LValue] = IDENT_OR_ARRAY_ELEM <|> PAIR_ELEM
 
     val stat: Parsley[Stat] = ("skip" #> Skip) <|> 
                               (Declare(types, IDENT, "=" *> rvalue)) <|>
@@ -92,8 +100,10 @@ object Parser {
                                   "then" *> stats, 
                                   "else" *> stats <~ "fi")).label("if statement") <|>
                               (While("while" *> expr,
-                                  "do" *> stats <~ "done")) <|>
+                                  "do" *> stats <~ ("done" /*<|> _done_check*/))).label("while statement") <|>
                               (Begin("begin" *> stats <~ "end")) // explain where needed for each
+
+    val _done_check = amend(eof.hide *> unexpected("end of input").explain("unclosed while loop"))
     
     private lazy val stats = sepBy1(stat, ";")
 
@@ -101,14 +111,11 @@ object Parser {
 
     val paramList = sepBy(param, ",")
 
-    val invalid_function = IDENT <~ "(" // move into separate file (or object if it is the only one)
+    val _invalid_function = (IDENT <~ "(").verifiedFail("missing return type of function") // move into separate file (or object if it is the only one)
 
     val func = Func(attempt(types <~> IDENT <~ "(").label("function declaration"), paramList <~ ")", "is" *> stats <* "end") <|>
-                invalid_function.verifiedFail("missing return type of function")
+                _invalid_function
  
-    // val program_ = Program("begin" *> sepEndBy(func, pure("")).guardAgainst {
-    //     case fs if fs.nonEmpty && fs.map(fs.tail).exi
-    // }, stats <* "end")
 
     val program_ = Program("begin" *> sepEndBy(func.guardAgainst {
         case func if !func.validReturn => Seq("function not return/exit")
@@ -116,15 +123,6 @@ object Parser {
 
     val program = fully(program_)
 }
-
-/*func.filterOut {
-        case func if !validReturn(func.stats) => "function does not have a return/exit"
-    },
-*/
-/*
-move the valid return stuff into the Func node, removing all stuff from the AST
-
- */
 
 
  
