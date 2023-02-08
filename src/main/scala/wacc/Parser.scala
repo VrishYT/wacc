@@ -1,7 +1,6 @@
 package wacc
 import parsley.Parsley
-import parsley.Parsley.attempt
-import parsley.Parsley.pure
+import parsley.Parsley.{attempt, pure, notFollowedBy}
 
 object Parser {
 
@@ -100,11 +99,11 @@ object Parser {
                                   "then" *> stats, 
                                   "else" *> stats <~ "fi")).label("if statement") <|>
                               (While("while" *> expr,
-                                  "do" *> stats <~ ("done" /*<|> _done_check*/))).label("while statement") <|>
+                                  "do" *> stats <~ ("done".explain("unclosed while loop")))).label("while statement") <|>
                               (Begin("begin" *> stats <~ "end")) // explain where needed for each
 
-    val _done_check = amend(eof.hide *> unexpected("end of input").explain("unclosed while loop"))
-    
+    // val _done_check =  // notFollowedBy("done").verifiedFail("unclosed while loop")
+
     private lazy val stats = sepBy1(stat, ";")
 
     val param = Param(types, IDENT).label("parameter")
