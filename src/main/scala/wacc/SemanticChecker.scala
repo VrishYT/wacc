@@ -123,12 +123,11 @@ object SemanticChecker {
                 /*  */
                 case NewPair(fst, snd) => {
                     def getPairElem(rval: RValue): PairElemType = getPairElemType(getRValType(rval)) match {
-                            case x: PairElemType => x
-                            case x => ErrorLogger.err("not a pair elem type. expected: <? extends PairElemType>, actual: " + x) 
-                        } 
-                    }
+                        case x: PairElemType => x
+                        case x => ErrorLogger.err("not a pair elem type. expected: <? extends PairElemType>, actual: " + x) 
+                    } 
 
-                    new PairType(getPairElem(fst), getPairElem(snd))
+                    return new PairType(getPairElem(fst), getPairElem(snd))
                 }
                 case Call(id, args) => {
                     val currentArgs = funcArgs.get(id) match {
@@ -142,7 +141,7 @@ object SemanticChecker {
                         if (actArgType != expArgType) ErrorLogger.err("Invalid type for arg.  expected: " + expArgType + ". actual: " + actArgType)
                     }
 
-                    getTypeFromVars(id, vars, childVars)
+                    return getTypeFromVars(id, vars, childVars)
                 }
                 case x: Expr => x match {
                     case _: IntLiteral => IntType
@@ -152,11 +151,25 @@ object SemanticChecker {
                     case PairLiteralNull => Pair
                     case Ident(id) => getTypeFromVars(id, vars, childVars)
                     case ArrayElem(id, exps) => {
-                        getTypeFromVars(id, vars, childVars) match { 
-                            case ArrayType(t) => {
-                            // TODO: check no of index exps matches array dimension
-                                t
+
+                        def checkArrayIndex(exps: List[Expr], t: Type): Type = {
+                            val head::tail = exps
+                            val expType = getRValType(head)
+                            if (expType != IntType) ErrorLogger.err("cannot access non-int type index for an array")
+                            t match {
+                                case ArrayType(subType) => if (tail.isEmpty) {
+                                    return subType
+                                } else {
+                                    checkArrayIndex(tail, subType)
+                                }
+                                case _ if (!tail.isEmpty) => ErrorLogger.err("Array index out of bounds")
+                                case x => x
                             }
+
+                        }
+
+                        getTypeFromVars(id, vars, childVars) match {
+                            case ArrayType(t) => checkArrayIndex(exps, t)
                             case x => ErrorLogger.err("cannot get elem from non-array type")
                         }
                         // exps.foreach(exp => {
@@ -176,7 +189,7 @@ object SemanticChecker {
                         }
                         val rType = getRValType(exp)
                         if (rType != types._1) ErrorLogger.err("invalid type for unary op param. expected: " + types._1 + ". actual: " + rType)
-                        types._2
+                        return types._2
                     }
                     case BinaryOpExpr(op, exp1, exp2) => {
                         def checkType(exp: Expr, ReturnType: Type): Unit = {
