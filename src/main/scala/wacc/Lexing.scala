@@ -72,15 +72,15 @@ object Lexing{
                                     .label("identifier")
                                     .explain("valid identifiers can only include \'_\' and alphanumeric characters, but also must not start with a digit")
     val INTEGER = lexer.lexeme.numeric.integer.decimal32
-                                    .label("number")
+                                    .label("integer literal")
                                     .explain("all numbers are signed 32-bit integers")
     val UNOP_MINUS = lexer.lexeme(attempt('-' *> notFollowedBy(digit)))
 
     val STR_LIT = lexer.lexeme.text.string.ascii
-                                    .label("string")
+                                    .label("string literal")
                                     .explain("strings can only contain graphic ASCII characters")
     val CHR_LIT = lexer.lexeme.text.character.ascii
-                                    .label("character")
+                                    .label("character literal")
                                     .explain("a character must be graphic ASCII")
 
     def fully[A](p: Parsley[A]) = lexer.fully(p)
