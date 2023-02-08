@@ -219,6 +219,10 @@ object SemanticChecker {
                     addToVars(id, t, childVars)
                 }
                 case Assign(x, y) => {
+                    x match {
+                        case Ident(id) => if (funcArgs.keySet.exists(_ == id)) ErrorLogger.err("Cannot re-assign value for a function: " + id) 
+                        case _ => 
+                    }
                     val lType = getLValType(x)
                     val rType = getRValType(y)
                     if (lType != rType && rType != lType) ErrorLogger.err("invalid type for assign. expected : " + lType + ", actual : " + rType)              
