@@ -31,13 +31,18 @@ object SemanticChecker {
 
     }
 
+    def addToVars(id: String, t: Type, vars: MapM[String, Type]): Unit = {
+        if (vars.keySet.exists(_ == id)) ErrorLogger.err("Cannot redeclare variable '" + id + "'")
+        vars(id) = t
+    }
+
     /** Checks for invalid semantics within a specific function.
         @param func 
     */
     def checkFunction(func: Func, vars: Map[String, Type], funcArgs: Map[String, List[Type]]): Unit = {
         val childVars = MapM[String, Type]()
-        func.args.foreach(param => childVars(param.id) = param.t)
-        childVars("\\func") = func.fs.t 
+        func.args.foreach(param => addToVars(param.id, param.t, childVars))
+        addToVars("\\func", func.fs.t, childVars) 
 
         /* Checks semantics of each statement in the function. */
         checkStatements(func.stats, createChildVars(vars, childVars), funcArgs)
@@ -147,14 +152,18 @@ object SemanticChecker {
                     case PairLiteralNull => Pair
                     case Ident(id) => getTypeFromVars(id, vars, childVars)
                     case ArrayElem(id, exps) => {
-                        exps.foreach(exp => {
-                            val rType = getRValType(exp)
-                            if (rType != IntType) ErrorLogger.err("cannot access array '" + id + "' at non-int elems. type found: " + rType)
-                        })
                         getTypeFromVars(id, vars, childVars) match { 
-                            case ArrayType(t) => t
+                            case ArrayType(t) => {
+                            // TODO: check no of index exps matches array dimension
+                                t
+                            }
                             case x => ErrorLogger.err("cannot get elem from non-array type")
                         }
+                        // exps.foreach(exp => {
+                        //     val rType = getRValType(exp)
+                        //     if (rType != IntType) ErrorLogger.err("cannot access array '" + id + "' at non-int elems. type found: " + rType)
+                        // })
+
                     }
                     case ArrayElem(_, Nil) => ErrorLogger.err("cannot have array elem with no expr")
                     case UnaryOpExpr(op, exp) => {
@@ -185,14 +194,14 @@ object SemanticChecker {
                                 val t1 = getRValType(exp1)
                                 val t2 = getRValType(exp2)
 
-                                def validType(t: Type) = t == CharType || t == IntType 
+                                def validType(t: Type) = CharType == t || IntType == t
 
                                 if (validType(t1) && validType(t2) && t1 == t2) return BoolType
                                 else ErrorLogger.err("invalid equality type for binary op")
                             }
                         }
                         checkType(exp1, returnType._1)
-                        checkType(exp1, returnType._2)
+                        checkType(exp2, returnType._2)
                         returnType._3
                     }
                     case _ => ErrorLogger.err("unknown")
@@ -207,7 +216,7 @@ object SemanticChecker {
                 case Declare(t, id, rhs) => {
                     val rType = getRValType(rhs)
                     if (rType != t) ErrorLogger.err("invalid type for declare. expected: " + t  + ", actual: " + rType)
-                    childVars(id) = t
+                    addToVars(id, t, childVars)
                 }
                 case Assign(x, y) => {
                     val lType = getLValType(x)
