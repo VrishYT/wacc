@@ -9,6 +9,7 @@ object Parser {
     import parsley.expr.chain
     import parsley.errors.combinator._
     import parsley.errors.patterns._
+    import parsley.position._   
     import Lexing.lexer
     import Lexing._
     import implicits.implicitSymbol
@@ -33,7 +34,7 @@ object Parser {
     val BOOL_LIT = ("true" #> true <|> 
                    "false" #> false).label("boolean literal (true or false)")
                                  
-    val PAIR_LIT = (("null") #> PairLiteralNull).label("pair null type")
+    val PAIR_LIT = (pos <**> ("null") #> PairLiteralNull).label("pair null type")
 
     val BASE_TYPE = base_type_desc("int") #> IntType <|>
                     base_type_desc("string") #> StringType <|>

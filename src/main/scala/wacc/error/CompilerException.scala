@@ -1,13 +1,15 @@
 package wacc.error
 
-class CompilerException(private val message: String = "", private val cause: Throwable = None.orNull, private val exit: Int = -1) extends Exception(message, cause) {
-    override def toString(): String = message
+import parsley.position._
+
+class CompilerException(private val message: String, private val exit: Int) extends Exception(message) {
+    // override def toString(): String = message
     def quit = {
         println(this)
-        sys.exit(exit)
+        // sys.exit(exit)
     }
 }
 
 object CompilerException {
-    def apply(msg: String, exit: Int): CompilerException = new CompilerException(msg, null, exit)
+    def apply(msg: String, exit: Int): CompilerException = new CompilerException(msg, exit)
 }

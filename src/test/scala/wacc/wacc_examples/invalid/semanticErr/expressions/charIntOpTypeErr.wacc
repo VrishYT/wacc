@@ -1,0 +1,5 @@
+begin
+    int x = 9 ;
+    char y = 'b' ;
+    println x > y
+end
