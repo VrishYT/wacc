@@ -12,7 +12,9 @@ object Main {
 
             val compiler = Compiler(args(0))
             compiler.parse
-            compiler.typecheck
+            if (!compiler.typecheck) {
+                sys.exit(200)
+            }
             // compiler.compile
         } catch {
             case x: CompilerException => x.quit

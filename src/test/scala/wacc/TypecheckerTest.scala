@@ -47,9 +47,8 @@ class InvalidTypecheckerTests extends AnyFunSuite {
             val parseSuccess: Boolean = c.parse
             assert(parseSuccess)
             
-            assertThrows[TypeException] {
-                c.typecheck
-            }
+            val typecheckSuccess = c.typecheck
+            assert(!typecheckSuccess)
         }
     })
 
