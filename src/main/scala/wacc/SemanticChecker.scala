@@ -38,8 +38,8 @@ object SemanticChecker {
     }
 
     /* Assigns a new variable name to a type, and errors if it already exists. */
-    def declareVar(id: String, t: Type, vars: MapM[String, Type]): Unit = {
-        if (vars.keySet.exists(_ == id)) ErrorLogger.err("Cannot redeclare variable '" + id + "'")
+    def declareVar(id: String, t: Type, vars: MapM[String, Type], pos: (Int, Int)): Unit = {
+        if (vars.keySet.exists(_ == id)) ErrorLogger.err("Cannot redeclare variable '" + id + "'", pos)
         vars(id) = t
     }
 
@@ -48,20 +48,20 @@ object SemanticChecker {
     */
     def checkFunction(func: Func, vars: Map[String, Type], funcArgs: Map[String, List[Type]]): Unit = {
         val childVars = MapM[String, Type]()
-        func.args.foreach(param => declareVar(param.id, param.t, childVars))
-        declareVar("\\func", func.fs._1, childVars) 
+        func.args.foreach(param => declareVar(param.id, param.t, childVars, param.pos))
+        declareVar("\\func", func.fs._1, childVars, func.pos) 
 
         /* Checks semantics of each statement in the function. */
         checkStatements(func.stats, createChildVars(vars, childVars), funcArgs)
     }
 
     /* Return the type of an identifier from the parent and child scope maps. */
-    def getTypeFromVars(id: String, parent: Map[String, Type], child: MapM[String, Type] = MapM()): Type = {
+    def getTypeFromVars(id: String, parent: Map[String, Type], child: MapM[String, Type] = MapM(), pos: (Int, Int)): Type = {
         child.get(id) match {
             case Some(x) => x
             case None => parent.get(id) match {
                 case Some(x) => x
-                case None => ErrorLogger.err("Variable " + id + " not found")
+                case None => ErrorLogger.err("Variable " + id + " not found", pos)
             }
         }
     }
@@ -92,8 +92,8 @@ object SemanticChecker {
         /* Returns the type of an lvalue (identifier, arrayElem, pairElem) */
         def getLValType(lVal: LValue): Type = {
             lVal match {
-                case Ident(id) => getTypeFromVars(id, vars, childVars)                               
-                case (elem @ (ArrayElem(id, xs))) => getTypeFromVars(id, vars, childVars) match {
+                case x@Ident(id) => getTypeFromVars(id, vars, childVars, x.pos)                               
+                case (elem @ (ArrayElem(id, xs))) => getTypeFromVars(id, vars, childVars, elem.pos) match {
                     case ArrayType(t) => t
                     /* Error if a non array ident is being accessed. */
                     case x => ErrorLogger.err("unable to access non-array var as an array", x, ArrayType(AnyType), elem.pos) // TODO : check :(
@@ -134,12 +134,12 @@ object SemanticChecker {
                     }
                     if (args.length != currentArgs.length) ErrorLogger.err("Invalid number of arguments for function '" + id + "'. expected: " + currentArgs.length + ". actual: " + args.length, func.pos)
                     for (i <- 0 to args.length - 1) {
-                        val expArgType = currentArgs(i)
-                        val actArgType = getRValType(args(i))
-                        if (actArgType != expArgType) ErrorLogger.err("Invalid type for arg.  expected: " + expArgType + ". actual: " + actArgType, expArgType, actArgType, args(i).pos)
+                        val paramType = currentArgs(i)
+                        val rType = getRValType(args(i))
+                        if (rType != paramType) ErrorLogger.err("invalid type for arg", rType, paramType, args(i).pos)
                     }
 
-                    return getTypeFromVars(id, vars)
+                    return getTypeFromVars(id, vars, pos = func.pos)
                 }
                 case x: Expr => x match {
                     case _: IntLiteral => IntType
@@ -147,32 +147,33 @@ object SemanticChecker {
                     case _: StrLiteral => StringType
                     case _: BoolLiteral => BoolType
                     case _: PairLiteralNull => Pair
-                    case Ident(id) => getTypeFromVars(id, vars, childVars)
+                    case x@Ident(id) => getTypeFromVars(id, vars, childVars, x.pos)
+                    case (array @ ArrayElem(_, Nil)) => ErrorLogger.err("invalid array access\nno index provided", array.pos)
                     case (elem @ ArrayElem(id, exps)) => {
 
                         def checkArrayIndex(exps: List[Expr], t: Type): Type = {
                             val head::tail = exps
                             val expType = getRValType(head)
-                            if (expType != IntType) ErrorLogger.err("cannot access non-int type index for an array", head.pos)
+                            if (expType != IntType) ErrorLogger.err("cannot access non-int type index for an array", expType, IntType, head.pos)
                             t match {
                                 case ArrayType(subType) => if (tail.isEmpty) {
                                     return subType
                                 } else {
                                     checkArrayIndex(tail, subType)
                                 }
-                                case _ if (!tail.isEmpty) => ErrorLogger.err("Array index out of bounds", elem.pos)
+                                case _ if (!tail.isEmpty) => ErrorLogger.err("array index out of bounds", elem.pos)
                                 case x => x
                             }
 
                         }
 
-                        getTypeFromVars(id, vars, childVars) match {
+                        getTypeFromVars(id, vars, childVars, elem.pos) match {
                             case ArrayType(t) => checkArrayIndex(exps, t)
-                            case x => ErrorLogger.err("cannot get elem from non-array type")
+                            case x => ErrorLogger.err("cannot get elem from non-array type", x, ArrayType(AnyType), elem.pos)
                         }
 
                     }
-                    case (array @ ArrayElem(_, Nil)) => ErrorLogger.err("cannot have array elem with no expr", array.pos)
+                    
                     case UnaryOpExpr(op, exp) => { 
                         val types = op match {
                             case Not => (BoolType, BoolType)
@@ -182,15 +183,16 @@ object SemanticChecker {
                             case Length => (ArrayType(AnyType), IntType)
                         }
                         val rType = getRValType(exp)
-                        if (rType != types._1) ErrorLogger.err("invalid type for unary op param. expected: " + types._1 + ". actual: " + rType, exp.pos)
+                        if (rType != types._1) ErrorLogger.err("invalid type for unary op param", rType, types._1, exp.pos)
                         return types._2
                     }
                     case BinaryOpExpr(op, exp1, exp2) => {
                         def checkType(exp: Expr, ReturnType: Type): Unit = {
+                            val rValType = getRValType(exp)
                             if (ReturnType == AnyType) return
-                            getRValType(exp) match {
+                            rValType match {
                                 case ReturnType => 
-                                case _ => ErrorLogger.err("invalid binary op type", exp1.pos, exp2.pos)
+                                case _ => ErrorLogger.err("invalid binary op type", rValType, ReturnType, exp.pos)
                             }
                         }
                         val returnType = op match {
@@ -203,8 +205,10 @@ object SemanticChecker {
 
                                 def validType(t: Type) = CharType == t || IntType == t
 
-                                if (validType(t1) && validType(t2) && t1 == t2) return BoolType
-                                else ErrorLogger.err("invalid equality type for binary op", exp1.pos, exp2.pos)
+                                if (!validType(t1)) ErrorLogger.err("invalid type for binary op", t1, Seq(CharType, IntType), exp1.pos)
+                                if (!validType(t2)) ErrorLogger.err("invalid type for binary op", t2, Seq(CharType, IntType), exp2.pos)
+                                if (t1 != t2) ErrorLogger.err("invalid type for binary op\ncannot execute binary op on two args of differing type", t2, t1, exp1.pos, exp2.pos)
+                                return BoolType
                             }
                         }
                         checkType(exp1, returnType._1)
@@ -222,8 +226,8 @@ object SemanticChecker {
             statement match {
                 case Declare(t, id, rhs) => {
                     val rType = getRValType(rhs)
-                    if (rType != t) ErrorLogger.err("invalid type for declare. expected: " + t  + ", actual: " + rType, rhs.pos)
-                    declareVar(id, t, childVars)
+                    if (rType != t) ErrorLogger.err("invalid type for declare", rType, t, rhs.pos)
+                    declareVar(id, t, childVars, rhs.pos)
                 }
                 case Assign(x, y) => {
                     /* Throw error if the ident being reassigned is a function. */
@@ -234,14 +238,14 @@ object SemanticChecker {
                     val lType = getLValType(x)
                     val rType = getRValType(y)
                     /* Throw error when attempting to assign type deleted pair to a type deleted pair */
-                    if (lType == AnyType && rType == AnyType) ErrorLogger.err("Assignment is not legal when both sides types are not known. ltype: " + lType + ",rtype: " + rType, x.pos, y.pos)        
+                    if (lType == AnyType && rType == AnyType) ErrorLogger.err("invalid type for assign\ncannot assign when both types are unknown", x.pos, y.pos)        
                     /* Throw error when attempting to assign to a different type */
-                    if (lType != rType && rType != lType) ErrorLogger.err("invalid type for assign. expected : " + lType + ", actual : " + rType, x.pos, y.pos)        
+                    if (lType != rType && rType != lType) ErrorLogger.err("invalid type for assign", rType, lType, x.pos, y.pos)        
                 }
                 case Read(x) => {
                     val ltype = getLValType(x)
                     /* Throw error if attempt to read to non int or char type. */
-                    if (ltype != IntType && ltype != CharType) ErrorLogger.err("invalid type for read. expected: <IntType, CharType>, actual: " + ltype, x.pos)  
+                    if (ltype != IntType && ltype != CharType) ErrorLogger.err("invalid type for read", ltype, Seq(IntType, CharType), x.pos)
                 }
                 case Free(x) => {
                     val rType = getRValType(x)
@@ -249,24 +253,26 @@ object SemanticChecker {
                     rType match {
                         case x: ArrayType => 
                         case x: PairType =>
-                        case y => ErrorLogger.err("invalid type for free. expected: <Array, Pair>, actual: " + y, x.pos)
+                        case y => ErrorLogger.err("invalid type for free", y, Seq(ArrayType(AnyType), PairType(AnyType, AnyType)), x.pos)
                     }
                 }
-                // TODO: Need to check we're in a function !!!!!!!!
+                
                 case Return(x) => {
-                    val rVal = getRValType(x)
-                    val rType = getTypeFromVars("\\func", vars, childVars)
-                    if (rVal != rType) ErrorLogger.err("invalid type for return. expected: IntType, actual: " + rVal, x.pos)
+                    val rType = getRValType(x)
+                    if (!vars.keySet.exists(_ == "\\func")) ErrorLogger.err("invalid return call\ncannot return outside a function body", x.pos)
+                    val funcType = getTypeFromVars("\\func", vars, childVars, x.pos)
+                    if (rType != funcType) ErrorLogger.err("invalid type for return", rType, funcType, x.pos)
                 }
                 case Exit(x) => {
-                    if (getRValType(x) != IntType) ErrorLogger.err("invalid type for exit", x.pos)
+                    val rValType = getRValType(x) 
+                    if (rValType != IntType) ErrorLogger.err("invalid type for exit", rValType, IntType, x.pos)
                 }
                 case Print(x) => getRValType(x)
                 case Println(x) => getRValType(x)
                 case If(p, xs, ys) => {
                     /* Error if condition not boolean type */
                     val rValType = getRValType(p) 
-                    if (rValType != BoolType) ErrorLogger.err("invalid type for if cond" + rValType , p.pos) 
+                    if (rValType != BoolType) ErrorLogger.err("invalid type for if cond", rValType, BoolType, p.pos) 
 
                     /* Check semantics of both branches. */
                     val newChildVars = createChildVars(vars, childVars)
