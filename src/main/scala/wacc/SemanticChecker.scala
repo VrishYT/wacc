@@ -124,19 +124,16 @@ object SemanticChecker {
                     }
                 }
 
-                case (pair @ NewPair(fst, snd)) => {
-                    def getPairElem(rval: RValue): PairElemType = getPairElemType(getRValType(rval)) match {
-                        case x: PairElemType => x
-                        case x => ErrorLogger.err("not a pair elem type. expected: <? extends PairElemType>, actual: " + x, pair.pos) 
-                    } 
+                case NewPair(fst, snd) => {
+                    def getPairElem(rval: RValue): Type = getPairElemType(getRValType(rval)) 
                     return new PairType(getPairElem(fst), getPairElem(snd))
                 }
-                case Call(id, args) => {
+                case (func @ Call(id, args)) => {
                     val currentArgs = funcArgs.get(id) match {
                         case Some(x) => x
                         case _ => List()
                     }
-                    if (args.length != currentArgs.length) ErrorLogger.err("Invalid number of arguments for function '" + id + "'. expected: " + currentArgs.length + ". actual: " + args.length)
+                    if (args.length != currentArgs.length) ErrorLogger.err("Invalid number of arguments for function '" + id + "'. expected: " + currentArgs.length + ". actual: " + args.length, func.pos)
                     for (i <- 0 to args.length - 1) {
                         val expArgType = currentArgs(i)
                         val actArgType = getRValType(args(i))

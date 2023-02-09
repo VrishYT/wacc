@@ -75,12 +75,12 @@ object AST {
 
     sealed trait RValue
     case class ArrayLiteral(xs: List[Expr])(val pos: (Int, Int)) extends RValue
-    case class NewPair(fst: Expr, snd: Expr)(val pos: (Int, Int)) extends RValue
-    case class Call(id: String, args: List[Expr]) extends RValue
+    case class NewPair(fst: Expr, snd: Expr) extends RValue
+    case class Call(id: String, args: List[Expr])(val pos: (Int, Int)) extends RValue
     
     object ArrayLiteral extends ParserBridgePos1[List[Expr], ArrayLiteral]
-    object NewPair extends ParserBridgePos2[Expr, Expr, NewPair]
-    object Call extends ParserBridge2[String, List[Expr], Call]
+    object NewPair extends ParserBridge2[Expr, Expr, NewPair]
+    object Call extends ParserBridgePos2[String, List[Expr], Call]
 
     // Types
     sealed trait Type
