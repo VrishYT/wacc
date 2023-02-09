@@ -6,5 +6,5 @@ final case class TypeException(private val message: String, private val pos: Seq
 
 object TypeException {
     def apply(msg: String): TypeException = return TypeException(msg, Seq())
-    def apply(msg: String, pos: (Int, Int)*): TypeException = return new TypeException(msg, pos)
+    // def apply(msg: String, pos: (Int, Int)*): TypeException = return new TypeException(msg, pos)
 }
