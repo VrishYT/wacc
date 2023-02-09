@@ -34,26 +34,12 @@ class Compiler(private val file: File) {
         val pNode = Parser.program
         implicit val eb: ErrorBuilder[WACCError] = new WACCErrorBuilder with tokenextractors.LexToken {
             private val idents = lexer.nonlexeme.names.identifier.map(x => s"identifier $x")
+
             private val ints = lexer.nonlexeme.numeric.integer.decimal32.map(x => s"integer $x")
-            //private val keywords_ = constantSymbols(lexer.nonlexeme.symbol)
-            // private val keywords_ = 
-            // private val keywords_ = keywords.toList.map(lexer.nonlexeme.symbol(_)).map(x => pure(s"$x"))//.map(x => s"keyword $x")
-            // private val keywords_ = lexer.nonlexeme.symbol.apply(_: String)//.map//.implicits//.map(x => s"keyword $x")
-            // private val keywords_ = keywords.map(x => lexer.nonlexeme.symbol.apply(x)).map(x => pure(s"$x")).toList//.map(x => s"keyword $x")
-            // private val keywords_ = (keywords.map(x => pure(x))).toList.map(x => s"keyword $x")
-            // private val keywords_ = 
-            //private val ws = skipMany(whitespace)
 
-            def tokens: Seq[Parsley[String]] = Seq(idents, ints)
-            //def tokens: Seq[Parsley[String]] = idents +: ints +: keywords_
-
+            private val keywords_ = constantSymbols((keywords.map(x => (lexer.nonlexeme.symbol(x), s"keyword $x")).toList): _*)
             
-
-            //override final def unexpectedToken(cs: Iterable[Char], amountOfInputParserWanted: Int, @unused lexicalError: Boolean): Token = {
-            //    tokenextractors.LexToken.unexpectedToken(cs, amountOfInputParserWanted, true)
-            //}
-
-            // def unexpectedToken(cs: Iterable[Char], amountOfInputParserWanted: Int, true)
+            def tokens: Seq[Parsley[String]] = idents +: ints +: keywords_
         }
 
         val result = pNode.parseFromFile(file)
