@@ -58,7 +58,7 @@ class Compiler(private val file: File) {
         case Some(x) => {
             val errors = SemanticChecker.typecheck(x)
             if (errors.isEmpty) return true
-            errors.foreach(println(_))
+            TypeException.convertErrors(errors, file).foreach(println)
             return false
         }
         case None => ErrorLogger.err("typecheck called before parse/readTarget", -1)
