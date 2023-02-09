@@ -7,7 +7,12 @@ final case class TypeException(private val message: String,
         private val expected: Seq[Type], 
         private val pos: Seq[(Int, Int)])
     extends CompilerException(message, 200) {
-    override def toString: String = "pos: " + pos + "\n" + message
+    override def toString: String = {
+        "pos: " + pos + "\n" + (actual match {
+            case Some(x) => "actual type: " + x + "\n" + "expected type(s): <" + expected.mkString(",") + ">\n"
+            case _ => ""
+        }) + message
+    }
 }
 
 object TypeException {
