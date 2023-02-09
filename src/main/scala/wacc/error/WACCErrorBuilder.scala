@@ -18,8 +18,7 @@ abstract class WACCErrorBuilder extends ErrorBuilder[WACCError] {
     override def source(sourceName: Option[String]): Source = sourceName.map(name => s"file '$name'")
 
     type ErrorInfoLines = WACCErrorLines
-    override def vanillaError(unexpected: UnexpectedLine, expected: ExpectedLine, reasons: Messages, line: LineInfo): ErrorInfoLines = 
-		VanillaError(unexpected, expected, reasons, line)
+    override def vanillaError(unexpected: UnexpectedLine, expected: ExpectedLine, reasons: Messages, line: LineInfo): ErrorInfoLines = VanillaError(unexpected, expected, reasons, line)
     override def specialisedError(msgs: Messages, line: LineInfo): ErrorInfoLines = SpecialisedError(msgs, line)
 
     type ExpectedItems = Seq[WACCErrorItem]
@@ -39,12 +38,12 @@ abstract class WACCErrorBuilder extends ErrorBuilder[WACCError] {
     override def reason(reason: String): Message = reason
     override def message(msg: String): Message = msg
 
-    type LineInfo = Seq[String]
-    override def lineInfo(line: String, linesBefore: Seq[String], linesAfter: Seq[String], errorPointsAt: Int, errorWidth: Int): LineInfo = {
-        linesBefore.map(line => s"$errorLineStart$line") ++:
-        Seq(s"$errorLineStart$line", s"${" " * errorLineStart.length}${errorPointer(errorPointsAt, errorWidth)}") ++:
-        linesAfter.map(line => s"$errorLineStart$line")
-    }
+    override val numLinesBefore: Int = 1
+    override val numLinesAfter: Int = 1
+
+    type LineInfo = ParseErrorInfo
+    override def lineInfo(line: String, linesBefore: Seq[String], linesAfter: Seq[String], errorPointsAt: Int, errorWidth: Int): LineInfo =
+      ParseErrorInfo(line, linesBefore, linesAfter, errorPointsAt, errorWidth, this.numLinesBefore, this.numLinesAfter)
 
     type Item = WACCErrorItem
     type Raw = WACCRaw
@@ -53,13 +52,6 @@ abstract class WACCErrorBuilder extends ErrorBuilder[WACCError] {
     override def raw(item: String): Raw = WACCRaw(item)
     override def named(item: String): Named = WACCNamed(item)
     override val endOfInput: EndOfInput = WACCEndOfInput
-
-    override val numLinesBefore: Int = 1
-    override val numLinesAfter: Int = 1
-
-	private val errorLineStart = "|"
-    private def errorPointer(caretAt: Int, caretWidth: Int) = s"${" " * caretAt}${"^" * caretWidth}"
-
   
 }
 
