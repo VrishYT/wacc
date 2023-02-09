@@ -39,7 +39,7 @@ object Errors {
       val expected_ = combineAsList(expected.map(_.value()).toList)
 
       val reasons_ = reasons.collect {
-        case reason if reason.nonEmpty => Some(reason)
+        case reason if reason.nonEmpty => Some("- " + reason)
       }
       combineOrUnknown((unexpected_ +: expected_ +: reasons_).flatten, lines)
     }

@@ -12,12 +12,12 @@ class Compiler(private val file: File) {
     import error.Errors.WACCError
     import parsley.combinator.skipMany
     import parsley.character.whitespace
-    import parsley.errors.{tokenextractors, ErrorBuilder, Token, TokenSpan}
-    import parsley.errors.tokenextractors.LexToken.constantSymbols
+    import parsley.errors.{ErrorBuilder, Token, TokenSpan}
+    import parsley.errors.tokenextractors.{LexToken, TillNextWhitespace, MatchParserDemand}
     import parsley.Parsley
     import parsley.io._
     import Lexing.{IDENT, INTEGER, lexer, keywords}
-    // import implicits.implicitSymbol
+    import parsley.debug._
 
     private var program: Option[Program] = None 
     private var exception: Option[CompilerException] = None
@@ -32,15 +32,21 @@ class Compiler(private val file: File) {
 
     def parse(): Boolean = {
         val pNode = Parser.program
-        implicit val eb: ErrorBuilder[WACCError] = new WACCErrorBuilder with tokenextractors.LexToken {
-            private val idents = lexer.nonlexeme.names.identifier.map(x => s"identifier $x")
 
-            private val ints = lexer.nonlexeme.numeric.integer.decimal32.map(x => s"integer $x")
+        implicit val eb: ErrorBuilder[WACCError] = new WACCErrorBuilder with LexToken {
+            private val idents = skipMany(whitespace) *> lexer.nonlexeme.names.identifier.map(x => s"identifier $x")
+            // private val idents = skipMany(whitespace) *> lexer.nonlexeme.names.identifier.map(x => s"identifier $x") <* skipMany(whitespace)
 
-            private val keywords_ = constantSymbols((keywords.map(x => (lexer.nonlexeme.symbol(x), s"keyword $x")).toList): _*)
-            
+            private val ints = skipMany(whitespace) *> lexer.nonlexeme.numeric.integer.decimal32.map(x => s"integer $x")
+
+            private val keywords_ = LexToken.constantSymbols((keywords.map(x => (skipMany(whitespace) *> lexer.nonlexeme.symbol(x), s"keyword $x")).toList): _*)
+
             def tokens: Seq[Parsley[String]] = idents +: ints +: keywords_
-        }
+
+            override def extractItem(cs: Iterable[Char], amountOfInputParserWanted: Int): Token = TillNextWhitespace.unexpectedToken(cs, amountOfInputParserWanted)
+
+            
+        } 
 
         val result = pNode.parseFromFile(file)
         result match {

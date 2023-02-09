@@ -41,9 +41,11 @@ abstract class WACCErrorBuilder extends ErrorBuilder[WACCError] {
 
     type LineInfo = Seq[String]
     override def lineInfo(line: String, linesBefore: Seq[String], linesAfter: Seq[String], errorPointsAt: Int, errorWidth: Int): LineInfo = {
-        linesBefore.map(line => s"$errorLineStart$line") ++:
-        Seq(s"$errorLineStart$line", s"${" " * errorLineStart.length}${errorPointer(errorPointsAt, errorWidth)}") ++:
-        linesAfter.map(line => s"$errorLineStart$line")
+      Seq(s"Program CODE:") ++:
+      linesBefore.map(line => s"$errorLineStart$line") ++:
+      // Seq(s"$errorLineStart$line", s"${" " * errorLineStart.length}${errorPointer(errorPointsAt, errorWidth)}") ++:
+      Seq(s"$errorLineStart$line", s"$errorLineStart${errorPointer(errorPointsAt, errorWidth)}") ++:
+      linesAfter.map(line => s"$errorLineStart$line")
     }
 
     type Item = WACCErrorItem
