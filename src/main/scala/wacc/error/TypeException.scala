@@ -5,9 +5,11 @@ import wacc.AST._
 import Errors._
 import scala.collection.mutable.{Map => MapM}
 import scala.collection.mutable.ArrayBuffer
+import scala.jdk.StreamConverters._
 
-import scala.io.Source
+// import scala.io.Source
 import java.io.File
+import java.io.{BufferedReader, FileReader}
 
 final case class TypeException(private val message: String, 
         private val actual: Option[Type], 
@@ -28,22 +30,31 @@ object TypeException {
     // TODO: add function declaration line for invalid return type
     def convertErrors(errors: ArrayBuffer[TypeException], file: File): ArrayBuffer[WACCError] = {
         val table = MapM[Int, String]()
-        val iterator = Source.fromFile(file).getLines()
+        // val iterator = Source.fromFile(file).getLines()
+        val iterator = new BufferedReader(new FileReader(file.getAbsolutePath)).lines().toScala(Iterator);
         var linesRead: Int = 0
+
+        // def getReaderLine(i: Int): String = {
+        //     val skip = i - linesRead - 1
+        //     reader.skip(skip) 
+        // }
+
+        def getIteratorLine(i: Int): String = if (iterator.hasNext) {
+            var l: String = ""
+            while (linesRead < i && iterator.hasNext) {
+                l = iterator.next.replaceAll("\t", "    ")
+                linesRead += 1
+            }
++
+            return l
+        } else ErrorLogger.err("End of file reached", 1)
 
         def getLine(i: Int): String = {
             // TODO: replace with getOrElseUpdate(i)
             table.get(i) match {
                 case Some(x) => return x
-                case None => if (iterator.hasNext) {
-                        var l: String = ""
-                        while (linesRead < i && iterator.hasNext) {
-                            l = iterator.next
-                            linesRead += 1
-                        }
-                        table(i) = l
-                        return l
-                    } else ErrorLogger.err("End of file reached", 1)
+                // case None => getIteratorLine(i)
+                case None => getIteratorLine(i)
             }
         }
 

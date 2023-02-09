@@ -89,18 +89,15 @@ object Errors {
 
     def findWidth(line: String, start: Int): Int = {
       val sub = line.substring(start - 1)
-      val width = sub.indexWhere(Seq(' ', '[', ']', '(', ')', '{', '}', ';', '\n') contains _) match {
+      val width = sub.indexWhere(Seq(' ', '[', ']', '(', ')', '{', '}', ';', '\n', '\r', ',', '\t') contains _) match {
         case x if x == -1 => sub.length
         case x => x.max(1)
       }
-      println(sub + ":" + width)
       return width
     }
 
     override def toSeqString(posSeq: Seq[(Int, Int)]): Seq[String] = { 
       val pos = posSeq(0)
-      // val errorWidth = 1
-      // val errorPointsAt = pos._2
       val maxLength: Int = pos._1.toString.length + 1
       var previousPos = 0
 
@@ -112,6 +109,7 @@ object Errors {
             s"${" " * (maxLength + 2)}$errorLineStart" +
             posSeq.map(pos => {
               val errorPointsAt = pos._2 - previousPos
+              println("findWidth: " + line._1 + ", " + pos._2)
               val errorWidth = findWidth(line._1, pos._2)
               previousPos = errorPointsAt + errorWidth - 1
               s"${errorPointer((errorPointsAt - 1), errorWidth)}"
