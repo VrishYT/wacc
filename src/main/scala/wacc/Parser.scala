@@ -1,12 +1,13 @@
 package wacc
 import parsley.Parsley
-import parsley.Parsley.{attempt, pure, notFollowedBy}
+import parsley.Parsley.{attempt, pure, lookAhead}
 
 object Parser {
 
     import parsley.combinator._
     import parsley.expr.{precedence, Ops, InfixL, Prefix}
     import parsley.expr.chain
+    import parsley.debug._
     import parsley.errors.combinator._
     import parsley.errors.patterns._
     import Lexing.lexer
@@ -40,7 +41,7 @@ object Parser {
                     base_type_desc("bool") #> BoolType <|> 
                     base_type_desc("char") #> CharType
 
-    val IDENT_OR_ARRAY_ELEM = IdentOrArrayElem(IDENT.label("identifier"), option("[".label("index (like \'xs[idx]\')") *> sepBy(expr, "][") <* "]"))
+    val IDENT_OR_ARRAY_ELEM = IdentOrArrayElem(IDENT.label("identifier"), option("[".label("index (like \'xs[idx]\')") *> sepBy(expr, "][") <* "]")) // *> lookAhead("(").explain("function calls dododo")
     
     private lazy val atom: Parsley[Expr] = 
                     "(".label("open parenthesis") *> expr <* ")" <|> IDENT_OR_ARRAY_ELEM <|> IntLiteral(INTEGER) <|> CharLiteral(CHR_LIT) <|>
@@ -65,7 +66,7 @@ object Parser {
     
     lazy val PAIR_ELEM_TYPE = ("pair" #> Pair <|> chain.postfix(BASE_TYPE, ArrayType <# "[]")) // separate these
     
-    val PAIR_TYPE = PairType(pair_type_desc("pair" *> "(") *> PAIR_ELEM_TYPE, "," *> PAIR_ELEM_TYPE <~ ")") // explain
+    val PAIR_TYPE = PairType(pair_type_desc("pair" *> "(".label("open parenthesis")) *> PAIR_ELEM_TYPE, "," *> PAIR_ELEM_TYPE <~ ")") // explain
     
     private lazy val atom2: Parsley[Type] = BASE_TYPE <|> PAIR_TYPE
 
@@ -78,15 +79,20 @@ object Parser {
 
     lazy val PAIR_ELEM = Fst(pair_op("fst") *> lvalue) <|> Snd(pair_op("snd") *> lvalue)
 
-    lazy val rvalue: Parsley[RValue] = expr <|> 
+    val _invalid_call = amend(attempt(IDENT <~ "(") *> unexpected("opening parenthesis")).explain("function calls may not appear in expressions and must use `call`")
+
+    lazy val rvalue: Parsley[RValue] = _invalid_call <|> Call("call".label("function call") *> IDENT, "(" *> ARG_LIST <~ ")") <|> // explain
+                                       expr <|> 
                                        ARRAY_LITER <|> 
                                        NewPair("newpair" *> "(" *> expr <~ ",", expr <~ ")") <|> // explain
-                                       PAIR_ELEM <|> 
-                                       Call("call".label("function call") *> IDENT, "(" *> ARG_LIST <~ ")") // explain
+                                       PAIR_ELEM
+                                       
 
     lazy val lvalue: Parsley[LValue] = IDENT_OR_ARRAY_ELEM <|> PAIR_ELEM
 
-    val stat: Parsley[Stat] = ("skip" #> Skip) <|> 
+    val _invalid_declaration = amend(attempt((types *> IDENT <~ "(").hide) *> unexpected("function declaration")).explain("all functions must be declared at the top of main block") 
+
+    val stat: Parsley[Stat] = _invalid_declaration <|> ("skip" #> Skip) <|>
                               (Declare(types, IDENT, "=" *> rvalue)) <|>
                               (Assign(lvalue, "=".label("assignment") *> rvalue)) <|>
                               (Read("read" *> lvalue)) <|>
@@ -106,18 +112,16 @@ object Parser {
 
     private lazy val stats = sepBy1(stat, ";")
 
-    val param = Param(types, IDENT).label("parameter")
+    val param = Param(types, IDENT)
 
     val paramList = sepBy(param, ",")
 
-    val _invalid_function = (IDENT <~ "(").verifiedFail("missing return type of function") // move into separate file (or object if it is the only one)
+    val _invalid_function = amend((attempt(IDENT <~ "(").hide).verifiedFail("function declaration missing type")) // move into separate file (or object if it is the only one)
 
-    val func = Func(attempt(types <~> IDENT <~ "(").label("function declaration"), paramList <~ ")", "is" *> stats <* "end") <|>
-                _invalid_function
- 
+    val func = _invalid_function <|> Func(attempt(types <~> IDENT <~ "(".label("opening parenthesis")).label("function declaration"), paramList <~ ")", "is" *> stats <* "end") 
 
     val program_ = Program("begin" *> sepEndBy(func.guardAgainst {
-        case func if !func.validReturn => Seq("function not return/exit")
+        case func if !func.validReturn => Seq("function is missing a return/exit on all exit paths")
     }, pure("")), stats <* "end")
 
     val program = fully(program_)
