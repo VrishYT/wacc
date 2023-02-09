@@ -34,7 +34,7 @@ class Compiler {
 
         val builder = new StringBuilder()
         for (line <- Source.fromFile(filename).getLines()) {
-            builder.append(line.trim)
+            builder.append(line)
             builder.append("\n")
         }
         fileData = builder.toString()
