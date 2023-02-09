@@ -21,9 +21,6 @@ class ValidParseTests extends AnyFunSuite {
         val parent = parentPath.substring(parentPath.lastIndexOf("valid/") + 6) + "/"
         test(parent + filename + " has valid syntax") {
             val c = Compiler(path.toString)
-            
-            val readSuccess = c.readTarget
-            assert(readSuccess)
 
             val parseSuccess: Boolean = c.parse
             assert(parseSuccess, "\n" + c.toString)
@@ -38,9 +35,6 @@ class ValidParseTests extends AnyFunSuite {
         val parent = parentPath.substring(parentPath.lastIndexOf(subdir) + subdir.length) + "/"
         test(subdir + parent + filename + " has valid syntax") {
             val c = Compiler(path.toString)
-            
-            val readSuccess = c.readTarget
-            assert(readSuccess)
 
             val parseSuccess: Boolean = c.parse
             assert(parseSuccess, "\n" + c.toString)
@@ -59,9 +53,6 @@ class InvalidParseTests extends AnyFunSuite {
         val parent = parentPath.substring(parentPath.lastIndexOf(subdir) + subdir.length) + "/"
         test(parent + filename + " has invalid syntax") {
             val c = Compiler(path.toString)
-            
-            val readSuccess = c.readTarget
-            assert(readSuccess)
 
             assertThrows[SyntaxException] {
                 c.parse

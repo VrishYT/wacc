@@ -22,9 +22,6 @@ class ValidTypecheckerTests extends AnyFunSuite {
         val parent = parentPath.substring(parentPath.lastIndexOf("valid/") + 6) + "/"
         test(parent + filename + " are valid wacc files") {
             val c = Compiler(path.toString)
-            
-            val readSuccess = c.readTarget
-            assert(readSuccess)
 
             val parseSuccess: Boolean = c.parse
             assert(parseSuccess)
@@ -46,9 +43,6 @@ class InvalidTypecheckerTests extends AnyFunSuite {
         val parent = parentPath.substring(parentPath.lastIndexOf(subdir) + subdir.length) + "/"
         test(parent + filename + " are semantically invalid") {
             val c = Compiler(path.toString)
-            
-            val readSuccess = c.readTarget
-            assert(readSuccess)
 
             val parseSuccess: Boolean = c.parse
             assert(parseSuccess)
