@@ -7,6 +7,7 @@ class Compiler {
     import Parser._
     import AST.Program
     import parsley.{Success, Failure}
+    import error._
 
     private var filename = ""
     private var fileData = ""
@@ -33,7 +34,7 @@ class Compiler {
 
         val builder = new StringBuilder()
         for (line <- Source.fromFile(filename).getLines()) {
-            builder.append(line.trim)
+            builder.append(line)
             builder.append("\n")
         }
         fileData = builder.toString()

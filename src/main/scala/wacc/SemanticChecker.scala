@@ -7,7 +7,7 @@ object SemanticChecker {
     import scala.collection.immutable.Map
     import scala.collection.mutable.{Map => MapM}
 
-    import ErrorLogger._
+    import error._
 
     def typecheck(program: Program): Unit = {
         val statements = program.stats
@@ -37,7 +37,7 @@ object SemanticChecker {
         checkStatements(statements, varsImm, funcArgsImm)
     }
 
-    def addToVars(id: String, t: Type, vars: MapM[String, Type]): Unit = {
+    def declareVar(id: String, t: Type, vars: MapM[String, Type]): Unit = {
         if (vars.keySet.exists(_ == id)) ErrorLogger.err("Cannot redeclare variable '" + id + "'")
         vars(id) = t
     }
@@ -47,15 +47,15 @@ object SemanticChecker {
     */
     def checkFunction(func: Func, vars: Map[String, Type], funcArgs: Map[String, List[Type]]): Unit = {
         val childVars = MapM[String, Type]()
-        func.args.foreach(param => addToVars(param.id, param.t, childVars))
-        addToVars("\\func", func.fs._1, childVars) 
+        func.args.foreach(param => declareVar(param.id, param.t, childVars))
+        declareVar("\\func", func.fs._1, childVars) 
 
         /* Checks semantics of each statement in the function. */
         checkStatements(func.stats, createChildVars(vars, childVars), funcArgs)
     }
 
     /* Return the type of an identifier from the parent and child scope maps. */
-    def getTypeFromVars(id: String, parent: Map[String, Type], child: MapM[String, Type]): Type = {
+    def getTypeFromVars(id: String, parent: Map[String, Type], child: MapM[String, Type] = MapM()): Type = {
         child.get(id) match {
             case Some(x) => x
             case None => parent.get(id) match {
@@ -144,7 +144,7 @@ object SemanticChecker {
                         if (actArgType != expArgType) ErrorLogger.err("Invalid type for arg.  expected: " + expArgType + ". actual: " + actArgType)
                     }
 
-                    return getTypeFromVars(id, vars, childVars)
+                    return getTypeFromVars(id, vars)
                 }
                 case x: Expr => x match {
                     case _: IntLiteral => IntType
@@ -227,18 +227,16 @@ object SemanticChecker {
             statement match {
                 case Declare(t, id, rhs) => {
                     val rType = getRValType(rhs)
-                    // println("declare: " + t)
                     if (rType != t) ErrorLogger.err("invalid type for declare. expected: " + t  + ", actual: " + rType)
-                    addToVars(id, t, childVars)
+                    declareVar(id, t, childVars)
                 }
                 case Assign(x, y) => {
                     /* Throw error if the ident being reassigned is a function. */
                     x match {
-                        case Ident(id) => if (funcArgs.keySet.exists(_ == id)) ErrorLogger.err("Cannot re-assign value for a function: " + id) 
+                        case Ident(id) if (funcArgs.keySet.exists(_ == id) && !childVars.keySet.exists(_ == id)) => ErrorLogger.err("Cannot re-assign value for a function: " + id) 
                         case _ => 
                     }
                     val lType = getLValType(x)
-                    
                     val rType = getRValType(y)
                     /* Throw error when attempting to assign type deleted pair to a type deleted pair */
                     if (lType == AnyType && rType == AnyType) ErrorLogger.err("Assignment is not legal when both sides types are not known. ltype: " + lType + ",rtype: " + rType)        

@@ -11,6 +11,8 @@ import org.scalatest.Tag
 
 import java.nio.file.{Files, Paths, Path}
 
+import error._
+
 class ValidTypecheckerTests extends AnyFunSuite {
 
     val examples = Paths.get("src/test/scala/wacc/wacc_examples/valid")

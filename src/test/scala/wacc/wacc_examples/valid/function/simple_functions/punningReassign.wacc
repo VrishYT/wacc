@@ -1,0 +1,18 @@
+# Functions should be able to have the same name as variables
+# variable can be reassigned without affecting the function
+
+# Output:
+# 0
+#
+
+begin
+    int inc(int x) is
+        return x + 1
+    end
+    string inc = "hello";
+    println inc ;
+    inc = "bye" ;
+    int tmp = call inc(5);
+    println tmp ;
+    println inc
+end

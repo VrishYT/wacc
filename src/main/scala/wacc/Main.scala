@@ -2,7 +2,7 @@ package wacc
 
 object Main {
 
-    import ErrorLogger._
+    import error._
 
     def main(args: Array[String]): Unit = {
         try {
@@ -16,7 +16,7 @@ object Main {
             compiler.typecheck
             // compiler.compile
         } catch {
-            case x: CompilerException => println(x)
+            case x: CompilerException => x.quit
         }
     }
 

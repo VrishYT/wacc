@@ -10,6 +10,8 @@ import org.scalatest.Ignore
 
 import java.nio.file.{Files, Paths}
 
+import error._
+
 class ValidParseTests extends AnyFunSuite {
 
     var examples = Paths.get("src/test/scala/wacc/wacc_examples/valid")
