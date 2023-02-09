@@ -12,7 +12,7 @@ object Errors {
       case List(alt) => Some(alt)
       case List(alt1, alt2) => Some(s"$alt2 or $alt1")
       // If the result would contains "," then it's probably nicer to preserve any potential grouping using ";"
-      case any@(alt::alts) if any.exists(_.contains(",")) => Some(s"${alts.reverse.mkString("; ")}; or $alt")
+      case any@(alt::alts) if any.exists(_.contains(",")) => Some(s"${alts.reverse.mkString(", ")}; or $alt")
       case alt::alts => Some(s"${alts.reverse.mkString(", ")}, or $alt")
     }
     Some("expected " + res.getOrElse(""))
@@ -53,7 +53,7 @@ object Errors {
     def value(): String
   }
   case class WACCRaw(item: String) extends WACCErrorItem {
-    override def value(): String = item
+    override def value(): String = s"\"$item\""
   }
   case class WACCNamed(item: String) extends WACCErrorItem {
     override def value(): String = item

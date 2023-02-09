@@ -35,7 +35,6 @@ class Compiler(private val file: File) {
 
         implicit val eb: ErrorBuilder[WACCError] = new WACCErrorBuilder with LexToken {
             private val idents = skipMany(whitespace) *> lexer.nonlexeme.names.identifier.map(x => s"identifier $x")
-            // private val idents = skipMany(whitespace) *> lexer.nonlexeme.names.identifier.map(x => s"identifier $x") <* skipMany(whitespace)
 
             private val ints = skipMany(whitespace) *> lexer.nonlexeme.numeric.integer.decimal32.map(x => s"integer $x")
 
