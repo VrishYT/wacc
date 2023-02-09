@@ -74,12 +74,12 @@ object AST {
     object Snd extends ParserBridge1[LValue, Snd]
 
     sealed trait RValue
-    case class ArrayLiteral(xs: List[Expr]) extends RValue
-    case class NewPair(fst: Expr, snd: Expr) extends RValue
+    case class ArrayLiteral(xs: List[Expr])(val pos: (Int, Int)) extends RValue
+    case class NewPair(fst: Expr, snd: Expr)(val pos: (Int, Int)) extends RValue
     case class Call(id: String, args: List[Expr]) extends RValue
     
-    object ArrayLiteral extends ParserBridge1[List[Expr], ArrayLiteral]
-    object NewPair extends ParserBridge2[Expr, Expr, NewPair]
+    object ArrayLiteral extends ParserBridgePos1[List[Expr], ArrayLiteral]
+    object NewPair extends ParserBridgePos2[Expr, Expr, NewPair]
     object Call extends ParserBridge2[String, List[Expr], Call]
 
     // Types
@@ -157,22 +157,22 @@ object AST {
 
     sealed trait LExpr extends Expr with LValue
     case class Ident(id: String) extends LExpr
-    case class ArrayElem(id: String, xs: List[Expr]) extends LExpr
-    case class IdentOrArrayElem(id: String, xs: List[Expr]) extends LExpr
+    case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LExpr
+    case class IdentOrArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LExpr
     
     object IntLiteral extends ParserBridge1[Int, IntLiteral]
     object CharLiteral extends ParserBridge1[Char, CharLiteral]
     object StrLiteral extends ParserBridge1[String, StrLiteral]
     object BoolLiteral extends ParserBridge1[Boolean, BoolLiteral]
     object Ident extends ParserBridge1[String, Ident]
-    object ArrayElem extends ParserBridge2[String, List[Expr], ArrayElem]
+    object ArrayElem extends ParserBridgePos2[String, List[Expr], ArrayElem]
 
     case object PairLiteralNull extends Expr with ParserBridge0[Expr]
 
-    object IdentOrArrayElem extends ParserBridge2[String, Option[List[Expr]], LExpr] {
-        def apply(id: String, xs: Option[List[Expr]]): LExpr = xs match {
+    object IdentOrArrayElem extends ParserBridgePos2[String, Option[List[Expr]], LExpr] {
+        def apply(id: String, xs: Option[List[Expr]])(pos: (Int, Int)): LExpr = xs match {
             case None => Ident(id)
-            case Some(xs) => ArrayElem(id, xs)
+            case Some(xs) => ArrayElem(id, xs)(pos)
         }
     }
     

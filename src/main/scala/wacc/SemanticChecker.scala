@@ -95,10 +95,10 @@ object SemanticChecker {
         def getLValType(lVal: LValue): Type = {
             lVal match {
                 case Ident(id) => getTypeFromVars(id, vars, childVars)                               
-                case ArrayElem(id, _) => getTypeFromVars(id, vars, childVars) match {
+                case (elem @ (ArrayElem(id, xs))) => getTypeFromVars(id, vars, childVars) match {
                     case ArrayType(t) => t
                     /* Error if a non array ident is being accessed. */
-                    case _ => ErrorLogger.err("unable to access non-array var as an array") // TODO : check :(
+                    case _ => ErrorLogger.err("unable to access non-array var as an array", elem.pos) // TODO : check :(
                 }
                 case x: PairElem => getLValPairElem(x)
             }
@@ -110,14 +110,14 @@ object SemanticChecker {
             rval match {
                 case x: PairElem => getLValPairElem(x)
                 
-                case ArrayLiteral(xs) => {
+                case (array @ ArrayLiteral(xs)) => {
                     if (xs.length > 0) {
                         
                         val head::tail = xs
                         val t = getRValType(head)
 
                         /* Error if not all array elements are the same type as the first. */
-                        tail.foreach(exp => if (getRValType(exp) != t) ErrorLogger.err("Types in array not the same"))
+                        tail.foreach(exp => if (getRValType(exp) != t) ErrorLogger.err("Types in array not the same", array.pos))
 
                         ArrayType(getRValType(xs.head))
                     } else {
@@ -125,10 +125,10 @@ object SemanticChecker {
                     }
                 }
 
-                case NewPair(fst, snd) => {
+                case (pair @ NewPair(fst, snd)) => {
                     def getPairElem(rval: RValue): PairElemType = getPairElemType(getRValType(rval)) match {
                         case x: PairElemType => x
-                        case x => ErrorLogger.err("not a pair elem type. expected: <? extends PairElemType>, actual: " + x) 
+                        case x => ErrorLogger.err("not a pair elem type. expected: <? extends PairElemType>, actual: " + x, pair.pos) 
                     } 
                     return new PairType(getPairElem(fst), getPairElem(snd))
                 }
