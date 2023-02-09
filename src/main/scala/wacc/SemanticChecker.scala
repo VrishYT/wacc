@@ -73,8 +73,7 @@ object SemanticChecker {
         /* Returns the type of the contents of a pairElem (fst(x) or snd(x), where x is passed in) */
         def getPairElemType(t: Type): Type = t match {
             case x: PairType => Pair
-            case x: PairElemType => x
-            case x => ErrorLogger.err("not a pair elem type. expected: <? extends PairElemType>, actual: " + x) 
+            case x => x
         }
 
         /* Returns the type of a pairElem (fst or snd), errors if its not a PairElemType */
