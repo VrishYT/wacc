@@ -81,13 +81,11 @@ object SemanticChecker {
         def getLValPairElem(p: PairElem) = p match {
             case Fst(x) => getLValType(x) match {
                 case PairType(fst, _) => getPairElemType(fst)
-                case Pair | AnyType => AnyType
-                case y => ErrorLogger.err("cannot evaluate fst on non-pair type: " + y, x.pos)
+                case _ => AnyType
             } 
             case Snd(x) => getLValType(x) match {
                 case PairType(_, snd) => getPairElemType(snd)
-                case Pair | AnyType => AnyType
-                case y => ErrorLogger.err("cannot evaluate snd on non-pair type: " + y, x.pos)
+                case _ => AnyType
             } 
         }
 
@@ -98,7 +96,7 @@ object SemanticChecker {
                 case (elem @ (ArrayElem(id, xs))) => getTypeFromVars(id, vars, childVars) match {
                     case ArrayType(t) => t
                     /* Error if a non array ident is being accessed. */
-                    case _ => ErrorLogger.err("unable to access non-array var as an array", elem.pos) // TODO : check :(
+                    case x => ErrorLogger.err("unable to access non-array var as an array", x, ArrayType(AnyType), elem.pos) // TODO : check :(
                 }
                 case x: PairElem => getLValPairElem(x)
             }
@@ -117,7 +115,7 @@ object SemanticChecker {
                         val t = getRValType(head)
 
                         /* Error if not all array elements are the same type as the first. */
-                        tail.foreach(exp => if (getRValType(exp) != t) ErrorLogger.err("Types in array not the same", array.pos))
+                        tail.foreach(exp => if (getRValType(exp) != t) ErrorLogger.err("Types in array not the same", getRValType(exp), t, array.pos))
 
                         ArrayType(getRValType(xs.head))
                     } else {
@@ -138,7 +136,7 @@ object SemanticChecker {
                     for (i <- 0 to args.length - 1) {
                         val expArgType = currentArgs(i)
                         val actArgType = getRValType(args(i))
-                        if (actArgType != expArgType) ErrorLogger.err("Invalid type for arg.  expected: " + expArgType + ". actual: " + actArgType, args(i).pos)
+                        if (actArgType != expArgType) ErrorLogger.err("Invalid type for arg.  expected: " + expArgType + ". actual: " + actArgType, expArgType, actArgType, args(i).pos)
                     }
 
                     return getTypeFromVars(id, vars)
@@ -267,7 +265,8 @@ object SemanticChecker {
                 case Println(x) => getRValType(x)
                 case If(p, xs, ys) => {
                     /* Error if condition not boolean type */
-                    if (getRValType(p) != BoolType) ErrorLogger.err("invalid type for if cond", p.pos) 
+                    val rValType = getRValType(p) 
+                    if (rValType != BoolType) ErrorLogger.err("invalid type for if cond" + rValType , p.pos) 
 
                     /* Check semantics of both branches. */
                     val newChildVars = createChildVars(vars, childVars)
@@ -275,7 +274,8 @@ object SemanticChecker {
                     checkStatements(ys, newChildVars, funcArgs)
                 }
                 case While(p, xs) => {
-                    if (getRValType(p) != BoolType) ErrorLogger.err("invalid type for while cond", p.pos) 
+                    val rtype = getRValType(p)
+                    if (rtype != BoolType) ErrorLogger.err("invalid type for while cond", rtype, BoolType, p.pos) 
                     checkStatements(xs, createChildVars(vars, childVars), funcArgs)
                 }
                 case Begin(xs) => checkStatements(xs, createChildVars(vars, childVars), funcArgs)
