@@ -9,7 +9,7 @@ object ErrorLogger {
 
     def err(msg: String) = throw TypeException(msg)
 
-    def err(pos: (Int, Int), msg: String) = throw TypeException(pos, msg)
+    def err(msg: String, pos: (Int, Int)*) = throw TypeException(msg, pos)
 
     def err(msg: String, exit: Int) = exit match {
         case 100 => throw SyntaxException(msg)

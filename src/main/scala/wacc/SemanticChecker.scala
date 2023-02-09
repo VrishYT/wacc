@@ -22,7 +22,7 @@ object SemanticChecker {
         val funcArgs = MapM[String, List[Type]]()
         functions.foreach(func => {
             /* Check if the functions already exists */
-            if (vars.keySet.exists(_ == func.fs._2)) ErrorLogger.err(func.pos, "Cannot redeclare function '" + func.fs._2 + "'")
+            if (vars.keySet.exists(_ == func.fs._2)) ErrorLogger.err("Cannot redeclare function '" + func.fs._2 + "'", func.pos)
             vars(func.fs._2) = func.fs._1
             funcArgs(func.fs._2) = func.args.map(arg => arg.t)
         })
