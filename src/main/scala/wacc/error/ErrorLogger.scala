@@ -3,10 +3,11 @@ package wacc.error
 import parsley.Failure
 import parsley.position._
 import wacc.AST._
+import Errors._
 
 object ErrorLogger {
 
-    def err(failure: Failure[_]) = throw SyntaxException(failure)
+    def err(failure: Failure[WACCError]) = throw SyntaxException(failure)
 
     def err(msg: String) = throw TypeException(msg, None, Seq(), Seq())
     def err(msg: String, pos: (Int, Int)*) = throw TypeException(msg, None, Seq(), pos)

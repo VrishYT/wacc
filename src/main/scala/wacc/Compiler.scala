@@ -17,18 +17,8 @@ class Compiler(private val file: File) {
     import parsley.Parsley
     import parsley.io._
     import Lexing.{IDENT, INTEGER, lexer, keywords}
-    // import implicits.implicitSymbol
 
     private var program: Option[Program] = None 
-    private var exception: Option[CompilerException] = None
-
-    override def toString: String = {
-        exception match {
-            case Some(x) => return x.toString
-            case None => // TODO: AST Pretty Print???
-        }
-        return program.toString
-    }
 
     def parse(): Boolean = {
         val pNode = Parser.program
@@ -49,10 +39,8 @@ class Compiler(private val file: File) {
                     program = Some(x)
                     true
                 }
-                case x: Failure[_] => {
-                    val syntaxException = SyntaxException(x)
-                    exception = Some(syntaxException)
-                    throw syntaxException
+                case x: Failure[WACCError] => {
+                    ErrorLogger.err(x)                    
                 }
             }
             case x: util.Failure[_] => {
@@ -65,7 +53,7 @@ class Compiler(private val file: File) {
     def typecheck: Boolean = program match {
         case Some(x) => {
             SemanticChecker.typecheck(x)
-            return true // should be unreachable for if semantically invalid 
+            return true
         }
         case None => ErrorLogger.err("typecheck called before parse/readTarget", -1)
     }
@@ -76,10 +64,7 @@ class Compiler(private val file: File) {
 
 object Compiler {
 
-    def apply(targetFile: String): Compiler = {
-        var c = new Compiler(new File(targetFile))
-        c
-    }
+    def apply(targetFile: String): Compiler = new Compiler(new File(targetFile))
 
     def getUsage: String = {
         val sep = System.getProperty("line.separator")
