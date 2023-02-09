@@ -1,6 +1,6 @@
 package wacc
 import parsley.Parsley
-import parsley.Parsley.{attempt, pure, lookAhead}
+import parsley.Parsley.{attempt, pure, lookAhead, notFollowedBy, empty}
 
 object Parser {
 
@@ -40,8 +40,13 @@ object Parser {
                     base_type_desc("string") #> StringType <|>
                     base_type_desc("bool") #> BoolType <|> 
                     base_type_desc("char") #> CharType
+    
+    private def labels(ls: String*) = choice(ls.map(empty.label(_)):_*)
 
-    val IDENT_OR_ARRAY_ELEM = IdentOrArrayElem(IDENT.label("identifier"), option("[".label("index (like \'xs[idx]\')") *> sepBy(expr, "][") <* "]")) // *> lookAhead("(").explain("function calls dododo")
+    private val invalid_call = notFollowedBy("(").explain("function calls may not appear in expressions and must use `call`") <|> unexpected("opening parenthesis") <|>
+                                               labels("arithmetic operator", "logical operator", "comparison operator", "index (like \'xs[idx]\')")
+
+    val IDENT_OR_ARRAY_ELEM = IdentOrArrayElem(IDENT.label("identifier"), invalid_call *> option("[".label("index (like \'xs[idx]\')") *> sepBy(expr, "][") <* "]" )) // *> lookAhead("(").explain("function calls dododo")
     
     private lazy val atom: Parsley[Expr] = 
                     "(".label("open parenthesis") *> expr <* ")" <|> IDENT_OR_ARRAY_ELEM <|> IntLiteral(INTEGER) <|> CharLiteral(CHR_LIT) <|>
@@ -79,9 +84,8 @@ object Parser {
 
     lazy val PAIR_ELEM = Fst(pair_op("fst") *> lvalue) <|> Snd(pair_op("snd") *> lvalue)
 
-    val _invalid_call = amend(attempt(IDENT <~ "(") *> unexpected("opening parenthesis")).explain("function calls may not appear in expressions and must use `call`")
 
-    lazy val rvalue: Parsley[RValue] = _invalid_call <|> Call("call".label("function call") *> IDENT, "(" *> ARG_LIST <~ ")") <|> // explain
+    lazy val rvalue: Parsley[RValue] = Call("call".label("function call") *> IDENT, "(" *> ARG_LIST <~ ")") <|> // explain
                                        expr <|> 
                                        ARRAY_LITER <|> 
                                        NewPair("newpair" *> "(" *> expr <~ ",", expr <~ ")") <|> // explain
@@ -108,11 +112,12 @@ object Parser {
                                   "do" *> stats <~ ("done".explain("unclosed while loop")))).label("while statement") <|>
                               (Begin("begin" *> stats <~ "end")) // explain where needed for each
 
-    // val _done_check =  // notFollowedBy("done").verifiedFail("unclosed while loop")
 
     private lazy val stats = sepBy1(stat, ";")
 
-    val param = Param(types, IDENT)
+    val _invalid_pointer = amend((attempt("*")) *> unexpected("pointer").explain("WACC is not like C and does not use pointers"))
+
+    val param = Param(types, _invalid_pointer <|> IDENT)
 
     val paramList = sepBy(param, ",")
 

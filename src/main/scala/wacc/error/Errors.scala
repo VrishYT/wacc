@@ -7,7 +7,7 @@ object Errors {
   }
   
   private def combineAsList(elems: List[String]): Option[String] = {
-    val res = elems.sorted.reverse match {
+    val temp = elems.sorted.reverse match {
       case Nil => None
       case List(alt) => Some(alt)
       case List(alt1, alt2) => Some(s"$alt2 or $alt1")
@@ -15,7 +15,11 @@ object Errors {
       case any@(alt::alts) if any.exists(_.contains(",")) => Some(s"${alts.reverse.mkString(", ")}; or $alt")
       case alt::alts => Some(s"${alts.reverse.mkString(", ")}, or $alt")
     }
-    Some("expected " + res.getOrElse(""))
+    val res = temp match {
+      case Some(x) => Some("expected " + temp.get)
+      case None => None
+    }
+    res
   }
 
   case class WACCError(pos: (Int, Int), source: Option[String], error_lines: WACCErrorLines) {
