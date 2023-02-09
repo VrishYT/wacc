@@ -45,7 +45,7 @@ class Compiler(private val file: File) {
                     true
                 }
                 case x: Failure[WACCError] => {
-                    ErrorLogger.err(x)                    
+                    ErrorLogger.err(x)                
                 }
             }
             case x: util.Failure[_] => {
@@ -57,8 +57,10 @@ class Compiler(private val file: File) {
     
     def typecheck: Boolean = program match {
         case Some(x) => {
-            SemanticChecker.typecheck(x)
-            return true
+            val errors = SemanticChecker.typecheck(x)
+            if (errors.isEmpty) return true
+            errors.foreach(println(_))
+            return false
         }
         case None => ErrorLogger.err("typecheck called before parse/readTarget", -1)
     }

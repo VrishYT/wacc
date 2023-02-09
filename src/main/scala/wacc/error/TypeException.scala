@@ -18,6 +18,9 @@ final case class TypeException(private val message: String,
 object TypeException {
     def apply(msg: String): TypeException = TypeException(msg, None, Seq(), Seq())
     def apply(msg: String, pos: Seq[(Int, Int)]): TypeException = TypeException(msg, None, Seq(), pos)
+    def apply(msg: String, pos: (Int, Int)): TypeException = TypeException(msg, None, Seq(), Seq(pos))
+    def apply(msg: String, actual: Type, expected: Type, pos: (Int, Int)): TypeException = TypeException(msg, Some(actual), Seq(expected), Seq(pos))
     def apply(msg: String, actual: Type, expected: Type, pos: Seq[(Int, Int)]): TypeException = TypeException(msg, Some(actual), Seq(expected), pos)
+    def apply(msg: String, actual: Type, expected: Seq[Type], pos: (Int, Int)): TypeException = TypeException(msg, Some(actual), expected, Seq(pos))
     def apply(msg: String, actual: Type, expected: Seq[Type], pos: Seq[(Int, Int)]): TypeException = TypeException(msg, Some(actual), expected, pos)
 }
