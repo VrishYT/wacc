@@ -8,6 +8,9 @@ class Compiler {
     import AST.Program
     import parsley.{Success, Failure}
     import error._
+    import error.Errors.WACCError
+    import parsley.errors.ErrorBuilder
+    import parsley.errors.tokenextractors
 
     private var filename = ""
     private var fileData = ""
@@ -43,6 +46,7 @@ class Compiler {
 
     def parse(): Boolean = {
         val pNode = Parser.program
+        implicit val eb: ErrorBuilder[WACCError] = new WACCErrorBuilder with tokenextractors.MatchParserDemand
         val result = pNode.parse(fileData)
         result match {
             case Success(x) => {
