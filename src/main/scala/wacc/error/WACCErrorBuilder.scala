@@ -1,7 +1,9 @@
-package wacc.error
+package wacc
+package error
 
 import parsley.errors._
 import Errors._
+
 
 abstract class WACCErrorBuilder extends ErrorBuilder[WACCError] {
     override def format(pos: Position, source: Source, lines: ErrorInfoLines): WACCError = {
@@ -22,8 +24,8 @@ abstract class WACCErrorBuilder extends ErrorBuilder[WACCError] {
 
     type ExpectedItems = Seq[WACCErrorItem]
     override def combineExpectedItems(alts: Set[Item]): ExpectedItems = {
-		alts.toList
-	}
+      alts.toList
+    }
 
     type Messages = Seq[Message]
     override def combineMessages(alts: Seq[Message]): Messages = alts.filter(_.nonEmpty)
@@ -58,7 +60,7 @@ abstract class WACCErrorBuilder extends ErrorBuilder[WACCError] {
 	private val errorLineStart = "|"
     private def errorPointer(caretAt: Int, caretWidth: Int) = s"${" " * caretAt}${"^" * caretWidth}"
 
-	override def unexpectedToken(cs: Iterable[Char], amountOfInputParserWanted: Int, lexicalError: Boolean): Token
+  
 }
 
 private object WACCErrorBuilder {

@@ -1,19 +1,24 @@
 package wacc
 
-class Compiler {
-    
-    import java.nio.file.{Files, Paths}
-    import scala.io.Source
+import parsley.Parsley.{pure}
+import java.io.File
+
+class Compiler(private val file: File) {
+
     import Parser._
     import AST.Program
     import parsley.{Success, Failure}
     import error._
     import error.Errors.WACCError
-    import parsley.errors.ErrorBuilder
-    import parsley.errors.tokenextractors
+    import parsley.combinator.skipMany
+    import parsley.character.whitespace
+    import parsley.errors.{tokenextractors, ErrorBuilder, Token, TokenSpan}
+    import parsley.errors.tokenextractors.LexToken.constantSymbols
+    import parsley.Parsley
+    import parsley.io._
+    import Lexing.{IDENT, INTEGER, lexer, keywords}
+    // import implicits.implicitSymbol
 
-    private var filename = ""
-    private var fileData = ""
     private var program: Option[Program] = None 
     private var exception: Option[CompilerException] = None
 
@@ -25,36 +30,47 @@ class Compiler {
         return program.toString
     }
 
-    def readTarget(): Boolean = {
-
-        val path = Paths.get(filename)
-        if (!Files.exists(path)) {
-            val parentPath = path.getParent.toString
-            val parent = parentPath.substring(parentPath.lastIndexOf("valid/") + 6) + "/"
-            ErrorLogger.err(parent + path.getFileName + " not found", -1)
-            return false
-        }
-
-        val builder = new StringBuilder()
-        for (line <- Source.fromFile(filename).getLines()) {
-            builder.append(line)
-            builder.append("\n")
-        }
-        fileData = builder.toString()
-        return true
-    }
-
     def parse(): Boolean = {
         val pNode = Parser.program
-        implicit val eb: ErrorBuilder[WACCError] = new WACCErrorBuilder with tokenextractors.MatchParserDemand
-        val result = pNode.parse(fileData)
+        implicit val eb: ErrorBuilder[WACCError] = new WACCErrorBuilder with tokenextractors.LexToken {
+            private val idents = lexer.nonlexeme.names.identifier.map(x => s"identifier $x")
+            private val ints = lexer.nonlexeme.numeric.integer.decimal32.map(x => s"integer $x")
+            //private val keywords_ = constantSymbols(lexer.nonlexeme.symbol)
+            // private val keywords_ = 
+            // private val keywords_ = keywords.toList.map(lexer.nonlexeme.symbol(_)).map(x => pure(s"$x"))//.map(x => s"keyword $x")
+            // private val keywords_ = lexer.nonlexeme.symbol.apply(_: String)//.map//.implicits//.map(x => s"keyword $x")
+            // private val keywords_ = keywords.map(x => lexer.nonlexeme.symbol.apply(x)).map(x => pure(s"$x")).toList//.map(x => s"keyword $x")
+            // private val keywords_ = (keywords.map(x => pure(x))).toList.map(x => s"keyword $x")
+            // private val keywords_ = 
+            //private val ws = skipMany(whitespace)
+
+            def tokens: Seq[Parsley[String]] = Seq(idents, ints)
+            //def tokens: Seq[Parsley[String]] = idents +: ints +: keywords_
+
+            
+
+            //override final def unexpectedToken(cs: Iterable[Char], amountOfInputParserWanted: Int, @unused lexicalError: Boolean): Token = {
+            //    tokenextractors.LexToken.unexpectedToken(cs, amountOfInputParserWanted, true)
+            //}
+
+            // def unexpectedToken(cs: Iterable[Char], amountOfInputParserWanted: Int, true)
+        }
+
+        val result = pNode.parseFromFile(file)
         result match {
-            case Success(x) => {
-                program = Some(x)
-                true
+            case util.Success(x) => x match {
+                case Success(x) => {
+                    program = Some(x)
+                    true
+                }
+                case x: Failure[_] => {
+                    val syntaxException = SyntaxException(x)
+                    exception = Some(syntaxException)
+                    throw syntaxException
+                }
             }
-            case x: Failure[_] => {
-                ErrorLogger.err(x)
+            case x: util.Failure[_] => {
+                ErrorLogger.err("cannot read file")
                 false // should be unreachable
             } 
         }
@@ -75,8 +91,7 @@ class Compiler {
 object Compiler {
 
     def apply(targetFile: String): Compiler = {
-        var c = new Compiler
-        c.filename = targetFile
+        var c = new Compiler(new File(targetFile))
         c
     }
 

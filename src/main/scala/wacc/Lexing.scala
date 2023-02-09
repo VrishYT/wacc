@@ -27,6 +27,11 @@ object Lexing{
                            emptyEscape = None,
                            gapsSupported = false)
 
+    val keywords = Set("begin", "null", "end", "is", "skip", "read", "free", 
+                        "return", "exit", "print", "println", "if", "then", "else",
+                        "fi", "while", "do", "done", "fst", "snd", "newpair", "call", 
+                        "int", "bool", "char", "string", "pair", "true", "false", "len", "ord", "chr")
+
     private val desc = LexicalDesc.plain.copy(
         nameDesc = NameDesc.plain.copy(
             // Unicode is also possible instead of Basic
@@ -34,10 +39,7 @@ object Lexing{
             identifierLetter = Basic(c => Character.isLetterOrDigit(c) || c == '_')
         ),
         symbolDesc = SymbolDesc.plain.copy(
-            hardKeywords = Set("begin", "null", "end", "is", "skip", "read", "free", 
-                                "return", "exit", "print", "println", "if", "then", "else",
-                                "fi", "while", "do", "done", "fst", "snd", "newpair", "call", 
-                                "int", "bool", "char", "string", "pair", "true", "false", "len", "ord", "chr"),
+            hardKeywords = keywords,
             hardOperators = Set("*", "+", "-", "/", ">", ">=", "<", "<=", "==", "!=", "&&", "||"),
             //TODO: check whether len ord chr should be in keywords or operators 
             caseSensitive = false

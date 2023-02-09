@@ -11,7 +11,6 @@ object Main {
             }
 
             val compiler = Compiler(args(0))
-            compiler.readTarget()
             compiler.parse
             compiler.typecheck
             // compiler.compile

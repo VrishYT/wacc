@@ -24,7 +24,7 @@ object Errors {
 
     private val printLines: Seq[String] = error_lines.toSeqString()
 
-    override def toString(): String = s"${source.fold("")(name => s"In $name ")}$printPos:\n${printLines.mkString("  ", "\n  ", "")}"
+    override def toString(): String = s"\n Syntax error ${source.fold("")(name => s"in $name ")}$printPos:\n${printLines.mkString("  ", "\n  ", "")}"
 
   }
 
