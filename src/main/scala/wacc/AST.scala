@@ -31,10 +31,10 @@ object AST {
             }
         }
     }
-    case class Param(t: Type, id: String)
+    case class Param(t: Type, id: String)(val pos: (Int, Int))
 
     object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Func]
-    object Param extends ParserBridge2[Type, String, Param]
+    object Param extends ParserBridgePos2[Type, String, Param]
 
     // Statements
     sealed trait Stat
