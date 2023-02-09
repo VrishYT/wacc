@@ -49,8 +49,7 @@ class Compiler(private val file: File) {
                 }
             }
             case x: util.Failure[_] => {
-                ErrorLogger.err("cannot read file")
-                false // should be unreachable
+                ErrorLogger.err("cannot read file", 1)
             } 
         }
     }
