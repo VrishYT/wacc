@@ -215,7 +215,6 @@ object SemanticChecker {
                         checkType(exp2, returnType._2)
                         returnType._3
                     }
-                    case _ => ErrorLogger.err("unreachable error")
                 }
             }
         }
