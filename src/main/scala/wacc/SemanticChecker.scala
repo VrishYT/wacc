@@ -109,10 +109,10 @@ object SemanticChecker {
         def getLValType(lVal: LValue): Type = {
             lVal match {
 
-                /* if its an identifier then get it's type from the parent and child scope maps */
+                /* if it's an identifier then get its type from the parent and child scope maps */
                 case x@Ident(id) => getTypeFromVars(id, vars, childVars, x.pos)   
 
-                /* if its an array element, then get it's type from the parent and child scope maps */                            
+                /* if it's an array element, then get its type from the parent and child scope maps */                            
                 case (elem @ (ArrayElem(id, xs))) => getTypeFromVars(id, vars, childVars, elem.pos) match {
 
                     /* check if the type is an array type */
@@ -122,7 +122,7 @@ object SemanticChecker {
                     case x => ErrorLogger.err("unable to access non-array var as an array", x, ArrayType(AnyType), elem.pos) // TODO : check :(
                 }
 
-                /* if its a pair element then get the type of x, which is in the form fst(y) or snd(y), 
+                /* if it's a pair element then get the type of x, which is in the form fst(y) or snd(y), 
                    by calling getLValPairElem */
                 case x: PairElem => getLValPairElem(x)
             }
@@ -133,11 +133,11 @@ object SemanticChecker {
 
             rval match {
 
-                /* if its a pair element then get the type of x, which is in the form fst(y) or snd(y), 
+                /* if it's a pair element then get the type of x, which is in the form fst(y) or snd(y), 
                    by calling getLValPairElem */
                 case x: PairElem => getLValPairElem(x)
 
-                /* if its an array literal then : */
+                /* if it's an array literal then : */
                 case (array @ ArrayLiteral(xs)) => {
 
                     /* if it isn't empty */
@@ -157,13 +157,13 @@ object SemanticChecker {
                     }
                 }
 
-                /* if its a pair constructor, return a PairType of the types of each of its elements */
+                /* if it's a pair constructor, return a PairType of the types of each of its elements */
                 case NewPair(fst, snd) => {
                     def getPairElem(rval: RValue): Type = getPairElemType(getRValType(rval)) 
                     return new PairType(getPairElem(fst), getPairElem(snd))
                 }
 
-                /* if its a function call :  */
+                /* if it's a function call :  */
                 case (func @ Call(id, args)) => {
 
                     /* get a list of its parameter types in order */
@@ -232,7 +232,7 @@ object SemanticChecker {
                             }
                         }
 
-                        /* get the array's type from the variable maps, and error if its a non-array type, or undefined */
+                        /* get the array's type from the variable maps, and error if it's a non-array type, or undefined */
                         getTypeFromVars(id, vars, childVars, elem.pos) match {
                             case ArrayType(t) => checkArrayIndex(exps, t)
                             case x => ErrorLogger.err("cannot get elem from non-array type", x, ArrayType(AnyType), elem.pos)
@@ -409,7 +409,7 @@ object SemanticChecker {
                 checkStatements(xs, createChildVars(vars, childVars), funcArgs, errors)
             }
 
-            /* check begin statement, by checking the semantics of it's body's statements */
+            /* check begin statement, by checking the semantics of its body's statements */
             case Begin(xs) => checkStatements(xs, createChildVars(vars, childVars), funcArgs, errors)
 
             /* defualt case */

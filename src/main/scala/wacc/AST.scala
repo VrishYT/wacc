@@ -7,7 +7,7 @@ import ParserBridge._
 object AST {
     import parsley.genericbridges._
 
-    /* program case class with it's functions and statements */
+    /* program case class with its functions and statements */
     case class Program(fs: List[Func], stats: List[Stat])
 
     /* program companion object with parser bridge */
@@ -16,13 +16,11 @@ object AST {
     /* function case class with position */
     case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
 
-        /* define validReturn of a function */
+        /* define validReturn of a function, and match on the last statement : */
         def validReturn: Boolean = validReturn(stats)
-
-        /* match on the last statement */
         def validReturn(stats: List[Stat]): Boolean = stats.last match {
 
-            /* return true if its a return or exit */
+            /* return true if it's a return or exit */
             case _: Return | _: Exit => true
 
             /* check the other valid case for begin or if statements */
