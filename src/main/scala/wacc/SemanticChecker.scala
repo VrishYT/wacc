@@ -83,18 +83,19 @@ object SemanticChecker {
         }
     }
 
-    /* Traverse a list of statements and error on semantic errors. */
+    /* traverse a list of statements and error on semantic errors */
     def checkStatements(statements: List[Stat], vars: Map[String, Type], funcArgs: Map[String, List[Type]], errors: ArrayBuffer[TypeException]): Unit = {
 
+        /* create a new, empty child scope */
         val childVars = MapM[String, Type]()
 
-        /* Returns the type of the contents of a pairElem (fst(x) or snd(x), where x is passed in) */
+        /* returns the type of the contents of a pairElem (fst(x) or snd(x), where x is passed in) */
         def getPairElemType(t: Type): Type = t match {
             case x: PairType => Pair
             case x => x
         }
 
-        /* Returns the type of a pairElem (fst or snd) */
+        /* returns the type of a pairElem (fst(x) or snd(x)) */
         def getLValPairElem(p: PairElem) = p match {
             case Fst(x) => getLValType(x) match {
                 case PairType(fst, _) => getPairElemType(fst)
@@ -106,91 +107,141 @@ object SemanticChecker {
             } 
         }
 
-        /* Returns the type of an lvalue (identifier, arrayElem, pairElem) */
+        /* returns the type of an lvalue */
         def getLValType(lVal: LValue): Type = {
             lVal match {
-                case x@Ident(id) => getTypeFromVars(id, vars, childVars, x.pos)                               
+
+                /* if its an identifier then get it's type from the parent and child scope maps */
+                case x@Ident(id) => getTypeFromVars(id, vars, childVars, x.pos)   
+
+                /* if its an array element, then get it's type from the parent and child scope maps */                            
                 case (elem @ (ArrayElem(id, xs))) => getTypeFromVars(id, vars, childVars, elem.pos) match {
+
+                    /* check if the type is an array type */
                     case ArrayType(t) => t
-                    /* Error if a non array ident is being accessed. */
+
+                    /* error if a non array identifier is being accessed. */
                     case x => ErrorLogger.err("unable to access non-array var as an array", x, ArrayType(AnyType), elem.pos) // TODO : check :(
                 }
+
+                /* if its a pair element then get the type of x, which is in the form fst(y) or snd(y), 
+                   by calling getLValPairElem */
                 case x: PairElem => getLValPairElem(x)
             }
         }
             
-        /* Returns the type of an rvalue. */    
+        /* return the type of an rvalue. */    
         def getRValType(rval: RValue): Type = {
 
             rval match {
+
+                /* if its a pair element then get the type of x, which is in the form fst(y) or snd(y), 
+                   by calling getLValPairElem */
                 case x: PairElem => getLValPairElem(x)
-                
+
+                /* if its an array literal then : */
                 case (array @ ArrayLiteral(xs)) => {
+
+                    /* if it isn't empty */
                     if (!xs.isEmpty) {
-                        
+
+                        /* error if the types of all elements in the array are not the same */
                         val head::tail = xs
                         val t = getRValType(head)
-
-                        /* Error if not all array elements are the same type as the first. */
                         tail.foreach(exp => if (getRValType(exp) != t) ErrorLogger.err("Types in array not the same", getRValType(exp), t, array.pos))
 
+                        /* return ArrayType of the type of elements in the array */
                         ArrayType(getRValType(xs.head))
                     } else {
+
+                        /*  return ArrayType of any type */
                         new ArrayType(AnyType)
                     }
                 }
 
+                /* if its a pair constructor, return a PairType of the types of each of its elements */
                 case NewPair(fst, snd) => {
                     def getPairElem(rval: RValue): Type = getPairElemType(getRValType(rval)) 
                     return new PairType(getPairElem(fst), getPairElem(snd))
                 }
+
+                /* if its a function call :  */
                 case (func @ Call(id, args)) => {
+
+                    /* get a list of its parameter types in order */
                     val currentArgs = funcArgs.get(id) match {
                         case Some(x) => x
                         case _ => List()
                     }
+
+                    /* error if the number of arguments is wrong */
                     if (args.length != currentArgs.length) ErrorLogger.err("Invalid number of arguments for function '" + id + "'. expected: " + currentArgs.length + ". actual: " + args.length, func.pos)
+
+                    /* check each argument type passed in is the same as the corresponding parameter for this function */
                     for (i <- 0 to args.length - 1) {
                         val paramType = currentArgs(i)
                         val rType = getRValType(args(i))
+
+                        /* error an argument type doesn't match the required parameter */
                         if (rType != paramType) ErrorLogger.err("invalid type for arg", rType, paramType, args(i).pos)
                     }
 
+                    /* return the type of the function from the identifier maps */
                     return getTypeFromVars(id, vars, pos = func.pos)
                 }
+
+                /* for an expression, match on the specific type of expression : */
                 case x: Expr => x match {
+
+                    /* for atomic types, return their corresponding type */
                     case _: IntLiteral => IntType
                     case _: CharLiteral => CharType
                     case _: StrLiteral => StringType
                     case _: BoolLiteral => BoolType
                     case _: PairLiteralNull => Pair
+
+                    /* for an identifier, get its type from the identifier maps */
                     case x@Ident(id) => getTypeFromVars(id, vars, childVars, x.pos)
+
+                    /* error for array element with no index */
                     case (array @ ArrayElem(_, Nil)) => ErrorLogger.err("invalid array access\nno index provided", array.pos)
+
+                    /* for an array element with index : */
                     case (elem @ ArrayElem(id, exps)) => {
 
+                        /* check array index is an int, and that is isn't out of bounds */
                         def checkArrayIndex(exps: List[Expr], t: Type): Type = {
                             val head::tail = exps
                             val expType = getRValType(head)
+
+                            /* error if array index isn't an int */
                             if (expType != IntType) ErrorLogger.err("cannot access non-int type index for an array", expType, IntType, head.pos)
+
+                            /* return current array sub-type if this is its final dimension,
+                               or recursive if it has another dimension to be accessed */
                             t match {
                                 case ArrayType(subType) => if (tail.isEmpty) {
                                     return subType
                                 } else {
                                     checkArrayIndex(tail, subType)
                                 }
+
+                                /* error if too many dimensions are specified */
                                 case _ if (!tail.isEmpty) => ErrorLogger.err("array index out of bounds", elem.pos)
+
+                                /* return current type if no more dimensions are specified */
                                 case x => x
                             }
-
                         }
 
+                        /* get the array's type from the variable maps, and error if its a non-array type, or undefined */
                         getTypeFromVars(id, vars, childVars, elem.pos) match {
                             case ArrayType(t) => checkArrayIndex(exps, t)
                             case x => ErrorLogger.err("cannot get elem from non-array type", x, ArrayType(AnyType), elem.pos)
                         }
-
                     }
-                    
+
+                    /* for a unary operator, get its input and output types as val types */
                     case UnaryOpExpr(op, exp) => { 
                         val types = op match {
                             case Not => (BoolType, BoolType)
@@ -200,10 +251,18 @@ object SemanticChecker {
                             case Length => (ArrayType(AnyType), IntType)
                         }
                         val rType = getRValType(exp)
+
+                        /* error if the type of its input expression isn't the same as its input type */
                         if (rType != types._1) ErrorLogger.err("invalid type for unary op param", rType, types._1, exp.pos)
+
+                        /* return the output type */
                         return types._2
                     }
+
+                    /* for a binary operator : */
                     case BinaryOpExpr(op, exp1, exp2) => {
+
+                        /* checks that the input expression has correct type for given binary operator's operand */
                         def checkType(exp: Expr, ReturnType: Type): Unit = {
                             val rValType = getRValType(exp)
                             if (ReturnType == AnyType) return
@@ -212,6 +271,8 @@ object SemanticChecker {
                                 case _ => ErrorLogger.err("invalid binary op type", rValType, ReturnType, exp.pos)
                             }
                         }
+
+                        /* define returnType as specific operator's tow operand types and output type  */
                         val returnType = op match {
                             case Mul | Div | Mod | Add | Sub => (IntType, IntType, IntType)
                             case Equal | NotEqual => (AnyType, AnyType, BoolType)
@@ -220,16 +281,26 @@ object SemanticChecker {
                                 val t1 = getRValType(exp1)
                                 val t2 = getRValType(exp2)
 
+                                /* define valid types for greater(equals) and less(equals) as integers and characters */
                                 def validType(t: Type) = CharType == t || IntType == t
 
+                                /* error if the type of either operand is invalid */
                                 if (!validType(t1)) ErrorLogger.err("invalid type for binary op", t1, Seq(CharType, IntType), exp1.pos)
                                 if (!validType(t2)) ErrorLogger.err("invalid type for binary op", t2, Seq(CharType, IntType), exp2.pos)
+
+                                /* error if the type of the operands are not the same */
                                 if (t1 != t2) ErrorLogger.err("invalid type for binary op\ncannot execute binary op on two args of differing type", t2, t1, exp1.pos, exp2.pos)
+
+                                /* return boolean type */
                                 return BoolType
                             }
                         }
+
+                        /* check both operands are of correct type */
                         checkType(exp1, returnType._1)
                         checkType(exp2, returnType._2)
+
+                        /* return the output type */
                         returnType._3
                     }
                 }
