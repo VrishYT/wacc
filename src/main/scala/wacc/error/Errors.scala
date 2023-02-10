@@ -136,3 +136,20 @@ object Errors {
     override def value(): String = "end of input"
   }
 }
+
+object ErrorLogger {
+
+    import AST._
+
+    /* Overloaded err method used for non-semantic errors. */
+    def err(msg: String, exit: Int) = {
+        System.err.println(msg)
+        sys.exit(exit)
+    }
+
+    /* Overloaded err method used for semantic errors. Can have varying inputs depending on error found. */
+    def err(msg: String, pos: (Int, Int)*) = throw new TypeException(msg, None, pos)
+    def err(msg: String, actual: Type, expected: Type, pos: (Int, Int)*) = throw new TypeException(msg, Some(actual, Seq(expected)), pos)
+    def err(msg: String, actual: Type, expected: Seq[Type], pos: (Int, Int)*) = throw new TypeException(msg, Some(actual, expected), pos)
+
+}
