@@ -23,22 +23,19 @@ class Compiler(private val file: File) {
     def parse(): Boolean = {
         val pNode = Parser.program
 
+        /*defined the errorbuilder to use the lexToken for the token extractor*/ 
         implicit val eb: ErrorBuilder[WACCError] = new WACCErrorBuilder with LexToken {
-
+            /*define the tokens that we want lexToken to recognise, and format them to print the token accordingly*/
             private val idents = skipMany(whitespace) *> lexer.nonlexeme.names.identifier.map(x => s"identifier $x")
-
             private val ints = skipMany(whitespace) *> lexer.nonlexeme.numeric.integer.decimal32.map(x => s"integer $x")
-
             private val open_paren = skipMany(whitespace) *> lexer.nonlexeme.symbol.openParen.map(x => s"opening parenthesis")
-            
             private val square_paren = skipMany(whitespace) *> lexer.nonlexeme.symbol.openSquare.map(x => s"square parenthesis")
-            
             private val keyword_ = LexToken.constantSymbols((keywords.map(x => (skipMany(whitespace) *> lexer.nonlexeme.symbol(x), s"keyword $x")).toList): _*)
 
             def tokens: Seq[Parsley[String]] = idents +: ints +: square_paren +: open_paren +: keyword_ 
 
+            /*LexToken requires a strategy for how to extract if the error originates inside the Lexer, in which we use TillNextWhitespace*/
             override def extractItem(cs: Iterable[Char], amountOfInputParserWanted: Int): Token = TillNextWhitespace.unexpectedToken(cs, amountOfInputParserWanted)
-
             
         } 
 
