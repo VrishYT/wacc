@@ -2,8 +2,6 @@ package wacc
 package error
 
 import parsley.errors._
-import Errors._
-
 
 abstract class WACCErrorBuilder extends ErrorBuilder[WACCError] {
     override def format(pos: Position, source: Source, lines: ErrorInfoLines): WACCError = {
