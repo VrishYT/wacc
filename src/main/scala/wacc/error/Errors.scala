@@ -1,4 +1,10 @@
-package wacc.error
+package wacc
+package error
+
+package object error {
+    val NUM_LINES_AFTER = 1
+    val NUM_LINES_BEFORE = 1
+}
 
 object Errors {
   private def combineOrUnknown(info: Seq[String], lines: Seq[String]): Seq[String] = {
@@ -18,22 +24,28 @@ object Errors {
     Some("expected " + res.getOrElse(""))
   }
 
-  case class WACCError(pos: (Int, Int), source: Option[String], error_lines: WACCErrorLines) {
+  case class WACCError(posSeq: Seq[(Int, Int)], source: Option[String], error_lines: WACCErrorLines) {
+
+    private val pos = posSeq(0)
 
     private val printPos: String = s"(line ${Integer.toUnsignedString(pos._1)}, column ${Integer.toUnsignedString(pos._2)})"
 
-    private val printLines: Seq[String] = error_lines.toSeqString(pos)
+    private val printLines: Seq[String] = error_lines.toSeqString(posSeq)
 
-    override def toString(): String = s"\n Syntax error ${source.fold("")(name => s"in $name ")}$printPos:\n${printLines.mkString("  ", "\n  ", "")}"
+    override def toString(): String = s"\n${source.fold("")(name => s"In $name ")}$printPos:\n${printLines.mkString("  ", "\n  ", "")}"
 
+  }
+
+  object WACCError {
+    def apply(pos: (Int, Int), source: Option[String], error_lines: WACCErrorLines) = new WACCError(Seq(pos), source, error_lines)
   }
 
   sealed trait WACCErrorLines {
-    def toSeqString(pos: (Int, Int)): Seq[String]
+    def toSeqString(pos: Seq[(Int, Int)]): Seq[String]
   }
 
   case class VanillaError(unexpected: Option[WACCErrorItem], expected: Seq[WACCErrorItem], reasons: Seq[String], lines: WACCErrorInfo) extends WACCErrorLines {
-    override def toSeqString(pos: (Int, Int)): Seq[String] = {
+    override def toSeqString(pos: Seq[(Int, Int)]): Seq[String] = {
       val unexpected_ = unexpected.map("unexpected " + _.value())
 
       val expected_ = combineAsList(expected.map(_.value()).toList)
@@ -47,25 +59,65 @@ object Errors {
   }
 
   case class SpecialisedError(msgs: Seq[String], lines: WACCErrorInfo) extends WACCErrorLines {
-    override def toSeqString(pos: (Int, Int)): Seq[String] = combineOrUnknown(msgs, lines.toSeqString(pos))
+    override def toSeqString(pos: Seq[(Int, Int)]): Seq[String] = combineOrUnknown(msgs, lines.toSeqString(pos))
+  }
+
+  case class SemanticError(msg: String, lines: WACCErrorInfo) extends WACCErrorLines {
+    override def toSeqString(pos: Seq[(Int, Int)]): Seq[String] = combineOrUnknown(Seq(msg), lines.toSeqString(pos))
   }
 
   sealed trait WACCErrorInfo {
-    def toSeqString(pos: (Int, Int)): Seq[String]
+    def toSeqString(pos: Seq[(Int, Int)]): Seq[String]
+
+    def errorLineStart = " | "
+    def errorPointer(caretAt: Int, caretWidth: Int) = s"${(" " * caretAt)}${"^" * caretWidth}"
   }
   
   case class ParseErrorInfo(line: String, linesBefore: Seq[String], linesAfter: Seq[String], errorPointsAt: Int, errorWidth: Int, numLinesBefore: Int, numLinesAfter: Int) extends WACCErrorInfo {
-    override def toSeqString(pos: (Int, Int)): Seq[String] = {
+    override def toSeqString(posSeq: Seq[(Int, Int)]): Seq[String] = {
+      val pos = posSeq(0)
       val maxLength: Int = pos._1.toString.length + 1
 
       Seq(s"") ++:
-      linesBefore.zipWithIndex.map(line => s"%${maxLength}d$errorLineStart${line._1}".format(pos._1 - numLinesBefore + {line._2})) ++:
+      linesBefore.zipWithIndex.map(line => s"%${maxLength}d$errorLineStart${line._1}".format(pos._1 - error.NUM_LINES_BEFORE + {line._2})) ++:
       Seq(s"%${maxLength}d$errorLineStart$line".format(pos._1), s"${" " * maxLength}$errorLineStart${errorPointer(errorPointsAt, errorWidth)}") ++:
       linesAfter.zipWithIndex.map(line => s"%${maxLength}d$errorLineStart${line._1}".format(pos._1 + line._2 + 1))
     }
+  }
 
-    private val errorLineStart = " | "
-    private def errorPointer(caretAt: Int, caretWidth: Int) = s"${(" " * caretAt)}${"^" * caretWidth}"
+  case class TypecheckErrorInfo(lines: Seq[String]) extends WACCErrorInfo {
+
+    def findWidth(line: String, start: Int): Int = {
+      val sub = line.substring(start - 1)
+      val width = sub.indexWhere(Seq(' ', '[', ']', '(', ')', '{', '}', ';', '\n', '\r', ',', '\t') contains _) match {
+        case x if x == -1 => sub.length
+        case x => x.max(1)
+      }
+      return width
+    }
+
+    override def toSeqString(posSeq: Seq[(Int, Int)]): Seq[String] = { 
+      val pos = posSeq(0)
+      val maxLength: Int = pos._1.toString.length + 1
+      var previousPos = 0
+
+      lines.zipWithIndex.map(line => line._2 match {
+          case i if i < error.NUM_LINES_BEFORE => s"%${maxLength}d$errorLineStart${line._1}".format(pos._1 - error.NUM_LINES_BEFORE + {line._2})
+          case i if i == error.NUM_LINES_BEFORE => {
+            s"%${maxLength}d$errorLineStart${line._1}".format(pos._1) +
+            "\n" +
+            s"${" " * (maxLength + 2)}$errorLineStart" +
+            posSeq.map(pos => {
+              val errorPointsAt = pos._2 - previousPos
+              println("findWidth: " + line._1 + ", " + pos._2)
+              val errorWidth = findWidth(line._1, pos._2)
+              previousPos = errorPointsAt + errorWidth - 1
+              s"${errorPointer((errorPointsAt - 1), errorWidth)}"
+            }).mkString("")
+          }
+          case i => s"%${maxLength}d$errorLineStart${line._1}".format(pos._1 + i - 1)
+      })
+    }
   }
 
   sealed trait WACCErrorItem {

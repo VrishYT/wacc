@@ -38,8 +38,8 @@ abstract class WACCErrorBuilder extends ErrorBuilder[WACCError] {
     override def reason(reason: String): Message = reason
     override def message(msg: String): Message = msg
 
-    override val numLinesBefore: Int = 1
-    override val numLinesAfter: Int = 1
+    override val numLinesBefore: Int = error.NUM_LINES_BEFORE
+    override val numLinesAfter: Int = error.NUM_LINES_AFTER
 
     type LineInfo = ParseErrorInfo
     override def lineInfo(line: String, linesBefore: Seq[String], linesAfter: Seq[String], errorPointsAt: Int, errorWidth: Int): LineInfo =

@@ -9,7 +9,7 @@ class Compiler(private val file: File) {
     import AST.Program
     import parsley.{Success, Failure}
     import error._
-    import error.Errors.WACCError
+    import Errors.WACCError
     import parsley.combinator.skipMany
     import parsley.character.whitespace
     import parsley.errors.{ErrorBuilder, Token, TokenSpan}
@@ -49,8 +49,7 @@ class Compiler(private val file: File) {
                 }
             }
             case x: util.Failure[_] => {
-                ErrorLogger.err("cannot read file")
-                false // should be unreachable
+                ErrorLogger.err("cannot read file", 1)
             } 
         }
     }
@@ -59,7 +58,7 @@ class Compiler(private val file: File) {
         case Some(x) => {
             val errors = SemanticChecker.typecheck(x)
             if (errors.isEmpty) return true
-            errors.foreach(println(_))
+            TypeException.convertErrors(errors, file).foreach(println)
             return false
         }
         case None => ErrorLogger.err("typecheck called before parse/readTarget", -1)
