@@ -9,9 +9,9 @@ package object error {
 }
 
 object Errors {
-  
+
   private def combineOrUnknown(info: Seq[String], lines: Seq[String]): Seq[String] = {
-    if (info.isEmpty) WACCErrorBuilder.Unknown +: lines
+    if (info.isEmpty) "unknown parse error" +: lines
     else info ++: lines
   }
   
