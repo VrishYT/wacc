@@ -14,12 +14,10 @@ class TypeException(private val message: String,
         private val types: Option[(Type, Seq[Type])] = None,
         private val pos: Seq[(Int, Int)]) extends Exception(message) {
 
-    // override def toString: String = {
-    //     "pos: " + pos + "\n" + (types match {
-    //         case Some(x) => "actual type: " + x._1 + "\n" + "expected type(s): <" + x._2.mkString(",") + ">\n"
-    //         case _ => ""
-    //     }) + message
-    // }
+    override def toString: String = message + "\n" + (types match {
+        case Some(x) => "actual type: " + x._1 + "\n" + "expected type(s): <" + x._2.mkString(",") + ">"
+        case _ => ""
+    })
 }
 
 object TypeException {
