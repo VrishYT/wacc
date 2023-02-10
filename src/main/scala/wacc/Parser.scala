@@ -35,7 +35,7 @@ object Parser {
 
     /*parsing of basic types such as boolean values, pair literal null and primitive types*/
     val BOOL_LIT = ("true" #> true <|> 
-                   "false" #> false).label("boolean literal (true or false)")
+                   "false" #> false).label("boolean literal").explain("booleans can either be true or false")
                                  
     val PAIR_LIT = (pos <**> ("null") #> PairLiteralNull).label("pair null type")
 
@@ -120,10 +120,10 @@ object Parser {
                               (Print("print" *> expr)) <|>
                               (Println("println" *> expr)) <|>
                               (If("if" *> expr,
-                                  "then" *> stats, 
-                                  "else" *> stats <~ "fi")).label("if statement") <|>
+                                  "then".explain("all if statements must have an then statement") *> stats, 
+                                  "else".explain("all if statements must have an else statement") *> stats <~ "fi".explain("unclosed if statement"))).label("if statement") <|>
                               (While("while" *> expr,
-                                  "do" *> stats <~ ("done".explain("unclosed while loop")))).label("while statement") <|>
+                                  "do" *> stats <~ ("done".explain("unclosed while loop")))).label("while loop") <|>
                               (Begin("begin" *> stats <~ "end")) 
 
     /*parsing for a list of statements, that is used within the statement above*/
