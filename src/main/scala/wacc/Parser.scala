@@ -49,7 +49,8 @@ object Parser {
     val IDENT_OR_ARRAY_ELEM = IdentOrArrayElem(IDENT.label("identifier"), invalid_call *> option("[".label("index (like \'xs[idx]\')") *> sepBy(expr, "][") <* "]" )) // *> lookAhead("(").explain("function calls dododo")
     
     private lazy val atom: Parsley[Expr] = 
-                    "(".label("open parenthesis") *> expr <* ")" <|> IDENT_OR_ARRAY_ELEM <|> IntLiteral(INTEGER) <|> CharLiteral(CHR_LIT) <|>
+                    "(".label("open parenthesis") *> expr <* ")" <|> IDENT_OR_ARRAY_ELEM <|> IntLiteral(INTEGER.hide).label("integer literal")
+                                    .explain("all numbers are signed 32-bit integers") <|> CharLiteral(CHR_LIT) <|>
                     StrLiteral(STR_LIT) <|> BoolLiteral(BOOL_LIT) <|> PAIR_LIT
 
 
