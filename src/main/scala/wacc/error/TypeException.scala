@@ -2,7 +2,6 @@ package wacc
 package error
 
 import wacc.AST._
-import Errors._
 import scala.collection.mutable.{Map => MapM}
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.StreamConverters._
@@ -16,8 +15,10 @@ class TypeException(private val message: String,
         private val pos: Seq[(Int, Int)]) extends Exception(message) {
 
     /* Convert TypeException into a string with the error info */
-    override def toString: String = message + "\n" + (types match {
-        case Some(x) => "actual type: " + x._1 + "\n" + "expected type(s): " + x._2.mkString(",")
+    override def toString: String = message + (types match {
+        case Some(x) => "\n" + 
+        "  - actual type     : " + x._1 + "\n" + 
+        "  - expected type(s): " + x._2.mkString(",")
         case _ => ""
     })
 }
@@ -39,7 +40,7 @@ object TypeException {
                 linesRead += 1
             }
             return l.replaceAll("\t", "    ")
-        } else ErrorLogger.err("End of file reached", 1)
+        } else ErrorLogger.err("End of input reached", 1)
 
         /* Tabulates file line data to prevent repeated access to lines that are used multiple times.
            Useful for files that have semantic errors on multiple lines sequentially. 
@@ -64,7 +65,7 @@ object TypeException {
             val code = ArrayBuffer[String]()
             for (line <- start to end) code += getLine(line)
 
-            new WACCError(err.pos, Some(file.getName), new SemanticError(err.toString + "\n", new TypecheckErrorInfo(code.toSeq)))
+            WACCError(err.pos, Some(file.getName), SemanticError(err.toString + "\n", TypecheckErrorInfo(code.toSeq)))
         })
 
     }
