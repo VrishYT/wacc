@@ -54,7 +54,3 @@ abstract class WACCErrorBuilder extends ErrorBuilder[WACCError] {
     override val endOfInput: EndOfInput = WACCEndOfInput
   
 }
-
-private object WACCErrorBuilder {
-	val Unknown = "unknown parse error"
-}
