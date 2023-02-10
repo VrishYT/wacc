@@ -40,7 +40,7 @@ object TypeException {
                 linesRead += 1
             }
             return l.replaceAll("\t", "    ")
-        } else ErrorLogger.err("End of file reached", 1)
+        } else ErrorLogger.err("End of input reached", 1)
 
         /* Tabulates file line data to prevent repeated access to lines that are used multiple times.
            Useful for files that have semantic errors on multiple lines sequentially. 
