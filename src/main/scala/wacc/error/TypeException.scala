@@ -16,8 +16,10 @@ class TypeException(private val message: String,
         private val pos: Seq[(Int, Int)]) extends Exception(message) {
 
     /* Convert TypeException into a string with the error info */
-    override def toString: String = message + "\n" + (types match {
-        case Some(x) => "actual type: " + x._1 + "\n" + "expected type(s): " + x._2.mkString(",")
+    override def toString: String = message + (types match {
+        case Some(x) => "\n" + 
+        "  actual type     : " + x._1 + "\n" + 
+        "  expected type(s): " + x._2.mkString(",")
         case _ => ""
     })
 }
