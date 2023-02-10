@@ -109,7 +109,6 @@ object Errors {
             s"${" " * (maxLength + 2)}$errorLineStart" +
             posSeq.map(pos => {
               val errorPointsAt = pos._2 - previousPos
-              println("findWidth: " + line._1 + ", " + pos._2)
               val errorWidth = findWidth(line._1, pos._2)
               previousPos = errorPointsAt + errorWidth - 1
               s"${errorPointer((errorPointsAt - 1), errorWidth)}"
