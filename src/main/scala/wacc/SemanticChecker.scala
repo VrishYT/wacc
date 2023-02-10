@@ -25,7 +25,7 @@ object SemanticChecker {
         functions.foreach(func => {
             /* Check if the functions already exists */
             if (vars.keySet.exists(_ == func.fs._2)) try {
-                errors += TypeException("Cannot redeclare function '" + func.fs._2 + "'", func.pos)
+                errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
             } else {
                 vars(func.fs._2) = func.fs._1
                 funcArgs(func.fs._2) = func.args.map(arg => arg.t)
@@ -46,7 +46,8 @@ object SemanticChecker {
 
     /* Assigns a new variable name to a type, and errors if it already exists. */
     def declareVar(id: String, t: Type, vars: MapM[String, Type], pos: (Int, Int), errors: ArrayBuffer[TypeException]): Unit = {
-        if (vars.keySet.exists(_ == id)) errors += TypeException("Cannot redeclare variable '" + id + "'", pos) else vars(id) = t
+        if (vars.keySet.exists(_ == id)) errors += new TypeException(message = "Cannot redeclare variable '" + id + "'", pos = Seq(pos)) 
+        else vars(id) = t
     }
 
     /** Checks for invalid semantics within a specific function.
