@@ -79,12 +79,16 @@ object Parser {
     /*operators in expression are given a precedence from tightest binding to loosest*/
     val operators: Parsley[Expr] = precedence[Expr](atom)(
                                     Ops(Prefix)(Length <# unary_op("len"), Ord <# unary_op("ord"), 
-                                                Chr <# unary_op("chr"), Negate <# unary_op(UNOP_MINUS), 
+                                                Chr <# unary_op("chr"), 
+                                                Negate <# unary_op(UNOP_MINUS), 
                                                 Not <# unary_op("!")),
-                                    Ops(InfixL)(Mul <# arith_op("*"), Div <# arith_op("/"), Mod <# arith_op("%")),
+                                    Ops(InfixL)(Mul <# arith_op("*"), Div <# arith_op("/"), 
+                                                Mod <# arith_op("%")),
                                     Ops(InfixL)(Add <# arith_op("+"), Sub <# arith_op("-")),
-                                    Ops(InfixL)(Greater <# comp_op(">"), GreaterEquals <# comp_op(">="),
-                                                Less <# comp_op("<"), LessEquals <# comp_op("<=")),
+                                    Ops(InfixL)(Greater <# comp_op(">"), 
+                                                GreaterEquals <# comp_op(">="),
+                                                Less <# comp_op("<"), 
+                                                LessEquals <# comp_op("<=")),
                                     Ops(InfixL)(Equal <# comp_op("=="), NotEqual <# comp_op("!=")),
                                     Ops(InfixL)(And <# logic_op("&&")),
                                     Ops(InfixL)(Or <# logic_op("||")))
@@ -102,7 +106,7 @@ object Parser {
       can either be a primitive type or a pair i.e. you cannot have arrays of arrays infinitely*/
     private lazy val atom2: Parsley[Type] = BASE_TYPE <|> PAIR_TYPE
 
-    val ARRAY_TYPE: Parsley[Type] = chain.postfix(atom2, ArrayType <# array_type_desc("[]")) // explain
+    val ARRAY_TYPE: Parsley[Type] = chain.postfix(atom2, ArrayType <# array_type_desc("[]"))
     
     lazy val types: Parsley[Type] = ARRAY_TYPE <|> BASE_TYPE <|> PAIR_TYPE 
 
@@ -163,7 +167,8 @@ object Parser {
 
     /*rule to parse on functions*/
     val func = _invalid_function <|> Func(attempt(types <~> IDENT <~ "(".label(
-                "opening parenthesis")).label("function declaration"), paramList <~ ")", "is" *> stats <* "end") 
+                "opening parenthesis")).label(
+                  "function declaration"), paramList <~ ")", "is" *> stats <* "end") 
 
     /*rule to parse on programs, we check that at the end of the function body 
     we have a return or an exit on all exit paths using the method valid return*/
