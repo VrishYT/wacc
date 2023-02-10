@@ -119,7 +119,7 @@ object SemanticChecker {
                     case ArrayType(t) => t
 
                     /* error if a non array identifier is being accessed. */
-                    case x => ErrorLogger.err("unable to access non-array var as an array", x, ArrayType(AnyType), elem.pos) // TODO : check :(
+                    case x => ErrorLogger.err("unable to access non-array var as an array", x, ArrayType(AnyType), elem.pos)
                 }
 
                 /* if it's a pair element then get the type of x, which is in the form fst(y) or snd(y), 
@@ -202,7 +202,7 @@ object SemanticChecker {
                     case (x @ Ident(id)) => getTypeFromVars(id, vars, childVars, x.pos)
 
                     /* error for array element with no index */
-                    case (array @ ArrayElem(_, Nil)) => ErrorLogger.err("invalid array access\nno index provided", array.pos)
+                    case (array @ ArrayElem(_, Nil)) => ErrorLogger.err("invalid array access\n  no index provided", array.pos)
 
                     /* for an array element with index : */
                     case (elem @ ArrayElem(id, exps)) => {
@@ -287,7 +287,7 @@ object SemanticChecker {
                                 if (!validType(t2)) ErrorLogger.err("invalid type for binary op", t2, Seq(CharType, IntType), exp2.pos)
 
                                 /* error if the type of the operands are not the same */
-                                if (t1 != t2) ErrorLogger.err("invalid type for binary op\ncannot execute binary op on two args of differing type", t2, t1, exp1.pos, exp2.pos)
+                                if (t1 != t2) ErrorLogger.err("invalid type for binary op\n  cannot execute binary op on two args of differing type", t2, t1, exp1.pos, exp2.pos)
 
                                 /* return boolean type */
                                 return BoolType
@@ -333,7 +333,7 @@ object SemanticChecker {
                 val rType = getRValType(y)
 
                 /* error when attempting to assign an unknown type to another unknown type */
-                if (lType == AnyType && rType == AnyType) ErrorLogger.err("invalid type for assign\ncannot assign when both types are unknown", x.pos, y.pos)        
+                if (lType == AnyType && rType == AnyType) ErrorLogger.err("invalid type for assign\n  cannot assign when both types are unknown", x.pos, y.pos)        
 
                 /* error when attempting to assign to a different type */
                 if (lType != rType && rType != lType) ErrorLogger.err("invalid type for assign", rType, lType, x.pos, y.pos)        
@@ -364,7 +364,7 @@ object SemanticChecker {
                 val rType = getRValType(x)
 
                 /* error if we are not inside of a function */
-                if (!vars.keySet.exists(_ == "\\func")) ErrorLogger.err("invalid return call\ncannot return outside a function body", x.pos)
+                if (!vars.keySet.exists(_ == "\\func")) ErrorLogger.err("invalid return call\n  cannot return outside a function body", x.pos)
 
                 /* error if return type does not match return type of the current function being checked */
                 val funcType = getTypeFromVars("\\func", vars, childVars, x.pos)
