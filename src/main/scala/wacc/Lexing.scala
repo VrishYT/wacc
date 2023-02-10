@@ -11,6 +11,7 @@ object Lexing{
     import parsley.token.descriptions._
     import parsley.errors.combinator._
 
+    /*set the lexer configurations for escape characters in WACC*/
     val escapeConfigs = text.EscapeDesc.plain.copy(escBegin = '\\',
                            literals = Set('\'', '\"', '\\'),
                            singleMap = Map( '0' -> 0x0000,
@@ -27,41 +28,45 @@ object Lexing{
                            emptyEscape = None,
                            gapsSupported = false)
 
+    /*set the lexer configurations for keywords in WACC, so that identifiers cannot be named the same as keywords*/
     val keywords = Set("begin", "null", "end", "is", "skip", "read", "free", 
                         "return", "exit", "print", "println", "if", "then", "else",
                         "fi", "while", "do", "done", "fst", "snd", "newpair", "call", 
                         "int", "bool", "char", "string", "pair", "true", "false", "len", "ord", "chr")
 
     private val desc = LexicalDesc.plain.copy(
+        /*lexer configurations for names*/
         nameDesc = NameDesc.plain.copy(
-            // Unicode is also possible instead of Basic
             identifierStart = Basic(c => Character.isLetter(c) || c == '_'),
             identifierLetter = Basic(c => Character.isLetterOrDigit(c) || c == '_')
         ),
+        /*lexer configurations for symbols: operators / keywords*/
         symbolDesc = SymbolDesc.plain.copy(
             hardKeywords = keywords,
-            hardOperators = Set("*", "+", "-", "/", ">", ">=", "<", "<=", "==", "!=", "&&", "||"),
-            //TODO: check whether len ord chr should be in keywords or operators 
+            hardOperators = Set("*", "+", "-", "/", ">", ">=", "<", "<=", "==", "!=", "&&", "||"), 
             caseSensitive = false
         ),
+        /*lexer configurations for signed integers*/
         numericDesc = numeric.NumericDesc.plain.copy(
-            // generic number
+            /* generic number*/
             integerNumbersCanBeHexadecimal = false,
             integerNumbersCanBeOctal = false,
-            // special literals
+            /* special literals */
             hexadecimalLeads = Set(),
             octalLeads = Set(),
             binaryLeads = Set(),
-            // exponents
+            /*exponents*/
             decimalExponentDesc = numeric.ExponentDesc.NoExponents,
             hexadecimalExponentDesc = numeric.ExponentDesc.NoExponents,
             octalExponentDesc = numeric.ExponentDesc.NoExponents,
             binaryExponentDesc = numeric.ExponentDesc.NoExponents
         ),
+        /*lexer configuratons for strings and characters*/
         textDesc = text.TextDesc.plain.copy(
             escapeSequences = escapeConfigs,
             graphicCharacter = Basic((c) => c >= ' '.toInt && c != '\\' && c != '\'' && c != '\"')
         ),
+        /*lexer configurations for whitespace and comments*/
         spaceDesc = SpaceDesc.plain.copy(
             commentLine = "#"
         )
@@ -69,6 +74,8 @@ object Lexing{
 
 
     val lexer = new Lexer(desc)
+
+    /*definitions for identifier, integer, negate sign, string and character tokens*/
 
     val IDENT = lexer.lexeme.names.identifier
                                     .label("identifier")
@@ -85,6 +92,8 @@ object Lexing{
                                     .explain("a character must be graphic ASCII")
 
     def fully[A](p: Parsley[A]) = lexer.fully(p)
+
+    /*definition of implicitis so that keywords are recognised as separate tokens within parsley*/
     val implicits = lexer.lexeme.symbol.implicits
 }
  
