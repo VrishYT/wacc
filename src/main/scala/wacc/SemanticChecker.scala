@@ -64,6 +64,8 @@ object SemanticChecker {
 
         /* add each function identifier to the global scope map */
         func.args.foreach(param => declareVar(param.id, param.t, childVars, param.pos, errors))
+
+        /* add the type of the function to the front of childVars so we know what type to return */
         declareVar("\\func", func.fs._1, childVars, func.pos, errors) 
 
         /* check semantics of each statement in the function */
@@ -234,34 +236,53 @@ object SemanticChecker {
             }
         }
 
-        /* Checks each statement */
+        /* checks each statement */
         def checkStatement(statement: Stat): Unit = statement match {
+
+            /* check declare statement */
             case Declare(t, id, rhs) => {
                 val rType = getRValType(rhs)
+
+                /* error if the left type is not the same as the right type */
                 if (rType != t) ErrorLogger.err("invalid type for declare", rType, t, rhs.pos)
+
+                /* check identifier hasn't already been declared, and add it to the scope */
                 declareVar(id, t, childVars, rhs.pos, errors)
             }
+
+            /* check assign statement */
             case Assign(x, y) => {
-                /* Throw error if the ident being reassigned is a function. */
+
+                /* error if the identifier being reassigned is a function. */
                 x match {
                     case (ident @ Ident(id)) if (funcArgs.keySet.exists(_ == id) && !childVars.keySet.exists(_ == id)) => ErrorLogger.err("Cannot re-assign value for a function: " + id, ident.pos) 
                     case _ => 
                 }
+
+                /* get type of left and right hand sides of the assign */
                 val lType = getLValType(x)
                 val rType = getRValType(y)
-                /* Throw error when attempting to assign type deleted pair to a type deleted pair */
+
+                /* error when attempting to assign an unknown type to another unknown type */
                 if (lType == AnyType && rType == AnyType) ErrorLogger.err("invalid type for assign\ncannot assign when both types are unknown", x.pos, y.pos)        
-                /* Throw error when attempting to assign to a different type */
+
+                /* error when attempting to assign to a different type */
                 if (lType != rType && rType != lType) ErrorLogger.err("invalid type for assign", rType, lType, x.pos, y.pos)        
             }
+
+            /* check read statement */
             case Read(x) => {
                 val ltype = getLValType(x)
-                /* Throw error if attempt to read to non int or char type. */
+
+                /* error if attempting to read to non int or char type. */
                 if (ltype != IntType && ltype != CharType) ErrorLogger.err("invalid type for read", ltype, Seq(IntType, CharType), x.pos)
             }
+
+            /* check free statement */
             case Free(x) => {
                 val rType = getRValType(x)
-                /* Error when freeing a non array or pair type. */
+
+                /* error when freeing a non array or pair type. */
                 rType match {
                     case x: ArrayType => 
                     case x: PairType =>
@@ -269,37 +290,64 @@ object SemanticChecker {
                 }
             }
             
+            /* check return statement */
             case Return(x) => {
                 val rType = getRValType(x)
+
+                /* error if we are not inside of a function */
                 if (!vars.keySet.exists(_ == "\\func")) ErrorLogger.err("invalid return call\ncannot return outside a function body", x.pos)
+
+                /* error if return type does not match return type of the current function being checked */
                 val funcType = getTypeFromVars("\\func", vars, childVars, x.pos)
                 if (rType != funcType) ErrorLogger.err("invalid type for return", rType, funcType, x.pos)
             }
+
+            /* check exit statement */
             case Exit(x) => {
+
+                /* error if exit code is not an intType */
                 val rValType = getRValType(x) 
                 if (rValType != IntType) ErrorLogger.err("invalid type for exit", rValType, IntType, x.pos)
             }
+
+            /* check print statement */
             case Print(x) => getRValType(x)
+
+            /* check println statement */
             case Println(x) => getRValType(x)
+
+            /* check if statement */
             case If(p, xs, ys) => {
-                /* Error if condition not boolean type */
+
+                /* error if condition not of boolean type */
                 val rValType = getRValType(p) 
                 if (rValType != BoolType) ErrorLogger.err("invalid type for if cond", rValType, BoolType, p.pos) 
 
-                /* Check semantics of both branches. */
+                /* check semantics of both branches of if statement */
                 val newChildVars = createChildVars(vars, childVars)
                 checkStatements(xs, newChildVars, funcArgs, errors)
                 checkStatements(ys, newChildVars, funcArgs, errors)
             }
+
+            /* check while statement */
             case While(p, xs) => {
+
+                /* error if while condition isn't of boolean type */
                 val rtype = getRValType(p)
                 if (rtype != BoolType) ErrorLogger.err("invalid type for while cond", rtype, BoolType, p.pos) 
+
+                /* check semantics of loop body's statements */
                 checkStatements(xs, createChildVars(vars, childVars), funcArgs, errors)
             }
+
+            /* check begin statement, by checking the semantics of it's body's statements */
             case Begin(xs) => checkStatements(xs, createChildVars(vars, childVars), funcArgs, errors)
+
+            /* defualt case */
             case default => 
         }
 
+        /* check each statement in the program, and add any TypeExceptions to the list of errors */
         statements.foreach(statement => try {
             checkStatement(statement)
         } catch {
@@ -307,6 +355,7 @@ object SemanticChecker {
         })
     }
 
+    /* create a new parent scope by combining the current parent and child identifier maps */
     def createChildVars(parent: Map[String, Type], child: MapM[String, Type]): Map[String, Type] = child.toMap ++ parent
     
 }
