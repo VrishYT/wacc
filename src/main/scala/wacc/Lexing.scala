@@ -1,11 +1,12 @@
 package wacc
 
-object Lexing{
+object Lexing {
+
     import parsley.Parsley
     import parsley.Parsley.{attempt, notFollowedBy}
-    import parsley.implicits.character.{stringLift, charLift}
+    import parsley.implicits.character.charLift
     import parsley.character.digit
-    import parsley.token.{Lexer, predicate}
+    import parsley.token.Lexer
     import parsley.token.predicate.Basic
     import parsley.token.descriptions.{LexicalDesc, NameDesc, SymbolDesc}
     import parsley.token.descriptions._

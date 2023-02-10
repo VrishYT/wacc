@@ -5,7 +5,6 @@ import wacc.AST._
 import scala.collection.mutable.{Map => MapM}
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.StreamConverters._
-
 import java.io.File
 import java.io.{BufferedReader, FileReader}
 
@@ -36,7 +35,7 @@ object TypeException {
         def getIteratorLine(i: Int): String = if (iterator.hasNext) {
             var l: String = ""
             while (linesRead < i && iterator.hasNext) {
-                l = iterator.next
+                l = iterator.next()
                 linesRead += 1
             }
             return l.replaceAll("\t", "    ")

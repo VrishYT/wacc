@@ -1,17 +1,15 @@
 package wacc
 import parsley.Parsley
-import parsley.Parsley.{attempt, pure, lookAhead, notFollowedBy, empty}
+import parsley.Parsley.{attempt, pure, notFollowedBy, empty}
 
 object Parser {
 
     import parsley.combinator._
     import parsley.expr.{precedence, Ops, InfixL, Prefix}
     import parsley.expr.chain
-    import parsley.debug._
     import parsley.errors.combinator._
     import parsley.errors.patterns._
-    import parsley.position._   
-    import Lexing.lexer
+    import parsley.position._ 
     import Lexing._
     import implicits.implicitSymbol
     import AST._

@@ -1,21 +1,19 @@
 package wacc
 
-import parsley.Parsley.{pure}
 import java.io.File
 
 class Compiler(private val file: File) {
 
-    import Parser._
     import AST.Program
     import parsley.{Success, Failure}
     import error._
     import parsley.combinator.skipMany
     import parsley.character.whitespace
-    import parsley.errors.{ErrorBuilder, Token, TokenSpan}
-    import parsley.errors.tokenextractors.{LexToken, TillNextWhitespace, MatchParserDemand}
+    import parsley.errors.{ErrorBuilder, Token}
+    import parsley.errors.tokenextractors.{LexToken, TillNextWhitespace}
     import parsley.Parsley
     import parsley.io._
-    import Lexing.{IDENT, INTEGER, lexer, keywords}
+    import Lexing.{lexer, keywords}
 
     private var program: Option[Program] = None 
 
@@ -50,10 +48,7 @@ class Compiler(private val file: File) {
                     false           
                 }
             }
-            case x: util.Failure[_] => {
-                ErrorLogger.err("cannot read file", 1)
-                false
-            } 
+            case x: util.Failure[_] => ErrorLogger.err("cannot read file", 1)
         }
     }
     
@@ -65,14 +60,11 @@ class Compiler(private val file: File) {
             TypeException.convertErrors(errors, file).foreach(println)
             return false
         }
-        case None => {
-            ErrorLogger.err("typecheck called before parse", 1)
-            return false
-        }
+        case None => ErrorLogger.err("typecheck called before parse", 1)
 
     }
 
-    def compile = ???
+    // def compile = ???
 
 }
 

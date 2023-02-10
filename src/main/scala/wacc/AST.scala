@@ -1,7 +1,5 @@
 package wacc
 
-import parsley.Parsley
-import scala.language.implicitConversions
 import ParserBridge._
 
 object AST {

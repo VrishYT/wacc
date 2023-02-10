@@ -7,7 +7,6 @@ object SemanticChecker {
     import scala.collection.immutable.Map
     import scala.collection.mutable.{Map => MapM}
     import scala.collection.mutable.ArrayBuffer
-
     import error._
 
     def typecheck(program: Program): ArrayBuffer[TypeException] = {
