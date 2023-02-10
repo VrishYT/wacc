@@ -8,13 +8,33 @@ package object error {
     val NUM_LINES_BEFORE = 1
 }
 
-object Errors {
+/* Main error class */
+case class WACCError(posSeq: Seq[(Int, Int)], source: Option[String], error_lines: WACCErrorLines) {
 
-  private def combineOrUnknown(info: Seq[String], lines: Seq[String]): Seq[String] = {
+  private val pos = posSeq(0)
+
+  private val printPos: String = s"(line ${Integer.toUnsignedString(pos._1)}, column ${Integer.toUnsignedString(pos._2)})"
+
+  private val printLines: Seq[String] = error_lines.toSeqString(posSeq)
+
+  override def toString(): String = s"\n${error_lines.error} error ${source.fold("")(name => s"in $name ")}$printPos:\n${printLines.mkString("  ", "\n  ", "")}"
+
+}
+
+/* Companion object with additional constructor */
+object WACCError {
+  def apply(pos: (Int, Int), source: Option[String], error_lines: WACCErrorLines) = new WACCError(Seq(pos), source, error_lines)
+}
+
+sealed abstract class WACCErrorLines(val error: String) {
+  def toSeqString(pos: Seq[(Int, Int)]): Seq[String]
+
+  protected def combineOrUnknown(info: Seq[String], lines: Seq[String]): Seq[String] = {
     if (info.isEmpty) "unknown parse error" +: lines
     else info ++: lines
   }
 }
+
 
 sealed abstract class ParserError extends WACCErrorLines("Syntax")
 
