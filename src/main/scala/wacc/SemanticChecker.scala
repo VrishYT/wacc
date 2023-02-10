@@ -26,7 +26,7 @@ object SemanticChecker {
         functions.foreach(func => {
 
             /* check if the functions already exists in the map */
-            if (vars.keySet.exists(_ == func.fs._2)) try {
+            if (vars.keySet.exists(_ == func.fs._2)) {
 
                 /* error if the function has been declared more than once */
                 errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
@@ -125,6 +125,8 @@ object SemanticChecker {
                 /* if it's a pair element then get the type of x, which is in the form fst(y) or snd(y), 
                    by calling getLValPairElem */
                 case x: PairElem => getLValPairElem(x)
+                /* Default case - should be unreachable. */
+                case _ => ErrorLogger.err("Unknown lvalue passed in", 1)
             }
         }
             
@@ -301,6 +303,8 @@ object SemanticChecker {
                         /* return the output type */
                         returnType._3
                     }
+                    /* Default case - should be unreachable. */
+                    case _ => ErrorLogger.err("Unknown expression passed in", 1)
                 }
             }
         }
