@@ -56,9 +56,7 @@ object SemanticChecker {
         else vars(id) = t
     }
 
-    /** checks for invalid semantics within a specific function.
-        @param func 
-    */
+    /* checks for invalid semantics within a specific function */
     def checkFunction(func: Func, vars: Map[String, Type], funcArgs: Map[String, List[Type]], errors: ArrayBuffer[TypeException]): Unit = {
         val childVars = MapM[String, Type]()
 
