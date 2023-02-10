@@ -110,10 +110,10 @@ object SemanticChecker {
             lVal match {
 
                 /* if its an identifier then get it's type from the parent and child scope maps */
-                case x@Ident(id) => getTypeFromVars(id, vars, childVars, x.pos)   
+                case (x @ Ident(id)) => getTypeFromVars(id, vars, childVars, x.pos)   
 
                 /* if its an array element, then get it's type from the parent and child scope maps */                            
-                case (elem @ (ArrayElem(id, xs))) => getTypeFromVars(id, vars, childVars, elem.pos) match {
+                case (elem @ ArrayElem(id, xs)) => getTypeFromVars(id, vars, childVars, elem.pos) match {
 
                     /* check if the type is an array type */
                     case ArrayType(t) => t
@@ -199,7 +199,7 @@ object SemanticChecker {
                     case _: PairLiteralNull => Pair
 
                     /* for an identifier, get its type from the identifier maps */
-                    case x@Ident(id) => getTypeFromVars(id, vars, childVars, x.pos)
+                    case (x @ Ident(id)) => getTypeFromVars(id, vars, childVars, x.pos)
 
                     /* error for array element with no index */
                     case (array @ ArrayElem(_, Nil)) => ErrorLogger.err("invalid array access\nno index provided", array.pos)
