@@ -6,6 +6,13 @@ import parsley.implicits.zipped.Zipped3
 
 object ParserBridge {
 
+    /*defined our own parser bridges that can take in positions as metadata
+      con defines the constructor for each of the parser bridges
+      we have the apply function of parser bridges that only takes in types and not the position
+      so that we can call the apply function that takes in a position within the parser bridge 
+      and avoid passing the pos as a parameter while parsing. 
+    */
+
     trait ParserSingletonBridge[+A] {
         def con(pos: (Int, Int)): A
         def <#(op: Parsley[_]): Parsley[A] = pos.map(this.con(_)) <* op
