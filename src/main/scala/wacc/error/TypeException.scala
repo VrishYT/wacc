@@ -2,7 +2,6 @@ package wacc
 package error
 
 import wacc.AST._
-import Errors._
 import scala.collection.mutable.{Map => MapM}
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.StreamConverters._
@@ -18,8 +17,8 @@ class TypeException(private val message: String,
     /* Convert TypeException into a string with the error info */
     override def toString: String = message + (types match {
         case Some(x) => "\n" + 
-        "  actual type     : " + x._1 + "\n" + 
-        "  expected type(s): " + x._2.mkString(",")
+        "  - actual type     : " + x._1 + "\n" + 
+        "  - expected type(s): " + x._2.mkString(",")
         case _ => ""
     })
 }
@@ -66,7 +65,7 @@ object TypeException {
             val code = ArrayBuffer[String]()
             for (line <- start to end) code += getLine(line)
 
-            new WACCError(err.pos, Some(file.getName), new SemanticError(err.toString + "\n", new TypecheckErrorInfo(code.toSeq)))
+            WACCError(err.pos, Some(file.getName), SemanticError(err.toString + "\n", TypecheckErrorInfo(code.toSeq)))
         })
 
     }
