@@ -54,9 +54,8 @@ class InvalidParseTests extends AnyFunSuite {
         test(parent + filename + " has invalid syntax") {
             val c = Compiler(path.toString)
 
-            assertThrows[SyntaxException] {
-                c.parse
-            }
+            val parseSuccess: Boolean = c.parse
+            assert(!parseSuccess, "\n" + c.toString)
         }
     })
 
