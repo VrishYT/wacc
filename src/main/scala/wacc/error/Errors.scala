@@ -1,12 +1,15 @@
 package wacc
 package error
 
+/* Holds constants used for error message generation */
 package object error {
+    /* No of lines before and after erroring line for "code snippet" */
     val NUM_LINES_AFTER = 1
     val NUM_LINES_BEFORE = 1
 }
 
 object Errors {
+  
   private def combineOrUnknown(info: Seq[String], lines: Seq[String]): Seq[String] = {
     if (info.isEmpty) WACCErrorBuilder.Unknown +: lines
     else info ++: lines
