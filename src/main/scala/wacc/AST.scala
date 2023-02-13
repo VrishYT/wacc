@@ -222,7 +222,7 @@ object AST {
   sealed trait Expr extends RValue
 
   /* atomic types as case classes */
-  case class IntLiteral(x: Int)(val pos: (Int, Int)) extends Expr
+  case class IntLiteral(bfcx: Int)(val pos: (Int, Int)) extends Expr
 
   case class CharLiteral(x: Char)(val pos: (Int, Int)) extends Expr
 
@@ -244,7 +244,7 @@ object AST {
   case class Ident(id: String)(val pos: (Int, Int)) extends LExpr
 
   case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LExpr
-
+  
   case class IdentOrArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LExpr
 
   /* expression parser bridges */
