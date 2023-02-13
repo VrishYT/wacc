@@ -1,6 +1,6 @@
 package wacc.back
 
-import wacc.front.AST._
+import wacc.AST._
 
 object CodeGenerator {
 

@@ -3,7 +3,7 @@ package wacc.front
 object SemanticChecker {
 
   import error._
-  import AST._
+  import wacc.AST._
 
   import scala.collection.mutable.{ArrayBuffer, Map => MapM}
 

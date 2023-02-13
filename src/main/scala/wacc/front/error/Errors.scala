@@ -154,7 +154,7 @@ case object WACCEndOfInput extends WACCErrorItem {
 /* ErrorLogger object used to throw semantic errors or unknown errors (i.e. file doesn't exist) */ 
 object ErrorLogger {
 
-    import wacc.front.AST._
+    import wacc.AST._
 
     /* Overloaded err method used for non-semantic errors. */
     def err(msg: String, exit: Int) = {

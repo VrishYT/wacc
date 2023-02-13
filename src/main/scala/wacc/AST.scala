@@ -1,9 +1,9 @@
-package wacc.front
+package wacc
 
 object AST {
 
   import parsley.genericbridges._
-  import ParserBridge._
+  import front.ParserBridge._
 
   /* program case class with its functions and statements */
   case class Program(fs: List[Func], stats: List[Stat])

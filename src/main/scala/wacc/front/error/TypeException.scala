@@ -1,6 +1,6 @@
 package wacc.front.error
 
-import wacc.front.AST._
+import wacc.AST._
 import scala.collection.mutable.{Map => MapM}
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.StreamConverters._

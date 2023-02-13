@@ -5,7 +5,7 @@ import parsley.Parsley.{attempt, empty, notFollowedBy, pure}
 
 object Parser {
 
-  import AST._
+  import wacc.AST._
   import Lexing._
   import implicits.implicitSymbol
   import parsley.combinator._
