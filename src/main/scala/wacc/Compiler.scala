@@ -2,6 +2,7 @@ package wacc
 
 import wacc.front.{Parser, SemanticChecker}
 import wacc.front.error.{ErrorLogger, TypeException, WACCError, WACCErrorBuilder}
+import wacc.back.CodeGenerator
 
 import java.io.File
 
