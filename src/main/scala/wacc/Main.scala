@@ -2,7 +2,7 @@ package wacc
 
 object Main {
 
-    import error.ErrorLogger
+  import wacc.front.error.ErrorLogger
 
     def main(args: Array[String]): Unit = {
         if (args.length == 0) {

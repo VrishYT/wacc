@@ -1,19 +1,21 @@
 package wacc
 
+import wacc.front.{Parser, SemanticChecker}
+import wacc.front.error.{ErrorLogger, TypeException, WACCError, WACCErrorBuilder}
+
 import java.io.File
 
 class Compiler(private val file: File) {
 
-    import AST.Program
+    import wacc.front.AST.Program
     import parsley.{Success, Failure}
-    import error._
     import parsley.combinator.skipMany
     import parsley.character.whitespace
     import parsley.errors.{ErrorBuilder, Token}
     import parsley.errors.tokenextractors.{LexToken, TillNextWhitespace}
     import parsley.Parsley
     import parsley.io._
-    import Lexing.{lexer, keywords}
+    import wacc.front.Lexing.{lexer, keywords}
 
     private var program: Option[Program] = None 
 
