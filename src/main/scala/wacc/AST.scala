@@ -4,15 +4,41 @@ object AST {
 
   import parsley.genericbridges._
   import front.ParserBridge._
+  import back._
 
   /* program case class with its functions and statements */
-  case class Program(fs: List[Func], stats: List[Stat])
+  case class Program(fs: List[Func], stats: List[Stat]) {
+    def toAssembly(regs: Seq[Register]): Seq[Instruction] = {
+
+      val begin = Seq(Push(FP, LR), 
+                      Push(Reg(8), Reg(10), Reg(12)), 
+                      Mov(FP, SP))
+
+      // val assFunc = fs.map(_.toAssembly(regs))
+      // val assStat = stats.map(_.toAssembly(regs))
+      
+      // TODO: concat all
+      // assStat in 'main'
+
+      val end = Seq(Mov(Reg(0), ImmInt(0)), 
+                    Pop(Reg(8), Reg(10), Reg(12)), 
+                    Pop(FP, PC))
+
+      return begin ++ end
+    }
+  }
 
   /* program companion object with parser bridge */
   object Program extends ParserBridge2[List[Func], List[Stat], Program]
 
   /* function case class with position */
   case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
+
+    def toAssembly(regs: Seq[Register]): Seq[Instruction] = {
+      // TODO: function assembly
+      val assStat = stats.map(_.toAssembly(regs))
+      return Seq()
+    }
 
     /* define validReturn of a function, and match on the last statement : */
     def validReturn: Boolean = validReturn(stats)
@@ -46,7 +72,9 @@ object AST {
   }
 
   /* parameter case class with position */
-  case class Param(t: Type, id: String)(val pos: (Int, Int))
+  case class Param(t: Type, id: String)(val pos: (Int, Int)) {
+    def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() // TODO: param to assembly
+  }
 
   /* function and parameter companion objects with parser bridges */
   object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Func]
@@ -54,31 +82,55 @@ object AST {
   object Param extends ParserBridgePos2[Type, String, Param]
 
   /* statements as objects extending the sealed trait Stat */
-  sealed trait Stat
+  sealed trait Stat {
+    def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq()
+  }
 
   case object Skip extends Stat with ParserBridge0[Stat]
 
-  case class Declare(t: Type, id: String, rhs: RValue) extends Stat
+  case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
+    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+  }
 
-  case class Assign(x: LValue, y: RValue) extends Stat
+  case class Assign(x: LValue, y: RValue) extends Stat {
+    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+  }
 
-  case class Read(x: LValue) extends Stat
+  case class Read(x: LValue) extends Stat {
+    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+  }
 
-  case class Free(x: Expr) extends Stat
+  case class Free(x: Expr) extends Stat {
+    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+  }
 
-  case class Return(x: Expr) extends Stat
+  case class Return(x: Expr) extends Stat {
+    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+  }
 
-  case class Exit(x: Expr) extends Stat
+  case class Exit(x: Expr) extends Stat {
+    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq(LinkBranch("exit"))
+  }
 
-  case class Print(x: Expr) extends Stat
+  case class Print(x: Expr) extends Stat {
+    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+  }
 
-  case class Println(x: Expr) extends Stat
+  case class Println(x: Expr) extends Stat {
+    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+  }
 
-  case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat
+  case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
+    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+  }
 
-  case class While(p: Expr, x: List[Stat]) extends Stat
+  case class While(p: Expr, x: List[Stat]) extends Stat {
+    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+  }
 
-  case class Begin(xs: List[Stat]) extends Stat
+  case class Begin(xs: List[Stat]) extends Stat {
+    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+  }
 
   /* parser bridges for statements */
   object Declare extends ParserBridge3[Type, String, RValue, Declare]
