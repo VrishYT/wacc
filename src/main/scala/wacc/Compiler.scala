@@ -66,7 +66,10 @@ class Compiler(private val file: File) {
 
     }
 
-    // def compile = ???
+    def compile: Unit = program match {
+        case Some(x) => CodeGenerator.generate(x)
+        case None => ErrorLogger.err("generate called before parse/typecheck", 1)
+    }
 
 }
 
