@@ -25,8 +25,8 @@ case class Branch(label: String) extends Instruction
 case class LinkBranch(label: String) extends Instruction
 
 /* Stack Instrcution */
-case class Push(src: Register) extends Instruction
-case class Pop(dest: Register) extends Instruction
+case class Push(src: Register*) extends Instruction
+case class Pop(dest: Register*) extends Instruction
 
 case class Label(label: String) extends Instruction
 case class Directive(name: String) extends Instruction
