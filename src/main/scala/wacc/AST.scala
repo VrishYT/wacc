@@ -5,10 +5,11 @@ object AST {
   import parsley.genericbridges._
   import front.ParserBridge._
   import back._
+  import scala.collection.LinearSeq
 
   /* program case class with its functions and statements */
   case class Program(fs: List[Func], stats: List[Stat]) {
-    def toAssembly(regs: Seq[Register]): Seq[Instruction] = {
+    def toAssembly(regs: LinearSeq[Register]): Seq[Instruction] = {
 
       val begin = Seq(Push(FP, LR), 
                       Push(Reg(8), Reg(10), Reg(12)), 
@@ -34,7 +35,7 @@ object AST {
   /* function case class with position */
   case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
 
-    def toAssembly(regs: Seq[Register]): Seq[Instruction] = {
+    def toAssembly(regs: LinearSeq[Register]): Seq[Instruction] = {
       // TODO: function assembly
       val assStat = stats.map(_.toAssembly(regs))
       return Seq()
@@ -73,7 +74,7 @@ object AST {
 
   /* parameter case class with position */
   case class Param(t: Type, id: String)(val pos: (Int, Int)) {
-    def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() // TODO: param to assembly
+    def toAssembly(regs: LinearSeq[Register]): Seq[Instruction] = Seq() // TODO: param to assembly
   }
 
   /* function and parameter companion objects with parser bridges */
@@ -83,53 +84,53 @@ object AST {
 
   /* statements as objects extending the sealed trait Stat */
   sealed trait Stat {
-    def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq()
+    def toAssembly(regs: LinearSeq[Register]): Seq[Instruction] = Seq()
   }
 
   case object Skip extends Stat with ParserBridge0[Stat]
 
   case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
-    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: LinearSeq[Register]): Seq[Instruction] = Seq() 
   }
 
   case class Assign(x: LValue, y: RValue) extends Stat {
-    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: LinearSeq[Register]): Seq[Instruction] = Seq() 
   }
 
   case class Read(x: LValue) extends Stat {
-    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: LinearSeq[Register]): Seq[Instruction] = Seq() 
   }
 
   case class Free(x: Expr) extends Stat {
-    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: LinearSeq[Register]): Seq[Instruction] = Seq() 
   }
 
   case class Return(x: Expr) extends Stat {
-    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: LinearSeq[Register]): Seq[Instruction] = Seq() 
   }
 
   case class Exit(x: Expr) extends Stat {
-    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq(LinkBranch("exit"))
+    override def toAssembly(regs: LinearSeq[Register]): Seq[Instruction] = Seq(LinkBranch("exit"))
   }
 
   case class Print(x: Expr) extends Stat {
-    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: LinearSeq[Register]): Seq[Instruction] = Seq() 
   }
 
   case class Println(x: Expr) extends Stat {
-    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: LinearSeq[Register]): Seq[Instruction] = Seq() 
   }
 
   case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
-    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: LinearSeq[Register]): Seq[Instruction] = Seq() 
   }
 
   case class While(p: Expr, x: List[Stat]) extends Stat {
-    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: LinearSeq[Register]): Seq[Instruction] = Seq() 
   }
 
   case class Begin(xs: List[Stat]) extends Stat {
-    override def toAssembly(regs: Seq[Register]): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: LinearSeq[Register]): Seq[Instruction] = Seq() 
   }
 
   /* parser bridges for statements */

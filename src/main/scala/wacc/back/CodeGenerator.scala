@@ -1,11 +1,12 @@
 package wacc.back
 
 import wacc.AST._
+import scala.collection.LinearSeq
 
 object CodeGenerator {
 
     def generate(program: Program): Unit = {
-        val regs = Seq(Reg(1), 
+        val regs = LinearSeq(Reg(1), 
                        Reg(2), 
                        Reg(3), 
                        Reg(4),
