@@ -19,7 +19,7 @@ object CodeGenerator {
                        Reg(12))
                        
         val ass = program.toAssembly(regs)
-        println(ass)
+        ass.foreach(println)
     } 
 
 }
