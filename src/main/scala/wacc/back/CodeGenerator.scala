@@ -6,7 +6,8 @@ import scala.collection.LinearSeq
 object CodeGenerator {
 
     def generate(program: Program): Unit = {
-        val regs = LinearSeq(Reg(1), 
+        val regs = LinearSeq(Reg(0),
+                       Reg(1), 
                        Reg(2), 
                        Reg(3), 
                        Reg(4),
@@ -16,8 +17,7 @@ object CodeGenerator {
                        Reg(8),
                        Reg(9),
                        Reg(10),
-                       Reg(11),
-                       Reg(12))
+                       Reg(11))
                        
         val ass = program.toAssembly(regs)
         ass.foreach(println)
