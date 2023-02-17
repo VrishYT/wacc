@@ -302,15 +302,19 @@ object AST {
           Seq(back.Mov(reg, ImmInt(0)), back.Sub(out, reg, x))
         }
         case Length => Seq()
-        case Ord => Seq()
-        case Chr => Seq()
       }
 
       val expr = x.toAssembly(regs)
       val reg = Operands.opToReg(expr._1, regs)
       val out = regs.allocate
 
-      return (out, expr._2 ++ reg._2 ++ unaryOpToAssembly(out, reg._1))
+      return op match {
+        case Ord => (expr._1, Seq())
+        case Chr => (expr._1, Seq())
+        case _ => (out, expr._2 ++ reg._2 ++ unaryOpToAssembly(out, reg._1))
+      }
+      
+      //return (out, expr._2 ++ reg._2 ++ unaryOpToAssembly(out, reg._1))
     }
   }
 
