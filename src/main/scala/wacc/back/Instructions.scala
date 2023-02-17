@@ -1,20 +1,27 @@
-package wacc.back
+package wacc
+package back
+
+import Condition._
 
 sealed trait Instruction 
 
 /* Arithmetic Instructions */
-case class Sub(dest: Register, src: Register) extends Instruction {
-    override def toString(): String = s"sub $dest, $src"
+/* dest = src - op */
+case class Sub(dest: Register, src: Register, op: Operand) extends Instruction {
+    override def toString(): String = s"sub $dest, $src, $op"
 }
+/* dest = src + op */
 case class Add(dest: Register, src: Register, op: Operand) extends Instruction {
     override def toString(): String = s"add $dest, $src, $op"
 }
+/* dest = src * op */
 case class Mul(dest: Register, src: Register, op: Operand) extends Instruction {
     override def toString(): String = s"mul $dest, $src, $op"
 }
+case class Div(dest: Register, src: Register, op: Operand) extends Instruction
 
 /* Compare Instructions */
-case class Cmp(src: Register, op: Operand) extends Instruction {
+case class Cmp(src: Register, op: Operand, cond: Condition) extends Instruction {
     override def toString(): String = s"cmp $src, $op"
 }
 
@@ -27,6 +34,10 @@ case class Xor(dest: Register, src: Register, op: Operand) extends Instruction {
 }
 case class Or(dest: Register, src: Register, op: Operand) extends Instruction {
     override def toString(): String = s"orr $dest, $src, $op"
+}
+
+case class Len(dest: Register, op: Operand) extends Instruction {
+    override def toString(): String = s"mov $dest, $op"
 }
 
 /* Loading and storing Instructions */
