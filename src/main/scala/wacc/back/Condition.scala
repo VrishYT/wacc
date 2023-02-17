@@ -1,4 +1,5 @@
-package wacc.error
+package wacc
+package back
 
 object Condition extends Enumeration {
   type Condition = Value
