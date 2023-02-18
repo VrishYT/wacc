@@ -10,24 +10,55 @@ object SemanticChecker {
 
   def typecheck(program: Program, symbolTable: SymbolTable): ArrayBuffer[TypeException] = {
 
+    /* array of typeExceptions to pass to compiler */
+    val errors = ArrayBuffer[TypeException]()
+
+    /* lists of all statements and functions in program */
+    val statements = program.stats
+    val functions = program.fs
+
+    /* create a map for the global scope, containing function identifiers to return types */
+    val vars = MapM[String, Type]()
+
+    /* create a map for functions to an ordered list of their parameter types */
+    val funcArgs = MapM[String, List[Type]]()
+    functions.foreach(func => {
+
+      /* check if the functions already exists in the map */
+      if (vars.keySet.exists(_ == func.fs._2)) {
+
+        /* error if the function has been declared more than once */
+        errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
+      } else {
+
+        /* Add the function into the global scope */
+        vars(func.fs._2) = func.fs._1
+        /* Add the function into the map of functions to parameter types */
+        funcArgs(func.fs._2) = func.args.map(arg => arg.t)
+      }
+    })
+
     /* check if a variable already exists in scope, error if it does, and add it to the scope if it doesn't */
-    def declareVar(id: String, t: Type, vars: MapM[String, Type], pos: (Int, Int), errors: ArrayBuffer[TypeException]): Unit = {
+    def declareVar(id: String, t: Type, vars: MapM[String, Type], pos: (Int, Int)): Unit = {
       if (vars.keySet.exists(_ == id)) errors += new TypeException(message = "Cannot redeclare variable '" + id + "'", pos = Seq(pos))
-      else vars(id) = t
+      else {
+        vars(id) = t
+        symbolTable.add(id, t)
+      }
     }
 
     /* checks for invalid semantics within a specific function */
-    def checkFunction(func: Func, vars: Map[String, Type], funcArgs: Map[String, List[Type]], errors: ArrayBuffer[TypeException]): Unit = {
+    def checkFunction(func: Func, vars: Map[String, Type]): Unit = {
       val childVars = MapM[String, Type]()
 
       /* add each function identifier to the global scope map */
-      func.args.foreach(param => declareVar(param.id, param.t, childVars, param.pos, errors))
+      func.args.foreach(param => declareVar(param.id, param.t, childVars, param.pos))
 
       /* add the type of the function to the front of childVars so we know what type to return */
-      declareVar("\\func", func.fs._1, childVars, func.pos, errors)
+      declareVar("\\func", func.fs._1, childVars, func.pos)
 
       /* check semantics of each statement in the function */
-      checkStatements(func.stats, createChildVars(vars, childVars), funcArgs, errors)
+      checkStatements(func.stats, createChildVars(vars, childVars))
     }
 
     /* return the type of an identifier from the parent and child scope maps */
@@ -42,7 +73,7 @@ object SemanticChecker {
     }
 
     /* traverse a list of statements and error on semantic errors */
-    def checkStatements(statements: List[Stat], vars: Map[String, Type], funcArgs: Map[String, List[Type]], errors: ArrayBuffer[TypeException]): Unit = {
+    def checkStatements(statements: List[Stat], vars: Map[String, Type]): Unit = {
 
       /* create a new, empty child scope */
       val childVars = MapM[String, Type]()
@@ -282,7 +313,7 @@ object SemanticChecker {
           if (rType != t) ErrorLogger.err("invalid type for declare", rType, t, rhs.pos)
 
           /* check identifier hasn't already been declared, and add it to the scope */
-          declareVar(id, t, childVars, rhs.pos, errors)
+          declareVar(id, t, childVars, rhs.pos)
         }
 
         /* check assign statement */
@@ -360,8 +391,8 @@ object SemanticChecker {
 
           /* check semantics of both branches of if statement */
           val newChildVars = createChildVars(vars, childVars)
-          checkStatements(xs, newChildVars, funcArgs, errors)
-          checkStatements(ys, newChildVars, funcArgs, errors)
+          checkStatements(xs, newChildVars)
+          checkStatements(ys, newChildVars)
         }
 
         /* check while statement */
@@ -372,11 +403,11 @@ object SemanticChecker {
           if (rtype != BoolType) ErrorLogger.err("invalid type for while cond", rtype, BoolType, p.pos)
 
           /* check semantics of loop body's statements */
-          checkStatements(xs, createChildVars(vars, childVars), funcArgs, errors)
+          checkStatements(xs, createChildVars(vars, childVars))
         }
 
         /* check begin statement, by checking the semantics of its body's statements */
-        case Begin(xs) => checkStatements(xs, createChildVars(vars, childVars), funcArgs, errors)
+        case Begin(xs) => checkStatements(xs, createChildVars(vars, childVars))
 
         /* defualt case */
         case default =>
@@ -393,41 +424,12 @@ object SemanticChecker {
     /* create a new parent scope by combining the current parent and child identifier maps */
     def createChildVars(parent: Map[String, Type], child: MapM[String, Type]): Map[String, Type] = child.toMap ++ parent
 
-    /* array of typeExceptions to pass to compiler */
-    val errors = ArrayBuffer[TypeException]()
-
-    /* lists of all statements and functions in program */
-    val statements = program.stats
-    val functions = program.fs
-
-    /* create a map for the global scope, containing function identifiers to return types */
-    val vars = MapM[String, Type]()
-
-    /* create a map for functions to an ordered list of their parameter types */
-    val funcArgs = MapM[String, List[Type]]()
-    functions.foreach(func => {
-
-      /* check if the functions already exists in the map */
-      if (vars.keySet.exists(_ == func.fs._2)) {
-
-        /* error if the function has been declared more than once */
-        errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
-      } else {
-
-        /* Add the function into the global scope */
-        vars(func.fs._2) = func.fs._1
-        /* Add the function into the map of functions to parameter types */
-        funcArgs(func.fs._2) = func.args.map(arg => arg.t)
-      }
-    })
-
-    /* make global scope map and function parameter type map immutable */
+    /* make global scope map immutable */
     val varsImm = vars.toMap
-    val funcArgsImm = funcArgs.toMap
 
     /* check semantics of all statements in the program */
-    functions.foreach(func => checkFunction(func, varsImm, funcArgsImm, errors))
-    checkStatements(statements, varsImm, funcArgsImm, errors)
+    functions.foreach(func => checkFunction(func, varsImm))
+    checkStatements(statements, varsImm)
 
     return errors
   }
