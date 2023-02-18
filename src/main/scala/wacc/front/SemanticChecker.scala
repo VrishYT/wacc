@@ -218,12 +218,13 @@ object SemanticChecker {
               /* return current array sub-type if this is its final dimension,
                                or recursive if it has another dimension to be accessed */
               t match {
-                case ArrayType(subType) => if (tail.isEmpty) {
-                  return subType
-                } else {
-                  checkArrayIndex(tail, subType)
+                case ArrayType(subType) => {
+                  if (tail.isEmpty) {
+                    return t
+                  } else {
+                    checkArrayIndex(tail, subType)
+                  }
                 }
-
                 /* error if too many dimensions are specified */
                 case _ if (!tail.isEmpty) => ErrorLogger.err("array index out of bounds", elem.pos)
 
