@@ -2,7 +2,7 @@ package wacc
 
 import wacc.front.{Parser, SemanticChecker}
 import wacc.front.error.{ErrorLogger, TypeException, WACCError, WACCErrorBuilder}
-import wacc.back.CodeGenerator
+import wacc.back._
 
 import java.io.File
 
@@ -19,6 +19,7 @@ class Compiler(private val file: File) {
     import wacc.front.Lexing.{lexer, keywords}
 
     private var program: Option[Program] = None 
+    private val symbolTable = new SymbolTable
 
     def parse(): Boolean = {
         val pNode = Parser.program
@@ -57,7 +58,7 @@ class Compiler(private val file: File) {
     
     def typecheck: Boolean = program match {
         case Some(x) => {
-            val errors = SemanticChecker.typecheck(x)
+            val errors = SemanticChecker.typecheck(x, symbolTable)
             if (errors.isEmpty) return true
 
             TypeException.convertErrors(errors, file).foreach(println)
@@ -68,7 +69,7 @@ class Compiler(private val file: File) {
     }
 
     def compile: Unit = program match {
-        case Some(x) => CodeGenerator.generate(x)
+        case Some(x) => CodeGenerator.generate(x, symbolTable)
         case None => ErrorLogger.err("generate called before parse/typecheck", 1)
     }
 
