@@ -113,7 +113,7 @@ object AST {
   }
 
   case class Print(x: Expr) extends Stat {
-    override def toAssembly(regs: RegisterAllocator): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq() 
   }
 
   case class Println(x: Expr) extends Stat {
