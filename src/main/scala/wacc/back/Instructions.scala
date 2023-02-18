@@ -44,10 +44,10 @@ case class Len(dest: Register, op: Operand) extends Instruction {
 case class Mov(dest: Register, op: Operand) extends Instruction {
     override def toString(): String = s"mov $dest, $op"
 }
-case class Load(dest: Register, src: Register) extends Instruction {
+case class Load(dest: Register, src: Operand) extends Instruction {
     override def toString(): String = s"ldr $dest, $src"
 }
-case class Store(dest: Register, src: Register) extends Instruction {
+case class Store(dest: Register, src: Operand) extends Instruction {
     override def toString(): String = s"str $dest, $src"
 }
 
