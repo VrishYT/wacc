@@ -11,10 +11,10 @@ object AST {
 
   /* program case class with its functions and statements */
   case class Program(fs: List[Func], stats: List[Stat]) {
-    def toAssembly(regs: RegisterAllocator): Seq[Instruction] = {
+    def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
 
-      // val assFunc = fs.map(_.toAssembly(regs))
-      // val assStat = stats.map(_.toAssembly(regs))
+      // val assFunc = fs.map(_.toAssembly(regs, symbolTable))
+      // val assStat = stats.map(_.toAssembly(regs, symbolTable))
       
       // TODO: concat all
       // assStat in 'main'
@@ -29,9 +29,9 @@ object AST {
   /* function case class with position */
   case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
 
-    def toAssembly(regs: RegisterAllocator): Seq[Instruction] = {
+    def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
       // TODO: function assembly
-      val assStat = stats.map(_.toAssembly(regs))
+      val assStat = stats.map(_.toAssembly(regs, symbolTable))
       return Seq()
     }
 
@@ -68,7 +68,7 @@ object AST {
 
   /* parameter case class with position */
   case class Param(t: Type, id: String)(val pos: (Int, Int)) {
-    def toAssembly(regs: RegisterAllocator): Seq[Instruction] = Seq() // TODO: param to assembly
+    def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq() // TODO: param to assembly
   }
 
   /* function and parameter companion objects with parser bridges */
@@ -78,34 +78,34 @@ object AST {
 
   /* statements as objects extending the sealed trait Stat */
   sealed trait Stat {
-    def toAssembly(regs: RegisterAllocator): Seq[Instruction] = Seq()
+    def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq()
   }
 
   case object Skip extends Stat with ParserBridge0[Stat]
 
   case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
-    override def toAssembly(regs: RegisterAllocator): Seq[Instruction] = Seq()
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq()
   }
 
   case class Assign(x: LValue, y: RValue) extends Stat {
-    override def toAssembly(regs: RegisterAllocator): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq() 
   }
 
   case class Read(x: LValue) extends Stat {
-    override def toAssembly(regs: RegisterAllocator): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq() 
   }
 
   case class Free(x: Expr) extends Stat {
-    override def toAssembly(regs: RegisterAllocator): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq() 
   }
 
   case class Return(x: Expr) extends Stat {
-    override def toAssembly(regs: RegisterAllocator): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq() 
   }
 
   case class Exit(x: Expr) extends Stat {
-    override def toAssembly(regs: RegisterAllocator): Seq[Instruction] = {
-      val ass = x.toAssembly(regs)
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
+      val ass = x.toAssembly(regs, symbolTable)
       ass._2 ++ Seq(
                 Mov(Register(0), ass._1),
                 LinkBranch("exit"))
@@ -117,19 +117,19 @@ object AST {
   }
 
   case class Println(x: Expr) extends Stat {
-    override def toAssembly(regs: RegisterAllocator): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq() 
   }
 
   case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
-    override def toAssembly(regs: RegisterAllocator): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq() 
   }
 
   case class While(p: Expr, x: List[Stat]) extends Stat {
-    override def toAssembly(regs: RegisterAllocator): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq() 
   }
 
   case class Begin(xs: List[Stat]) extends Stat {
-    override def toAssembly(regs: RegisterAllocator): Seq[Instruction] = Seq()
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq()
   }
 
   /* parser bridges for statements */
@@ -272,28 +272,34 @@ object AST {
 
   /* expressions extending right values */
   sealed trait Expr extends RValue {
-    def toAssembly(regs: RegisterAllocator): (Operand, Seq[Instruction]) = (ImmInt(0), Seq())
+    def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): (Operand, Seq[Instruction]) = (ImmInt(0), Seq())
   }
 
   /* atomic types as case classes */
   case class IntLiteral(x: Int)(val pos: (Int, Int)) extends Expr {
-    override def toAssembly(regs: RegisterAllocator): (Operand, Seq[Instruction]) = (ImmInt(x), Seq())
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): (Operand, Seq[Instruction]) = (ImmInt(x), Seq())
   } 
 
   case class CharLiteral(x: Char)(val pos: (Int, Int)) extends Expr {
-     override def toAssembly(regs: RegisterAllocator): (Operand, Seq[Instruction]) = (ImmChar(x), Seq())
+     override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): (Operand, Seq[Instruction]) = (ImmChar(x), Seq())
   }
 
-  case class StrLiteral(xs: String)(val pos: (Int, Int)) extends Expr
+  case class StrLiteral(str: String)(val pos: (Int, Int)) extends Expr {
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable) : (Operand, Seq[Instruction]) = {
+      val label = symbolTable.addData(str)
+      val reg = regs.allocate
+      (reg, Seq(Load(reg, DataLabel(label))))
+    }
+  }
 
   case class BoolLiteral(x: Boolean)(val pos: (Int, Int)) extends Expr {
-     override def toAssembly(regs: RegisterAllocator): (Operand, Seq[Instruction]) = (ImmInt(if (x) 1 else 0), Seq())
+     override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): (Operand, Seq[Instruction]) = (ImmInt(if (x) 1 else 0), Seq())
   }
 
   /* operators as case classes */
   case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
 
-    override def toAssembly(regs: RegisterAllocator): (Operand, Seq[Instruction]) = {
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): (Operand, Seq[Instruction]) = {
 
       def unaryOpToAssembly(out: Register, x: Register): Seq[Instruction] = op match {
         case Not => Seq(back.Xor(out, x, ImmInt(1)))
@@ -304,7 +310,7 @@ object AST {
         case Length => Seq()
       }
 
-      val expr = x.toAssembly(regs)
+      val expr = x.toAssembly(regs, symbolTable)
       val reg = Operands.opToReg(expr._1, regs)
       val out = regs.allocate
 
@@ -314,13 +320,12 @@ object AST {
         case _ => (out, expr._2 ++ reg._2 ++ unaryOpToAssembly(out, reg._1))
       }
       
-      //return (out, expr._2 ++ reg._2 ++ unaryOpToAssembly(out, reg._1))
     }
   }
 
   case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val pos2: (Int, Int)) extends Expr {
 
-    override def toAssembly(regs: RegisterAllocator): (Operand, Seq[Instruction]) = {
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): (Operand, Seq[Instruction]) = {
 
       def binaryOpToAssembly(out: Register, x: Register, y: Operand): Instruction = op match {
         case Mul => back.Mul(out, x, y)
@@ -331,8 +336,8 @@ object AST {
         case Or => back.Or(out, x, y)
       }
 
-      val expr1 = x.toAssembly(regs)
-      val expr2 = y.toAssembly(regs)
+      val expr1 = x.toAssembly(regs, symbolTable)
+      val expr2 = y.toAssembly(regs, symbolTable)
 
       val instr = ListBuffer[Instruction]()
       instr ++= expr1._2
