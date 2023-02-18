@@ -8,8 +8,8 @@ object CodeGenerator {
 
         val regs = new RegisterAllocator
                        
-        val ass = program.toAssembly(regs)
-        ass.foreach(println)
+        val out = program.toAssembly(regs, symbolTable)mkString("\n")
+        println(out)
     } 
 
 }

@@ -3,7 +3,7 @@ package wacc.back
 import scala.collection.mutable.{Map => MapM}
 import wacc.AST._
 
-class SymbolTable {
+class SymbolTable(val data: DataSection) {
 
     private val table = MapM[String, (Type, Option[String])]()
 
@@ -17,6 +17,14 @@ class SymbolTable {
             table(id) = (t, addr)
             return true
         }
+    }
+
+    def addData(id: String): String = {
+        val addr = data.add(id)
+        if (!add(id, StringType, addr)){
+            ???
+        }
+        addr
     }
 
     def get(id: String): Option[(Type, Option[String])] = table.get(id)
