@@ -11,47 +11,41 @@ trait Expr extends RValue
 
 /* atomic types as case classes */
 case class IntLiteral(x: Int)(val pos: (Int, Int)) extends Expr {
-  override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): (Operand, Seq[Instruction]) = (ImmInt(x), Seq())
+  override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Assembly = Assembly(ImmInt(x))
 } 
 
 case class CharLiteral(x: Char)(val pos: (Int, Int)) extends Expr {
-    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): (Operand, Seq[Instruction]) = (ImmChar(x), Seq())
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Assembly = Assembly(ImmInt(x))
 }
 
 case class StrLiteral(str: String)(val pos: (Int, Int)) extends Expr {
-  override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable) : (Operand, Seq[Instruction]) = {
+  override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable) : Assembly = {
     val label = symbolTable.addData(str)
     val reg = regs.allocate
-    (reg, Seq(Load(reg, DataLabel(label))))
+    Assembly(reg, Seq(Load(reg, DataLabel(label))))
   }
 }
 
 case class BoolLiteral(x: Boolean)(val pos: (Int, Int)) extends Expr {
-    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): (Operand, Seq[Instruction]) = (ImmInt(if (x) 1 else 0), Seq())
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Assembly = Assembly(ImmInt(if (x) 1 else 0), Seq())
 }
 
 /* operators as case classes */
 case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
 
-  override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): (Operand, Seq[Instruction]) = {
-
-    def unaryOpToAssembly(out: Register, x: Register): Seq[Instruction] = op match {
-      case Not => Seq(back.Xor(out, x, ImmInt(1)))
-      case Negate => {
-        val reg = regs.allocate
-        Seq(back.Mov(reg, ImmInt(0)), back.Sub(out, reg, x))
-      }
-      case Length => Seq()
-    }
+  override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Assembly = {
 
     val expr = x.toAssembly(regs, symbolTable)
-    val reg = Operands.opToReg(expr._1, regs)
-    val out = regs.allocate
 
     return op match {
-      case Ord => (expr._1, Seq())
-      case Chr => (expr._1, Seq())
-      case _ => (out, expr._2 ++ reg._2 ++ unaryOpToAssembly(out, reg._1))
+      case Not => expr.not()
+      case Ord | Chr => expr
+      case Negate => {
+        val out = regs.allocate
+        val reg = regs.allocate
+        Assembly(out, Seq(back.Mov(reg, ImmInt(0)), back.Sub(out, reg, expr.getOp)) ++ expr.instr)
+      }
+      case Length => ??? // TODO
     }
     
   }
@@ -59,7 +53,7 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
 
 case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val pos2: (Int, Int)) extends Expr {
 
-  override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): (Operand, Seq[Instruction]) = {
+  override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Assembly = {
 
     def binaryOpToAssembly(out: Register, x: Register, y: Operand): Instruction = op match {
       case ast.Mul => Mul(out, x, y)
@@ -74,23 +68,23 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
     val expr2 = y.toAssembly(regs, symbolTable)
 
     val instr = ListBuffer[Instruction]()
-    instr ++= expr1._2
-    val reg = Operands.opToReg(expr1._1, regs)
+    instr ++= expr1.instr
+    val reg = Operands.opToReg(expr1.getOp, regs)
     val r1 = reg._1
     instr ++= reg._2
-    instr ++= expr2._2
+    instr ++= expr2.instr
 
+    val seq = expr1.instr ++ reg._2 ++ expr2.instr
     return op match {
-      case ast.Greater => (ImmInt(-1), Seq(Cmp(r1, expr2._1, GT)))
-      case ast.GreaterEquals => (ImmInt(-1), Seq(Cmp(r1, expr2._1, GE))) 
-      case ast.Less => (ImmInt(-1), Seq(Cmp(r1, expr2._1, LT)))
-      case ast.LessEquals => (ImmInt(-1), Seq(Cmp(r1, expr2._1, LE)))
-      case ast.Equal => (ImmInt(-1), Seq(Cmp(r1, expr2._1, EQ)))
-      case ast.NotEqual => (ImmInt(-1), Seq(Cmp(r1, expr2._1, NE)))
+      case ast.Greater => Assembly(seq :+ Cmp(r1, expr2.getOp), GT)
+      case ast.GreaterEquals => Assembly(seq :+ Cmp(r1, expr2.getOp), GE)
+      case ast.Less => Assembly(seq :+ Cmp(r1, expr2.getOp), LT)
+      case ast.LessEquals => Assembly(seq :+ Cmp(r1, expr2.getOp), LE)
+      case ast.Equal => Assembly(seq :+ Cmp(r1, expr2.getOp), EQ)
+      case ast.NotEqual => Assembly(seq :+ Cmp(r1, expr2.getOp), NE)
       case _ => {
         val out = regs.allocate
-        instr += binaryOpToAssembly(out, r1, expr2._1)
-        return (out, instr.toSeq)
+        return Assembly(out, seq :+ binaryOpToAssembly(out, r1, expr2.getOp))
       }
     }
   }

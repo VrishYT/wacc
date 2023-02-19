@@ -7,7 +7,7 @@ import parsley.genericbridges._
 /* right values as a sealed trait with a position attribute */
 trait RValue {
     def pos: (Int, Int)
-    def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): (Operand, Seq[Instruction]) = (ImmInt(0), Seq())
+    def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Assembly = Assembly(ImmInt(0))
 }
 
 /* case classes for right values */

@@ -21,7 +21,7 @@ case class Mul(dest: Register, src: Register, op: Operand) extends Instruction {
 case class Div(dest: Register, src: Register, op: Operand) extends Instruction
 
 /* Compare Instructions */
-case class Cmp(src: Register, op: Operand, cond: Condition) extends Instruction {
+case class Cmp(src: Register, op: Operand) extends Instruction {
     override def toString(): String = s"cmp $src, $op"
 }
 

@@ -45,8 +45,8 @@ object Return extends ParserBridge1[Expr, Return]
 case class Exit(x: Expr) extends Stat {
     override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
         val ass = x.toAssembly(regs, symbolTable)
-        ass._2 ++ Seq(
-                Mov(Register(0), ass._1),
+        ass.instr ++ Seq(
+                Mov(Register(0), ass.getOp),
                 LinkBranch("exit"))
     }
 }
@@ -57,7 +57,7 @@ case class Print(x: Expr) extends Stat {
     override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
         val ass = x.toAssembly(regs, symbolTable)
         Seq(
-        Mov(Register(0), ass._1),
+        Mov(Register(0), ass.getOp),
         LinkBranch("printf")) 
     } 
 }
@@ -72,6 +72,7 @@ object Println extends ParserBridge1[Expr, Println]
 
 case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
     override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq() 
+    
 }
 
 object If extends ParserBridge3[Expr, List[Stat], List[Stat], If]
