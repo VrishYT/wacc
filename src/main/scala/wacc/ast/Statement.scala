@@ -12,7 +12,10 @@ sealed trait Stat {
 case object Skip extends Stat with ParserBridge0[Stat]
 
 case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
-    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq()
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
+        val assembly = rhs.toAssembly(regs, symbolTable)
+        return (assembly.instr ++ Seq(Mov(regs.allocate, assembly.getOp)))
+    }
 }
 
 object Declare extends ParserBridge3[Type, String, RValue, Declare]
