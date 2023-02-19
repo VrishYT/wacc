@@ -6,6 +6,7 @@ import wacc.ast._
 class SymbolTable(val data: DataSection) {
 
     private val table = MapM[String, (Type, Option[String])]()
+    private var labelCount = 0
 
     def add(id: String, t: Type): Boolean = add(id, t, None)
     def add(id: String, t: Type, addr: String): Boolean = add(id, t, Some(addr))
@@ -30,4 +31,10 @@ class SymbolTable(val data: DataSection) {
     def get(id: String): Option[(Type, Option[String])] = table.get(id)
 
     def remove(id: String): Option[(Type, Option[String])] = table.remove(id)
+
+    def generateLabel: String = {
+        val l = ".L" + labelCount
+        labelCount += 1
+        return l
+    }
 }
