@@ -5,7 +5,6 @@ object AST {
   import parsley.genericbridges._
   import front.ParserBridge._
   import back._
-  import scala.collection.LinearSeq
   import scala.collection.mutable.ListBuffer
   import Condition._
 
@@ -13,13 +12,15 @@ object AST {
   case class Program(fs: List[Func], stats: List[Stat]) {
     def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
 
+      val instr = ListBuffer[Instruction]()
+
       // val assFunc = fs.map(_.toAssembly(regs, symbolTable))
-      // val assStat = stats.map(_.toAssembly(regs, symbolTable))
+      val assStat = stats.foreach(instr ++= _.toAssembly(regs, symbolTable))
       
       // TODO: concat all
       // assStat in 'main'
 
-      return Seq()
+      return instr.toSeq
     }
   }
 
@@ -113,7 +114,13 @@ object AST {
   }
 
   case class Print(x: Expr) extends Stat {
-    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
+      val ass = x.toAssembly(regs, symbolTable)
+      Seq(
+        Mov(Register(0), ass._1),
+        LinkBranch("printf")) 
+    } 
+      
   }
 
   case class Println(x: Expr) extends Stat {
@@ -158,6 +165,7 @@ object AST {
   /* left values as a sealed trait with a position */
   sealed trait LValue {
     def pos: (Int, Int)
+    // def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq()
   }
 
   /* pair elements as a sealed trait with a position */
@@ -174,6 +182,7 @@ object AST {
   /* right values as a sealed trait with a position attribute */
   sealed trait RValue {
     def pos: (Int, Int)
+    def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): (Operand, Seq[Instruction]) = (ImmInt(0), Seq())
   }
 
   /* case classes for right values */
@@ -271,9 +280,7 @@ object AST {
   }
 
   /* expressions extending right values */
-  sealed trait Expr extends RValue {
-    def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): (Operand, Seq[Instruction]) = (ImmInt(0), Seq())
-  }
+  sealed trait Expr extends RValue
 
   /* atomic types as case classes */
   case class IntLiteral(x: Int)(val pos: (Int, Int)) extends Expr {
