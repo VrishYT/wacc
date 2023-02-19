@@ -8,7 +8,7 @@ import java.io.File
 
 class Compiler(private val file: File) {
 
-    import wacc.AST.Program
+    import wacc.ast._
     import parsley.{Success, Failure}
     import parsley.combinator.skipMany
     import parsley.character.whitespace

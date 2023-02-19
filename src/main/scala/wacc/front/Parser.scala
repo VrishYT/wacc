@@ -5,7 +5,6 @@ import parsley.Parsley.{attempt, empty, notFollowedBy, pure}
 
 object Parser {
 
-  import wacc.AST._
   import Lexing._
   import implicits.implicitSymbol
   import parsley.combinator._
@@ -13,6 +12,7 @@ object Parser {
   import parsley.errors.patterns._
   import parsley.expr._
   import parsley.position._
+  import wacc.ast._
 
   /*functions that provide labels to specific types in wacc to improve error messages */
   def unary_op(x: Parsley[Unit]) = x.label("unary operator").explain(
