@@ -71,7 +71,17 @@ case class Println(x: Expr) extends Stat {
 object Println extends ParserBridge1[Expr, Println]
 
 case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
-    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
+        
+        val cond = p.toAssembly(regs, symbolTable)
+        val thenBlock = x.map(_.toAssembly(regs, symbolTable)).foldLeft(Seq[Instruction]())(_ ++ _)
+        val elseBlock = y.map(_.toAssembly(regs, symbolTable)).foldLeft(Seq[Instruction]())(_ ++ _)
+
+        val thenLabel = symbolTable.generateLabel
+        val endLabel = symbolTable.generateLabel
+
+        return (cond.instr :+ Branch(thenLabel, cond.cond)) ++ elseBlock ++ Seq(Branch(endLabel), Label(thenLabel)) ++ thenBlock :+ Label(endLabel)
+    }
     
 }
 

@@ -52,8 +52,8 @@ case class Store(dest: Register, src: Operand) extends Instruction {
 }
 
 /* Branch Instructions */
-case class Branch(label: String) extends Instruction {
-    override def toString(): String = s"b $label"
+case class Branch(label: String, cond: Condition = AL) extends Instruction {
+    override def toString(): String = s"b${cond.toString.toLowerCase()} $label"
 }
 case class LinkBranch(label: String) extends Instruction {
     override def toString(): String = s"bl $label"
@@ -68,7 +68,7 @@ case class Pop(dest: Register*) extends Instruction {
 }
 
 case class Label(label: String) extends Instruction {
-    override def toString(): String = s"label $label"
+    override def toString(): String = s"${label}:"
 }
 case class Directive(name: String) extends Instruction {
     override def toString(): String = s"directive $name"
