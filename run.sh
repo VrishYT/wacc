@@ -1,6 +1,10 @@
 ARG=$1
-FILE=${ARG%.*}
+BASEPATH=${ARG%.*}
+BASENAME=${BASEPATH##*/}
 make
-./compile ${FILE}.wacc
-arm-linux-gnueabi-gcc -o ${FILE} -mcpu=arm1176jzf-s -mtune=arm1176jzf-s "${FILE}.s"
-qemu-arm -L /usr/arm-linux-gnueabi/ ${FILE}
+./compile ${ARG}
+arm-linux-gnueabi-gcc -o ${BASENAME} -mcpu=arm1176jzf-s -mtune=arm1176jzf-s "${BASENAME}.s"
+qemu-arm -L /usr/arm-linux-gnueabi/ ${BASENAME}
+echo $?
+rm ${BASENAME}
+rm "${BASENAME}.s"
