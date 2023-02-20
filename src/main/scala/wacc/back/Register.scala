@@ -35,16 +35,18 @@ case object FP extends Register(11) {
 class RegisterAllocator {
 
     import scala.collection.mutable.Queue
-    import scala.collection.mutable.{ Map => MapM}
+    // import scala.collection.mutable.Stack
+    import scala.collection.mutable.{Map => MapM}
 
     // TODO: make private
     val table = MapM[String, Register]() 
 
     // TODO: check if still needed after re-implement
-    // val regsInUse = Queue[Register]()
+    val regsInUse = Queue[Register]()
     // val savedRegs = Queue[Register]()
 
     val freeRegs = Queue(
+        Register(0),
         Register(1), 
         Register(2), 
         Register(3), 
@@ -58,19 +60,22 @@ class RegisterAllocator {
         Register(12)
     )
 
-    def allocate(id: String): Register = {
+    def allocate(id: String): (Register, Seq[Instruction]) = {
         val reg = allocate
-        table(id) = reg
+        table(id) = reg._1
         return reg
     }
 
-    def allocate: Register = {
-        val reg = try {
-            freeRegs.dequeue()
-        } catch {
-            case x: NoSuchElementException => ??? // TODO: free a reg, push reg to stack/mem, update 'table' accordingly
+    def allocate: (Register, Seq[Instruction]) = {
+
+        def realloc(): (Register, Seq[Instruction]) = {
+            val reg = regsInUse.head
+            val id = table.filter(_._2 == reg).head._1
+            return (reg, Seq())
         }
-        // regsInUse.enqueue(reg)
+
+        val reg = if (freeRegs.isEmpty) realloc() else (freeRegs.dequeue, Seq())
+        regsInUse.enqueue(reg._1)
         return reg
     }
 
@@ -79,31 +84,22 @@ class RegisterAllocator {
         case None => ??? // TODO: check if 'id' was pushed to stack/mem and restore to a reg
     }
 
-    // TODO: re-implement
-    def save(regs: Register*): Seq[Instruction] = ???
-    // def save: Seq[Instruction] = {
-    //     val regs = ListBuffer[Register]()
-    //     while (!regsInUse.isEmpty) {
-    //         val reg = regsInUse.dequeue()
-    //         regs += reg
-    //         savedRegs.enqueue(reg)
-    //     }
-    //     val instr = Seq(Push(regs.toSeq:_*))
-    //     return instr
-    // }
+    // push to stack
+    def save(regs: Register*): Instruction = {
+        regs.foreach(reg => {
+            regsInUse -= reg
+            freeRegs.enqueue(reg)
+        })
+        return Push(regs:_*)
+    }
 
-    // TODO: re-implement
-    def restore(regs: Register*): Seq[Instruction] = ???
-    // def restore: Seq[Instruction] = {
-    //     val reverse = savedRegs.reverse
-    //     val regs = ListBuffer[Register]()
-    //     while (!reverse.isEmpty) {
-    //         val reg = reverse.dequeue()
-    //         regs += reg
-    //         freeRegs.enqueue(reg)
-    //     }
-    //     val instr = Seq(Pop(regs.toSeq:_*))
-    //     return instr
-    // }
-
+    // pop from stack
+    def restore(regs: Register*): Instruction = {
+        val reverse = regs.reverse
+        regs.foreach(reg => {
+            regsInUse.enqueue(reg)
+            freeRegs -= reg
+        })
+        return Pop(regs.reverse:_*)
+    }
 }

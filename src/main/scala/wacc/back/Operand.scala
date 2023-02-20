@@ -22,7 +22,7 @@ object Operands {
         case x: Register => (x, Seq())
         case _ => {
             val reg = regs.allocate
-            (reg, Seq(Mov(reg, op)))
+            (reg._1, reg._2 :+ Mov(reg._1, op))
         }
     }
 }

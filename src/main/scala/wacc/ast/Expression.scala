@@ -21,8 +21,8 @@ case class CharLiteral(x: Char)(val pos: (Int, Int)) extends Expr {
 case class StrLiteral(str: String)(val pos: (Int, Int)) extends Expr {
   override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable) : Assembly = {
     val label = symbolTable.addData(str)
-    val reg = regs.allocate
-    Assembly(reg, Seq(Load(reg, DataLabel(label))))
+    val out = regs.allocate
+    Assembly(out._1, out._2 ++ Seq(Load(out._1, DataLabel(label))))
   }
 }
 
@@ -43,7 +43,7 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
       case Negate => {
         val out = regs.allocate
         val reg = regs.allocate
-        Assembly(out, Seq(back.Mov(reg, ImmInt(0)), back.Sub(out, reg, expr.getOp)) ++ expr.instr)
+        Assembly(out._1, (reg._2 :+ back.Mov(reg._1, ImmInt(0))) ++ out._2 ++ (back.Sub(out._1, reg._1, expr.getOp) +: expr.instr))
       }
       case Length => ??? // TODO
     }
@@ -84,7 +84,7 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
       case ast.NotEqual => Assembly(seq :+ Cmp(r1, expr2.getOp), NE)
       case _ => {
         val out = regs.allocate
-        return Assembly(out, seq :+ binaryOpToAssembly(out, r1, expr2.getOp))
+        return Assembly(out._1, (seq ++ out._2) :+ binaryOpToAssembly(out._1, r1, expr2.getOp))
       }
     }
   }

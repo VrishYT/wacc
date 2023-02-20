@@ -15,7 +15,7 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
     override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
         val assembly = rhs.toAssembly(regs, symbolTable)
         val out = regs.allocate(id)
-        return (assembly.instr ++ Seq(Mov(out, assembly.getOp)))
+        return (assembly.instr ++ out._2 ++ Seq(Mov(out._1, assembly.getOp)))
     }
 }
 
