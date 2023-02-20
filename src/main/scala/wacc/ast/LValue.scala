@@ -6,12 +6,13 @@ import wacc.front.ParserBridge._
 /* left values as a sealed trait with a position */
 trait LValue {
     def pos: (Int, Int)
-    //def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq()
-    def getIdent(): String =  ""
+    def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): RegAssembly = TODOAssembly
 }
 
 /* pair elements as a sealed trait with a position */
-sealed trait PairElem extends LValue with RValue
+sealed trait PairElem extends LValue with RValue {
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): RegAssembly = TODOAssembly
+}
 
 case class Fst(x: LValue)(val pos: (Int, Int)) extends PairElem
 

@@ -25,8 +25,9 @@ case class Assign(x: LValue, y: RValue) extends Stat {
     override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
         val lhsAssembly = Seq() //x.toAssembly(regs, symbolTable)
         val rhsAssembly = y.toAssembly(regs, symbolTable)
-        val reg = regs.get(x.getIdent)
-        return (lhsAssembly ++ rhsAssembly.instr ++ Seq(Mov(reg, rhsAssembly.getOp)))
+        val lval = x.toAssembly(regs, symbolTable)
+
+        return (lhsAssembly ++ rhsAssembly.instr ++ Seq(Mov(lval.getReg, rhsAssembly.getOp)))
     }
 }
 
