@@ -39,15 +39,20 @@ object RegAssembly {
 
 case object TODOAssembly extends RegAssembly(None, Seq[Instruction](), AL) 
 
+case class GeneratedAssembly()
+
 object CodeGenerator {
 
     def generate(program: Program, symbolTable: SymbolTable): String = {
 
         val regs = new RegisterAllocator
 
-        val out = program.toAssembly(regs, symbolTable).mkString("\n")
+        val out = program.toAssembly(regs, symbolTable)
+        val main = out._1.mkString("\n")
+        val fs = out._2.map(_.mkString("\n")).fold("\n")(_ + "\n" + _)
+
         // println(out)
-        return symbolTable.data + out
+        return symbolTable.data + main + fs
     } 
 
 }

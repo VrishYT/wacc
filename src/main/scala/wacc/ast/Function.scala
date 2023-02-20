@@ -8,8 +8,8 @@ case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val po
 
     def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
         // TODO: function assembly
-        val assStat = stats.map(_.toAssembly(regs, symbolTable))
-        return Seq()
+        val statsOut = stats.map(_.toAssembly(regs, symbolTable)).fold(Seq())(_ ++ _)
+        return Label(s"wacc_${fs._2}") +: statsOut
     }
 
     /* define validReturn of a function, and match on the last statement : */

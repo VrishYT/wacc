@@ -7,12 +7,12 @@ import wacc.back._
 
 /* program case class with its functions and statements */
 case class Program(fs: List[Func], stats: List[Stat]) {
-    def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
+    def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): (Seq[Instruction], Seq[Seq[Instruction]]) = {
 
-        val fsOut = /* fs.map(_.toAssembly(regs, symbolTable)).fold(Seq())(_ ++ _) */ Seq() // TODO
+        val fsOut = fs.map(_.toAssembly(regs, symbolTable))
         val statsOut = stats.map(_.toAssembly(regs, symbolTable)).fold(Seq())(_ ++ _)
 
-        return Seq(Section(".global main"), Label("main")) ++ fsOut ++ statsOut
+        return (Seq(Section(".global main"), Label("main")) ++ statsOut, fsOut)
     }
 }
 
