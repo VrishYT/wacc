@@ -46,7 +46,11 @@ case class Free(x: Expr) extends Stat {
 object Free extends ParserBridge1[Expr, Free]
 
 case class Return(x: Expr) extends Stat {
-    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
+        val expr = x.toAssembly(regs, symbolTable)
+        if (expr.getOp == Register(0)) return expr.instr :+ Mov(Register(0), expr.getOp)
+        else return expr.instr
+    }
 }
 
 object Return extends ParserBridge1[Expr, Return]
