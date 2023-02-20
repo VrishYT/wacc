@@ -8,8 +8,15 @@ case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val po
 
     def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
         // TODO: function assembly
+
+        (1 until args.length + 1).foreach(i => {
+            val param = args(i-1)
+            regs.link(param.id, Register(i))
+        })
+        
         val statsOut = stats.map(_.toAssembly(regs, symbolTable)).fold(Seq())(_ ++ _)
-        return Label(s"wacc_${fs._2}") +: statsOut
+
+        return Seq(Label(s"wacc_${fs._2}"), Push(LR)) ++ statsOut :+ Pop(PC)
     }
 
     /* define validReturn of a function, and match on the last statement : */
@@ -47,9 +54,7 @@ case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val po
 object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Func]
 
 /* parameter case class with position */
-case class Param(t: Type, id: String)(val pos: (Int, Int)) {
-    def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq() // TODO: param to assembly
-}
+case class Param(t: Type, id: String)(val pos: (Int, Int))
 
 object Param extends ParserBridgePos2[Type, String, Param]
 

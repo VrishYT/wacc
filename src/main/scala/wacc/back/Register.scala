@@ -60,9 +60,13 @@ class RegisterAllocator {
         Register(12)
     )
 
+    def link(id: String, reg: Register): Unit = {
+        table(id) = reg
+    }
+
     def allocate(id: String): RegAssembly = {
         val reg = allocate
-        table(id) = reg.getReg
+        link(id, reg.getReg)
         return reg
     }
 
@@ -81,7 +85,11 @@ class RegisterAllocator {
 
     def get(id: String): Register = table.get(id) match {
         case Some(x) => x
-        case None => ??? // TODO: check if 'id' was pushed to stack/mem and restore to a reg
+        case None => {
+            println(s"Cannot find ${id}")
+            println(table)
+            ???
+        }
     }
 
     // push to stack
