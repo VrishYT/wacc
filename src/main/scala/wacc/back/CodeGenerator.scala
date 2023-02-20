@@ -22,6 +22,23 @@ object Assembly {
     def apply(instr: Seq[Instruction], cond: Condition): Assembly = new Assembly(None, instr, cond)
 }
 
+class RegAssembly(val reg: Option[Register], instr: Seq[Instruction], cond: Condition) extends Assembly(reg, instr, cond) {
+    def getReg(): Register = reg match {
+        case Some(x) => x
+        case None => ???
+    }
+}
+
+object RegAssembly {
+    def apply(reg: Register, instr: Seq[Instruction], cond: Condition): RegAssembly = new RegAssembly(Some(reg), instr, cond)
+    def apply(reg: Register, instr: Seq[Instruction]): RegAssembly = apply(reg, instr, AL)
+    def apply(reg: Register, cond: Condition): RegAssembly = apply(reg, Seq(), cond)
+    def apply(reg: Register): RegAssembly = apply(reg, Seq(), AL)
+    def apply(instr: Seq[Instruction], cond: Condition): RegAssembly = new RegAssembly(None, instr, cond)
+}
+
+case object TODOAssembly extends RegAssembly(None, Seq[Instruction](), AL) 
+
 object CodeGenerator {
 
     def generate(program: Program, symbolTable: SymbolTable): String = {
