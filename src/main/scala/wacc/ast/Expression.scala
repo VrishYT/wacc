@@ -22,7 +22,7 @@ case class StrLiteral(str: String)(val pos: (Int, Int)) extends Expr {
   override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable) : Assembly = {
     val label = symbolTable.addData(str)
     val out = regs.allocate
-    Assembly(out._1, out._2 ++ Seq(Load(out._1, DataLabel(label))))
+    Assembly(out.getReg, out.instr ++ Seq(Load(out.getReg, DataLabel(label))))
   }
 }
 
@@ -43,7 +43,7 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
       case Negate => {
         val out = regs.allocate
         val reg = regs.allocate
-        Assembly(out._1, (reg._2 :+ back.Mov(reg._1, ImmInt(0))) ++ out._2 ++ (back.Sub(out._1, reg._1, expr.getOp) +: expr.instr))
+        Assembly(out.getReg, (reg.instr :+ back.Mov(reg.getReg, ImmInt(0))) ++ out.instr ++ (back.Sub(out.getReg, reg.getReg, expr.getOp) +: expr.instr))
       }
       case Length => ??? // TODO
     }
@@ -70,11 +70,11 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
     val instr = ListBuffer[Instruction]()
     instr ++= expr1.instr
     val reg = Operands.opToReg(expr1.getOp, regs)
-    val r1 = reg._1
-    instr ++= reg._2
+    val r1 = reg.getReg
+    instr ++= reg.instr
     instr ++= expr2.instr
 
-    val seq = expr1.instr ++ reg._2 ++ expr2.instr
+    val seq = expr1.instr ++ reg.instr ++ expr2.instr
     return op match {
       case ast.Greater => Assembly(seq :+ Cmp(r1, expr2.getOp), GT)
       case ast.GreaterEquals => Assembly(seq :+ Cmp(r1, expr2.getOp), GE)
@@ -84,7 +84,7 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
       case ast.NotEqual => Assembly(seq :+ Cmp(r1, expr2.getOp), NE)
       case _ => {
         val out = regs.allocate
-        return Assembly(out._1, (seq ++ out._2) :+ binaryOpToAssembly(out._1, r1, expr2.getOp))
+        return Assembly(out.getReg, (seq ++ out.instr) :+ binaryOpToAssembly(out.getReg, r1, expr2.getOp))
       }
     }
   }

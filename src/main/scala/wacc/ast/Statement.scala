@@ -15,7 +15,7 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
     override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
         val assembly = rhs.toAssembly(regs, symbolTable)
         val out = regs.allocate(id)
-        return (assembly.instr ++ out._2 ++ Seq(Mov(out._1, assembly.getOp)))
+        return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))
     }
 }
 
@@ -23,11 +23,10 @@ object Declare extends ParserBridge3[Type, String, RValue, Declare]
 
 case class Assign(x: LValue, y: RValue) extends Stat {
     override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
-        val lhsAssembly = Seq() //x.toAssembly(regs, symbolTable)
         val rhsAssembly = y.toAssembly(regs, symbolTable)
         val lval = x.toAssembly(regs, symbolTable)
 
-        return (lhsAssembly ++ rhsAssembly.instr ++ Seq(Mov(lval.getReg, rhsAssembly.getOp)))
+        return (lval.instr ++ rhsAssembly.instr ++ Seq(Mov(lval.getReg, rhsAssembly.getOp)))
     }
 }
 

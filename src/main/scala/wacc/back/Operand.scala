@@ -18,11 +18,11 @@ case class DataLabel(label: String) extends Operand {
 }
 
 object Operands {
-    def opToReg(op: Operand, regs: RegisterAllocator): (Register, Seq[Instruction]) = op match {
-        case x: Register => (x, Seq())
+    def opToReg(op: Operand, regs: RegisterAllocator): RegAssembly = op match {
+        case x: Register => RegAssembly(x)
         case _ => {
             val reg = regs.allocate
-            (reg._1, reg._2 :+ Mov(reg._1, op))
+            RegAssembly(reg.getReg, reg.instr :+ Mov(reg.getReg, op))
         }
     }
 }

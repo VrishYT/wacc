@@ -60,22 +60,22 @@ class RegisterAllocator {
         Register(12)
     )
 
-    def allocate(id: String): (Register, Seq[Instruction]) = {
+    def allocate(id: String): RegAssembly = {
         val reg = allocate
-        table(id) = reg._1
+        table(id) = reg.getReg
         return reg
     }
 
-    def allocate: (Register, Seq[Instruction]) = {
+    def allocate: RegAssembly = {
 
-        def realloc(): (Register, Seq[Instruction]) = {
+        def realloc(): RegAssembly = {
             val reg = regsInUse.head
             val id = table.filter(_._2 == reg).head._1
-            return (reg, Seq())
+            return RegAssembly(reg)
         }
 
-        val reg = if (freeRegs.isEmpty) realloc() else (freeRegs.dequeue, Seq())
-        regsInUse.enqueue(reg._1)
+        val reg = if (freeRegs.isEmpty) realloc() else RegAssembly(freeRegs.dequeue)
+        regsInUse.enqueue(reg.getReg)
         return reg
     }
 
