@@ -15,7 +15,15 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
     override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
         val assembly = rhs.toAssembly(regs, symbolTable)
         val out = regs.allocate(id)
-        return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))
+        rhs match {
+            case StrLiteral(string) => {
+                val label = assembly.getOp.toString
+                symbolTable.add(id, t, label)
+                return (assembly.instr ++ out.instr ++ Seq(Load(out.getReg, DataLabel(label))))}
+            case _ => {
+                symbolTable.add(id, t)
+                return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))} 
+        }
     }
 }
 
@@ -68,11 +76,75 @@ object Exit extends ParserBridge1[Expr, Exit]
 
 case class Print(x: Expr) extends Stat {
     override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
-        val ass = x.toAssembly(regs, symbolTable)
-        Seq(
-        Mov(Register(0), ass.getOp),
-        LinkBranch("printf")) 
+        x match {
+            case id@Ident(_) => printIdent(id, regs, symbolTable)
+            case int@IntLiteral(_) => {
+                val ass = int.toAssembly(regs, symbolTable)
+                return ass.instr ++ Seq(
+                    Mov(Register(1), ass.getOp()),
+                    LinkBranch("_printi")
+                )
+            }
+            case str@StrLiteral(_) => {
+                val ass = str.toAssembly(regs, symbolTable)
+                val label = ass.getOp.toString
+                return ass.instr ++ Seq(
+                    Load(Register(2), DataLabel(label)),
+                    Mov(Register(1), Address(Register(2), ImmInt(-4))),
+                    LinkBranch("_prints")
+                )
+            }
+            case char@CharLiteral(_) => {
+                val ass = char.toAssembly(regs, symbolTable)
+                return ass.instr ++ Seq(
+                    Mov(Register(1), ass.getOp()),
+                    LinkBranch("_printc")
+                )
+            }
+            case bool@BoolLiteral(_) => {
+                val ass = bool.toAssembly(regs, symbolTable)
+                return ass.instr ++ Seq(
+                    Mov(Register(0), ass.getOp()),
+                    LinkBranch("_printb")
+                )
+            }
+            case _ => return Seq()
+        }
     } 
+
+
+    def printIdent(ident : Ident, regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
+        val identType = symbolTable.getType(ident.id)
+        val ass = ident.toAssembly(regs, symbolTable)
+        identType match {
+            case StringType => {
+                return ass.instr ++ Seq(
+                    Mov(Register(2), ass.getReg()),
+                    Load(Register(1), Address(Register(2), ImmInt(-4))),
+                    LinkBranch("_prints")
+                )
+            }
+            case IntType => {
+                return ass.instr ++ Seq(
+                    Mov(Register(1), ass.getReg()),
+                    LinkBranch("_printi")
+                )
+            }
+            case CharType => {
+                return ass.instr ++ Seq(
+                    Mov(Register(1), ass.getReg()),
+                    LinkBranch("_printc")
+                )
+            }
+            case BoolType => {
+                return ass.instr ++ Seq(
+                    Mov(Register(0), ass.getReg()),
+                    LinkBranch("_printb")
+                )
+            }
+            case _ => return Seq()
+        }
+    }
 }
 
 object Print extends ParserBridge1[Expr, Print]
