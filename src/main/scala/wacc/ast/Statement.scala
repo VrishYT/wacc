@@ -88,7 +88,16 @@ case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
 object If extends ParserBridge3[Expr, List[Stat], List[Stat], If]
 
 case class While(p: Expr, x: List[Stat]) extends Stat {
-    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
+        
+        val cond = p.toAssembly(regs, symbolTable).not()
+        val block = x.map(_.toAssembly(regs, symbolTable)).foldLeft(Seq[Instruction]())(_ ++ _)
+
+        val startLabel = symbolTable.generateLabel
+        val endLabel = symbolTable.generateLabel
+
+        return (Label(startLabel) +: cond.instr :+ Branch(endLabel, cond.cond)) ++ block ++ Seq(Branch(startLabel), Label(endLabel))   
+    }
 }
 
 object While extends ParserBridge2[Expr, List[Stat], While]
