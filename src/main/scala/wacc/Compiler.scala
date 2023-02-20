@@ -4,7 +4,7 @@ import wacc.front.{Parser, SemanticChecker}
 import wacc.front.error.{ErrorLogger, TypeException, WACCError, WACCErrorBuilder}
 import wacc.back._
 
-import java.io.File
+import java.io.{File, FileWriter, BufferedWriter}
 
 class Compiler(private val file: File) {
 
@@ -69,7 +69,17 @@ class Compiler(private val file: File) {
     }
 
     def compile: Unit = program match {
-        case Some(x) => CodeGenerator.generate(x, symbolTable)
+        case Some(x) => {
+
+            // TODO: check if function needed or inline
+            def writeToFile(out: String): Unit = {
+                val writer = new BufferedWriter(new FileWriter(new File(file.getName.toString.replace(".wacc", ".s"))))
+                writer.write(out)
+                writer.close
+            } 
+
+            writeToFile(CodeGenerator.generate(x, symbolTable))
+        }
         case None => ErrorLogger.err("generate called before parse/typecheck", 1)
     }
 
