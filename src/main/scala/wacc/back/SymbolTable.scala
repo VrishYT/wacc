@@ -3,7 +3,7 @@ package wacc.back
 import scala.collection.mutable.{Map => MapM}
 import wacc.ast._
 
-class SymbolTable(val data: DataSection) {
+class SymbolTable(val data: TextSection) {
 
     private val table = MapM[String, (Type, Option[String])]()
     private var labelCount = 0
