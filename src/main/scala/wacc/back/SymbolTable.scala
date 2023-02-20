@@ -28,6 +28,23 @@ class SymbolTable(val data: TextSection) {
         addr
     }
 
+    def getAddress(id: String) : String = {
+        this.get(id) match {
+            case Some((t, addr)) => addr match {
+                case Some(address) => address
+                case None => ???
+            }
+            case None => ???
+        }
+    }
+
+    def getType(id: String) : Type = {
+        this.get(id) match {
+            case Some((t, addr)) => t
+            case None => ???
+        }
+    }
+
     def get(id: String): Option[(Type, Option[String])] = table.get(id)
 
     def remove(id: String): Option[(Type, Option[String])] = table.remove(id)

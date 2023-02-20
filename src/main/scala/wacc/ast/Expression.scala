@@ -15,14 +15,13 @@ case class IntLiteral(x: Int)(val pos: (Int, Int)) extends Expr {
 } 
 
 case class CharLiteral(x: Char)(val pos: (Int, Int)) extends Expr {
-    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Assembly = Assembly(ImmInt(x))
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Assembly = Assembly(ImmChar(x))
 }
 
 case class StrLiteral(str: String)(val pos: (Int, Int)) extends Expr {
   override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable) : Assembly = {
     val label = symbolTable.addData(str)
-    val out = regs.allocate
-    Assembly(out.getReg, out.instr ++ Seq(Load(out.getReg, DataLabel(label))))
+    Assembly(ImmLabel(label))
   }
 }
 

@@ -19,9 +19,9 @@ case object PrintCharSection {
 	            "push {lr}\n" +
 	            "ldr r0, =.L._printc_char0\n" + 
 	            "bl printf\n" +
-	            "mov r0, #0" +
-	            "bl fflush" +
-	            "pop {pc}"
+	            "mov r0, #0\n" +
+	            "bl fflush\n" +
+	            "pop {pc}\n"
     }
 }
 
@@ -36,9 +36,9 @@ case object PrintIntSection {
 	            "push {lr}\n" +
 	            "ldr r0, =.L._printi_int0\n" + 
 	            "bl printf\n" +
-	            "mov r0, #0" +
-	            "bl fflush" +
-	            "pop {pc}"
+	            "mov r0, #0\n" +
+	            "bl fflush\n" +
+	            "pop {pc}\n"
     }
 }
 
@@ -53,19 +53,46 @@ case object PrintStringSection {
 	            "push {lr}\n" +
 	            "ldr r0, =.L._prints_str0\n" + 
 	            "bl printf\n" +
-	            "mov r0, #0" +
-	            "bl fflush" +
-	            "pop {pc}"
+	            "mov r0, #0\n" +
+	            "bl fflush\n" +
+	            "pop {pc}\n"
     }
 }
 
 case object PrintBoolSection {
-    override def toString(): String = ???
+    override def toString(): String = {
+        ".data\n" + 
+        ".word 5\n" + 
+        ".L._printb_str0:\n" + 
+        ".asciz \"false\"\n" + 
+        ".word 4\n" + 
+        ".L._printb_str1:\n" + 
+        ".asciz \"true\"\n" + 
+        ".word 4\n" + 
+        ".L._printb_str2:\n" + 
+        ".asciz \"%.*s\"\n" + 
+        ".text\n\n" + 
+        "_printb:\n" + 
+        "push {lr}\n" + 
+        "cmp r0, #0\n" + 
+        "bne .L_printb0\n" + 
+        "ldr r2, =.L._printb_str0\n" + 
+        "b .L_printb1\n" + 
+        ".L_printb0:\n" + 
+        "ldr r2, =.L._printb_str1\n" + 
+        ".L_printb1:\n" + 
+        "ldr r1, [r2, #-4]\n" + 
+        "ldr r0, =.L._printb_str2\n" + 
+        "bl printf\n" + 
+        "mov r0, #0\n" + 
+        "bl fflush\n" + 
+        "pop {pc}\n"          
+    }
 }
 
 case object PrintNewLine {
     override def toString(): String = {
-        return ".data\n" +
+        return "\n.data\n" +
 	            ".word 2\n" + 
                 ".L._println_ln0:\n" +
 	            ".asciz \"\\n\"" +

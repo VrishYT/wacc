@@ -52,7 +52,7 @@ object CodeGenerator {
         val fs = out._2.map(_.mkString("\n")).fold("\n")(_ + "\n" + _)
 
         // println(out)
-        return symbolTable.data + main + fs
+        return symbolTable.data + main + fs + PrintStringSection + PrintIntSection + PrintCharSection + PrintBoolSection
     } 
 
 }
