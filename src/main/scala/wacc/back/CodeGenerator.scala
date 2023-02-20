@@ -24,12 +24,13 @@ object Assembly {
 
 object CodeGenerator {
 
-    def generate(program: Program, symbolTable: SymbolTable): Unit = {
+    def generate(program: Program, symbolTable: SymbolTable): String = {
 
         val regs = new RegisterAllocator
 
         val out = program.toAssembly(regs, symbolTable).mkString("\n")
-        println(out)
+        // println(out)
+        return symbolTable.data + out
     } 
 
 }
