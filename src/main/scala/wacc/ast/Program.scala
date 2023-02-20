@@ -9,15 +9,10 @@ import wacc.back._
 case class Program(fs: List[Func], stats: List[Stat]) {
     def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
 
-        val instr = ListBuffer[Instruction]()
+        val fsOut = /* fs.map(_.toAssembly(regs, symbolTable)).fold(Seq())(_ ++ _) */ Seq() // TODO
+        val statsOut = stats.map(_.toAssembly(regs, symbolTable)).fold(Seq())(_ ++ _)
 
-        // val assFunc = fs.map(_.toAssembly(regs, symbolTable))
-        val assStat = stats.foreach(instr ++= _.toAssembly(regs, symbolTable))
-        
-        // TODO: concat all
-        // assStat in 'main'
-
-        return instr.toSeq
+        return Seq(Section(".global main"), Label("main")) ++ fsOut ++ statsOut
     }
 }
 
