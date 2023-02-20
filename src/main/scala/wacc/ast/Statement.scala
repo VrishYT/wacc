@@ -12,13 +12,25 @@ sealed trait Stat {
 case object Skip extends Stat with ParserBridge0[Stat]
 
 case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
-    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq()
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
+        val assembly = rhs.toAssembly(regs, symbolTable)
+        val out = regs.allocate
+        regs.table(id) = Right(out)
+        return (assembly.instr ++ Seq(Mov(out, assembly.getOp)))
+    }
 }
 
 object Declare extends ParserBridge3[Type, String, RValue, Declare]
 
 case class Assign(x: LValue, y: RValue) extends Stat {
-    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = Seq() 
+    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
+        val lhsAssembly = Seq() //x.toAssembly(regs, symbolTable)
+        val rhsAssembly = y.toAssembly(regs, symbolTable)
+        val reg = regs.table(x.getIdent) match {
+            case Right(r) => r
+        }
+        return (lhsAssembly ++ rhsAssembly.instr ++ Seq(Mov(reg, rhsAssembly.getOp)))
+    }
 }
 
 object Assign extends ParserBridge2[LValue, RValue, Assign]
