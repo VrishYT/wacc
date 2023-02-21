@@ -80,31 +80,39 @@ case class Print(x: Expr) extends Stat {
             case int@IntLiteral(_) => {
                 val ass = int.toAssembly(regs, symbolTable)
                 return ass.instr ++ Seq(
+                    Push(Register(0), Register(1)),
                     Mov(Register(1), ass.getOp()),
-                    LinkBranch("_printi")
+                    LinkBranch("_printi"),
+                    Pop(Register(0), Register(1))
                 )
             }
             case str@StrLiteral(_) => {
                 val ass = str.toAssembly(regs, symbolTable)
                 val label = ass.getOp.toString
                 return ass.instr ++ Seq(
+                    Push(Register(0), Register(1), Register(2)),
                     Load(Register(2), DataLabel(label)),
                     Load(Register(1), Address(Register(2), ImmInt(-4))),
-                    LinkBranch("_prints")
+                    LinkBranch("_prints"),
+                    Pop(Register(0), Register(1), Register(2))
                 )
             }
             case char@CharLiteral(_) => {
                 val ass = char.toAssembly(regs, symbolTable)
                 return ass.instr ++ Seq(
+                    Push(Register(0), Register(1)),
                     Mov(Register(1), ass.getOp()),
-                    LinkBranch("_printc")
+                    LinkBranch("_printc"),
+                    Pop(Register(0), Register(1))
                 )
             }
             case bool@BoolLiteral(_) => {
                 val ass = bool.toAssembly(regs, symbolTable)
                 return ass.instr ++ Seq(
+                    Push(Register(0)),
                     Mov(Register(0), ass.getOp()),
-                    LinkBranch("_printb")
+                    LinkBranch("_printb"),
+                    Pop(Register(0))
                 )
             }
             case _ => return Seq()
@@ -118,27 +126,35 @@ case class Print(x: Expr) extends Stat {
         identType match {
             case StringType => {
                 return ass.instr ++ Seq(
+                    Push(Register(0), Register(1), Register(2)),
                     Mov(Register(2), ass.getReg()),
                     Load(Register(1), Address(Register(2), ImmInt(-4))),
-                    LinkBranch("_prints")
+                    LinkBranch("_prints"),
+                    Pop(Register(0), Register(1), Register(2))
                 )
             }
             case IntType => {
                 return ass.instr ++ Seq(
+                    Push(Register(0), Register(1)),
                     Mov(Register(1), ass.getReg()),
-                    LinkBranch("_printi")
+                    LinkBranch("_printi"),
+                    Pop(Register(0), Register(1))
                 )
             }
             case CharType => {
                 return ass.instr ++ Seq(
+                    Push(Register(0), Register(1)),
                     Mov(Register(1), ass.getReg()),
-                    LinkBranch("_printc")
+                    LinkBranch("_printc"),
+                    Pop(Register(0), Register(1))
                 )
             }
             case BoolType => {
                 return ass.instr ++ Seq(
+                    Push(Register(0)),
                     Mov(Register(0), ass.getReg()),
-                    LinkBranch("_printb")
+                    LinkBranch("_printb"),
+                    Pop(Register(0))
                 )
             }
             case _ => return Seq()
