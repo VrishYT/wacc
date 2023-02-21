@@ -33,7 +33,7 @@ sealed abstract class PrintSection(val short: String, val format: String, val na
 }
 
 case object PrintCharSection extends PrintSection("c", "c", "char")
-case object PrintIntSection extends PrintSection("c", "d", "int")
+case object PrintIntSection extends PrintSection("i", "d", "int")
 case object PrintStringSection extends PrintSection("s", ".*s", "str") 
 case object PrintNewLine extends PrintSection("ln", "\n", "ln")
 
