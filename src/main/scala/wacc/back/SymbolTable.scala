@@ -12,7 +12,10 @@ class SymbolTable(val data: TextSection) {
     def add(id: String, t: Type, addr: String): Boolean = add(id, t, Some(addr))
     def add(id: String, t: Type, addr: Option[String]): Boolean = {
         if (table.contains(id)) {
-            // renaming 
+            if (table.get(id) == t) {
+                table(id) = (t, addr)
+                return true
+            }
             return false
         } else {
             table(id) = (t, addr)
