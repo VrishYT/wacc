@@ -19,7 +19,7 @@ sealed abstract class PrintSection(val short: String, val format: String, val na
             Section(".data"),
             Directive(s".word $size"),
             Label(label),
-            Directive(s".asciz \"%${format}\""),
+            Directive(s".asciz \"${format}\""),
             Section(".text"),
             Label(s"_print${short}"),
             Push(LR),
@@ -32,10 +32,10 @@ sealed abstract class PrintSection(val short: String, val format: String, val na
     }
 }
 
-case object PrintCharSection extends PrintSection("c", "c", "char")
-case object PrintIntSection extends PrintSection("i", "d", "int")
-case object PrintStringSection extends PrintSection("s", ".*s", "str") 
-case object PrintNewLine extends PrintSection("ln", "\n", "ln")
+case object PrintCharSection extends PrintSection("c", "%c", "char")
+case object PrintIntSection extends PrintSection("i", "%d", "int")
+case object PrintStringSection extends PrintSection("s", "%.*s", "str") 
+case object PrintNewLine extends PrintSection("ln", "\\n", "ln")
 
 case object PrintBoolSection extends DataSection {
     def toAssembly(): Seq[Instruction] = {
