@@ -48,13 +48,13 @@ object CodeGenerator {
         val regs = new RegisterAllocator
 
         val out = program.toAssembly(regs, symbolTable)
-        val text = symbolTable.data.toAssembly.mkString("\n") + "\n"
+        val pre = (symbolTable.pre.addOne(symbolTable.text)).map(_.toAssembly).map(_.mkString("\n")).fold("")(_ + "\n" + _) + "\n"
         val main = out._1.mkString("\n")
         val fs = out._2.map(_.mkString("\n")).fold("\n")(_ + "\n" + _)
-        val prints = PrintStringSection.toAssembly.fold("\n")(_ + "\n" + _)
+        val post = symbolTable.post.map(_.toAssembly).map(_.mkString("\n")).fold("\n")(_ + "\n" + _)
 
         // println(out)
-        return text + main + fs + prints
+        return pre + main + fs + post 
     } 
 
 }

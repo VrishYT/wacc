@@ -1,9 +1,9 @@
 package wacc.back
 
-import scala.collection.mutable.{Map => MapM}
+import scala.collection.mutable.{Set, Map => MapM}
 import wacc.ast._
 
-class SymbolTable(val data: TextSection) {
+class SymbolTable(val text: TextSection = new TextSection, val pre: Set[DataSection] = Set(), val post: Set[DataSection] = Set()) {
 
     private val table = MapM[String, (Type, Option[String])]()
     private var labelCount = 0
@@ -24,7 +24,7 @@ class SymbolTable(val data: TextSection) {
     }
 
     def addData(id: String): String = {
-        val addr = data.add(id)
+        val addr = text.add(id)
         if (!add(id, StringType, addr)){
             ???
         }
