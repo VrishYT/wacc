@@ -21,7 +21,6 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
                 symbolTable.add(id, t, label)
                 return (assembly.instr ++ out.instr ++ Seq(Load(out.getReg, DataLabel(label))))}
             case _ => {
-                symbolTable.add(id, t)
                 return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))} 
         }
     }
