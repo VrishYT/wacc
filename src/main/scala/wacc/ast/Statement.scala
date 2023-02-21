@@ -89,7 +89,7 @@ case class Print(x: Expr) extends Stat {
                 val label = ass.getOp.toString
                 return ass.instr ++ Seq(
                     Load(Register(2), DataLabel(label)),
-                    Mov(Register(1), Address(Register(2), ImmInt(-4))),
+                    Load(Register(1), Address(Register(2), ImmInt(-4))),
                     LinkBranch("_prints")
                 )
             }
