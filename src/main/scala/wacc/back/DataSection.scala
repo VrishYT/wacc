@@ -37,38 +37,29 @@ case object PrintIntSection extends PrintSection("i", "d", "int")
 case object PrintStringSection extends PrintSection("s", ".*s", "str") 
 case object PrintNewLine extends PrintSection("ln", "\n", "ln")
 
-// TODO: ??? can this just "bl _prints" from PrintStringSection with "true" or "false" ???
-case object PrintBoolSection {
+case object PrintBoolSection extends DataSection {
     def toAssembly(): Seq[Instruction] = {
         return Seq(
             Section(".data"),
             Directive(".word 5"),
-            Label(".L.printb_false"),
+            Label(".L.printb_f"),
             Directive(".asciz \"false\""),
             Directive(".word 4"),
-            Label(".L.printb_true"),
+            Label(".L.printb_t"),
             Directive(".asciz \"true\""),
-            Directive(".word 4"),
-            Label(".L.printb_str"),
-            Directive(".asciz \"%.*s\""),
             Section(".text"),
             Label("_printb"),
-            Push(LR),
-            // TODO: ??? maybe abstract IF generation for use here and in IF statement ???
-            Cmp(Register(0), ImmInt(0)),
-            Branch(".L_printb_true", NE),
-            Load(Register(2), DataLabel(".L.printb_false")),
-            Branch(".L_printb_fi"),
-            Label(".L_printb_true"),
-            Load(Register(2), DataLabel(".L.printb_true")),
-            Label(".L_printb_fi"),
+            Push(LR)
+        ) ++ wacc.ast.If.generateIf(
+            Assembly(Seq(Cmp(Register(0), ImmInt(0))), NE), 
+            ".L_printb_true",
+            Seq(Load(Register(2), DataLabel(".L.printb_t"))),
+            Seq(Load(Register(2), DataLabel(".L.printb_f"))),
+            ".L_printb_fi"
+        ) ++ Seq(
             Load(Register(1), Address(Register(2), ImmInt(-4))),
-            Load(Register(0), DataLabel(".L.printb_str")),
-            LinkBranch("printf"),
-            Mov(Register(0), ImmInt(0)),
-            LinkBranch("fflush"),
+            LinkBranch("_prints"),
             Pop(PC)
-
         )
     }
 }
