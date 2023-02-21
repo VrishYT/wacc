@@ -236,20 +236,13 @@ object SemanticChecker {
 
             /* for a unary operator, get its input and output types as val types */
             case UnaryOpExpr(op, exp) => {
-              val types = op match {
-                case Not => (BoolType, BoolType)
-                case Negate => (IntType, IntType)
-                case Ord => (CharType, IntType)
-                case Chr => (IntType, CharType)
-                case Length => (ArrayType(AnyType), IntType)
-              }
               val rType = getRValType(exp)
 
               /* error if the type of its input expression isn't the same as its input type */
-              if (rType != types._1) ErrorLogger.err("invalid type for unary op param", rType, types._1, exp.pos)
+              if (rType != op.input) ErrorLogger.err("invalid type for unary op param", rType, op.input, exp.pos)
 
               /* return the output type */
-              return types._2
+              return op.output
             }
 
             /* for a binary operator : */
