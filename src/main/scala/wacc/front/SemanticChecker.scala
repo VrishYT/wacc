@@ -255,46 +255,22 @@ object SemanticChecker {
             /* for a binary operator : */
             case BinaryOpExpr(op, exp1, exp2) => {
 
-              /* checks that the input expression has correct type for given binary operator's operand */
-              def checkType(exp: Expr, ReturnType: Type): Unit = {
+              /* checks that the input expression has correct type for given binary operator's operand and returns the type */
+              def getType(exp: Expr, types: Seq[Type]): Type = {
                 val rValType = getRValType(exp)
-                if (ReturnType == AnyType) return
-                rValType match {
-                  case ReturnType =>
-                  case _ => ErrorLogger.err("invalid binary op type", rValType, ReturnType, exp.pos)
-                }
-              }
-
-              /* define returnType as specific operator's tow operand types and output type  */
-              val returnType = op match {
-                case Mul | Div | Mod | Add | Sub => (IntType, IntType, IntType)
-                case Equal | NotEqual => (AnyType, AnyType, BoolType)
-                case And | Or => (BoolType, BoolType, BoolType)
-                case Greater | GreaterEquals | Less | LessEquals => {
-                  val t1 = getRValType(exp1)
-                  val t2 = getRValType(exp2)
-
-                  /* define valid types for greater(equals) and less(equals) as integers and characters */
-                  def validType(t: Type) = CharType == t || IntType == t
-
-                  /* error if the type of either operand is invalid */
-                  if (!validType(t1)) ErrorLogger.err("invalid type for binary op", t1, Seq(CharType, IntType), exp1.pos)
-                  if (!validType(t2)) ErrorLogger.err("invalid type for binary op", t2, Seq(CharType, IntType), exp2.pos)
-
-                  /* error if the type of the operands are not the same */
-                  if (t1 != t2) ErrorLogger.err("invalid type for binary op\n  cannot execute binary op on two args of differing type", t2, t1, exp1.pos, exp2.pos)
-
-                  /* return boolean type */
-                  return BoolType
-                }
+                types.foreach(t => {
+                  if (t == rValType) return rValType
+                })
+                ErrorLogger.err("invalid binary op type", rValType, types, exp.pos)
               }
 
               /* check both operands are of correct type */
-              checkType(exp1, returnType._1)
-              checkType(exp2, returnType._2)
+              val t1 = getType(exp1, op.input)
+              val t2 = getType(exp2, op.input)
+              if (t1 != t2) ErrorLogger.err("invalid type for binary op\n  cannot execute binary op on two args of differing type", t2, t1, exp1.pos, exp2.pos)
 
               /* return the output type */
-              returnType._3
+              return op.output
             }
             /* Default case - should be unreachable. */
             case _ => ErrorLogger.err("Unknown expression passed in", 1)
