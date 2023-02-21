@@ -180,12 +180,17 @@ case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
         val thenLabel = symbolTable.generateLabel
         val endLabel = symbolTable.generateLabel
 
-        return (cond.instr :+ Branch(thenLabel, cond.cond)) ++ elseBlock ++ Seq(Branch(endLabel), Label(thenLabel)) ++ thenBlock :+ Label(endLabel)
+        return If.generateIf(cond, thenLabel, thenBlock, elseBlock, endLabel)
     }
     
 }
 
-object If extends ParserBridge3[Expr, List[Stat], List[Stat], If]
+object If extends ParserBridge3[Expr, List[Stat], List[Stat], If] {
+    def generateIf(cond: Assembly, thenLabel: String, thenBlock: Seq[Instruction], elseBlock: Seq[Instruction], endLabel: String): Seq[Instruction] 
+        = (cond.instr :+ Branch(thenLabel, cond.cond)) ++ 
+            elseBlock ++ Seq(Branch(endLabel), Label(thenLabel)) ++ 
+            thenBlock :+ Label(endLabel)
+}
 
 case class While(p: Expr, x: List[Stat]) extends Stat {
     override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
