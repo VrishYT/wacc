@@ -2,113 +2,79 @@ package wacc.back
 
 import scala.collection.mutable.{Map => MapM}
 import wacc.back._
+import Condition._
 
-sealed abstract class Data() {
-    
+// TODO: modify all assembly to not clobber registers when printing
+// JAMIE LEAVES CERTAIN REGISTERS EMPTY WHILE WE DONT
+
+sealed abstract class DataSection {
+    def toAssembly(): Seq[Instruction]
 }
 
-//sealed abstract class PrintSection(val type: String) extends Data
-case object PrintCharSection {
-    override def toString(): String = {
-        return ".data\n" +
-	            ".word 2\n" + 
-                ".L._printc_char0:\n" +
-	            ".asciz \"%c\"\n" +
-                ".text\n\n" +
-                "_printc:\n" + 
-	            "push {lr}\n" +
-	            "ldr r0, =.L._printc_char0\n" + 
-	            "bl printf\n" +
-	            "mov r0, #0\n" +
-	            "bl fflush\n" +
-	            "pop {pc}\n"
+sealed abstract class PrintSection(val short: String, val format: String, val name: String) extends DataSection {
+    def toAssembly(): Seq[Instruction] = {
+        val label = s".L._print${short}_${name}"
+        val size = format.length + 1
+        return Seq(
+            Section(".data"),
+            Directive(s".word $size"),
+            Label(label),
+            Directive(s".asciz \"%${format}\""),
+            Section(".text"),
+            Label(s"_print${short}"),
+            Push(LR),
+            Load(Register(0), DataLabel(label)),
+            LinkBranch("printf"),
+            Mov(Register(0), ImmInt(0)),
+            LinkBranch("fflush"),
+            Pop(PC)
+        )
     }
 }
 
-case object PrintIntSection {
-    override def toString(): String = {
-        return ".data\n" +
-	            ".word 2\n" + 
-                ".L._printi_int0:\n" +
-	            ".asciz \"%d\"\n" +
-                ".text\n\n" +
-                "_printi:\n" + 
-	            "push {lr}\n" +
-	            "ldr r0, =.L._printi_int0\n" + 
-	            "bl printf\n" +
-	            "mov r0, #0\n" +
-	            "bl fflush\n" +
-	            "pop {pc}\n"
-    }
-}
+case object PrintCharSection extends PrintSection("c", "c", "char")
+case object PrintIntSection extends PrintSection("c", "d", "int")
+case object PrintStringSection extends PrintSection("s", ".*s", "str") 
+case object PrintNewLine extends PrintSection("ln", "\n", "ln")
 
-case object PrintStringSection {
-    override def toString(): String = {
-        return ".data\n" +
-	            ".word 4\n" + 
-                ".L._prints_str0:\n" +
-	            ".asciz \"%.*s\"\n" +
-                ".text\n\n" +
-                "_prints:\n" + 
-	            "push {lr}\n" +
-	            "ldr r0, =.L._prints_str0\n" + 
-	            "bl printf\n" +
-	            "mov r0, #0\n" +
-	            "bl fflush\n" +
-	            "pop {pc}\n"
-    }
-}
-
+// TODO: ??? can this just "bl _prints" from PrintStringSection with "true" or "false" ???
 case object PrintBoolSection {
-    override def toString(): String = {
-        ".data\n" + 
-        ".word 5\n" + 
-        ".L._printb_str0:\n" + 
-        ".asciz \"false\"\n" + 
-        ".word 4\n" + 
-        ".L._printb_str1:\n" + 
-        ".asciz \"true\"\n" + 
-        ".word 4\n" + 
-        ".L._printb_str2:\n" + 
-        ".asciz \"%.*s\"\n" + 
-        ".text\n\n" + 
-        "_printb:\n" + 
-        "push {lr}\n" + 
-        "cmp r0, #0\n" + 
-        "bne .L_printb0\n" + 
-        "ldr r2, =.L._printb_str0\n" + 
-        "b .L_printb1\n" + 
-        ".L_printb0:\n" + 
-        "ldr r2, =.L._printb_str1\n" + 
-        ".L_printb1:\n" + 
-        "ldr r1, [r2, #-4]\n" + 
-        "ldr r0, =.L._printb_str2\n" + 
-        "bl printf\n" + 
-        "mov r0, #0\n" + 
-        "bl fflush\n" + 
-        "pop {pc}\n"          
-    }
-}
+    def toAssembly(): Seq[Instruction] = {
+        return Seq(
+            Section(".data"),
+            Directive(".word 5"),
+            Label(".L.printb_false"),
+            Directive(".asciz \"false\""),
+            Directive(".word 4"),
+            Label(".L.printb_true"),
+            Directive(".asciz \"true\""),
+            Directive(".word 4"),
+            Label(".L.printb_str"),
+            Directive(".asciz \"%.*s\""),
+            Section(".text"),
+            Label("_printb"),
+            Push(LR),
+            // TODO: ??? maybe abstract IF generation for use here and in IF statement ???
+            Cmp(Register(0), ImmInt(0)),
+            Branch(".L_printb_true", NE),
+            Load(Register(2), DataLabel(".L.printb_false")),
+            Branch(".L_printb_fi"),
+            Label(".L_printb_true"),
+            Load(Register(2), DataLabel(".L.printb_true")),
+            Label(".L_printb_fi"),
+            Load(Register(1), Address(Register(2), ImmInt(-4))),
+            Load(Register(0), DataLabel(".L.printb_str")),
+            LinkBranch("printf"),
+            Mov(Register(0), ImmInt(0)),
+            LinkBranch("fflush"),
+            Pop(PC)
 
-case object PrintNewLine {
-    override def toString(): String = {
-        return "\n.data\n" +
-	            ".word 2\n" + 
-                ".L._println_ln0:\n" +
-	            ".asciz \"\\n\"" +
-                ".text\n\n" +
-                "_println:\n" + 
-	            "push {lr}\n" +
-	            "ldr r0, =.L._println_ln0\n" + 
-	            "bl printf\n" +
-	            "mov r0, #0" +
-	            "bl fflush" +
-	            "pop {pc}"
+        )
     }
 }
 
 
-class TextSection extends Data{
+class TextSection extends DataSection {
 
     // TODO: change key type to label ???
     private val table = MapM[String, String]()
@@ -126,22 +92,40 @@ class TextSection extends Data{
         case None => ???
     }
 
-    override def toString(): String = {
-        if (table.isEmpty) return ""
+    override def toAssembly(): Seq[Instruction] = {
+        if (table.isEmpty) return Seq()
 
-        // TODO: update according to other TODO's related to DataSection
-        def entryToAssembly(entry: (String, String)): String = {
+        def entryToAssembly(entry: (String, String)): Seq[Instruction] = {
             val label = entry._1
             val data = entry._2
 
-            return s"\t.word ${data.length()}\n" + 
-                   label + ":\n" +
-                   s"\t.asciz \"${data}\""
+            return Seq(
+                Directive(s".word ${data.length}"),
+                Label(label),
+                Directive(s".asciz \"${data}\"")
+            )
         }
 
-        return ".data\n" + 
-               table.toSeq.map(entryToAssembly).mkString +
-               ".text\n"
+        return Section(".data") +: table.map(entryToAssembly).fold(Seq())(_ ++ _) :+ Section(".text")
+
     }
+
+    // override def toString(): String = {
+    //     if (table.isEmpty) return ""
+
+    //     // TODO: update according to other TODO's related to DataSection
+    //     def entryToAssembly(entry: (String, String)): String = {
+    //         val label = entry._1
+    //         val data = entry._2
+
+    //         return s"\t.word ${data.length()}\n" + 
+    //                label + ":\n" +
+    //                s"\t.asciz \"${data}\""
+    //     }
+
+    //     return ".data\n" + 
+    //            table.toSeq.map(entryToAssembly).mkString +
+    //            ".text\n"
+    // }
     
 }
