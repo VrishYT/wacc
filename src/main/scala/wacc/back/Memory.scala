@@ -1,17 +1,21 @@
 package wacc.back
 
-class MemoryAllocator(val int: size) {
+/* for now, memory should include all non-string values */
+class MemoryAllocator {
     import scala.collection.mutable.{Map => MapM}
 
+    private var size = 0
+    private var count = 0 
 
-    // POTENTIAL ARRAY AND PAIR STUFFFFFFF
+    val table = MapM[String, Int]() // Key: Variable, Value: Pos
 
-    var count = 0 // All memory is allocated in blocks of 4B
-
-    val table = MapM[String, Int] // Key: Variable, Value: Address
+    def reset(newSize: Int): Unit = {
+        size = newSize
+        count = 0
+        table.clear()
+    }
 
     def allocate(id: String): Assembly = {
-        
         link(id, count)
         val assembly = Assembly(Address(FP, ImmInt((count - size) * 4)))
         return assembly
@@ -22,7 +26,7 @@ class MemoryAllocator(val int: size) {
     }
 
     def get(id: String): Operand = table.get(id) match {
-        case Some(x) => Assembly(Address(FP, ImmInt((count - size) * 4)))
+        case Some(x) => Address(FP, ImmInt((count - size) * 4))
         case None => {
             println(s"Cannot find ${id}")
             println(table)
