@@ -83,6 +83,26 @@ class RegisterAllocator {
         return reg
     }
 
+    def allocate(id: String, mem: MemoryAllocator): RegAssembly = {
+        val reg = allocate(mem)
+        link(id, reg.getReg)
+        return reg
+    }
+
+    def allocate(mem: MemoryAllocator): RegAssembly = {
+
+        def realloc(): RegAssembly = {
+            val reg = regsInUse.head
+            val id = table.filter(_._2 == reg).head._1
+            val assembly = mem.allocate(id)
+            return RegAssembly(reg, assembly.instr)
+        }
+
+        val reg = if (freeRegs.isEmpty) realloc() else RegAssembly(freeRegs.dequeue)
+        regsInUse.enqueue(reg.getReg)
+        return reg
+    }
+
     def get(id: String): Register = table.get(id) match {
         case Some(x) => x
         case None => {
