@@ -46,8 +46,9 @@ object CodeGenerator {
     def generate(program: Program, symbolTable: SymbolTable): String = {
 
         val regs = new RegisterAllocator
+        val mem = new MemoryAllocator
 
-        val out = program.toAssembly(regs, symbolTable)
+        val out = program.toAssembly(regs, mem, symbolTable)
         val pre = (symbolTable.pre.addOne(symbolTable.text)).map(_.toAssembly).map(_.mkString("\n")).fold("")(_ + "\n" + _) + "\n"
         val main = out._1.mkString("\n")
         val fs = out._2.map(_.mkString("\n")).fold("\n")(_ + "\n" + _)
