@@ -58,6 +58,17 @@ case class Read(x: LValue) extends Stat {
                             Mov(ass.getReg, Register(12)),
                             Pop(Register(12))
                         )} 
+                    case CharType => 
+                        symbolTable.post.addOne(ReadCharSection)
+                        return ass.instr ++ Seq(
+                            Push(Register(0), Register(1)),
+                            Mov(Register(0), ass.getReg()),
+                            LinkBranch("_readc"),
+                            Mov(Register(12), Register(0)),
+                            Pop(Register(0), Register(1)),
+                            Mov(ass.getReg, Register(12)),
+                            Pop(Register(12))
+                        )
                     case StringType => Seq()
                 }
             }
