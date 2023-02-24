@@ -1,7 +1,9 @@
 package wacc.back
 
 import wacc.ast._
+import wacc.SymbolTable
 import Condition._
+import scala.collection.mutable.{Set => SetM}
 
 class Assembly(val op: Option[Operand], val instr: Seq[Instruction], var cond: Condition) {
     def getOp(): Operand = op match {
@@ -37,24 +39,29 @@ object RegAssembly {
     def apply(instr: Seq[Instruction], cond: Condition): RegAssembly = new RegAssembly(None, instr, cond)
 }
 
-case object TODOAssembly extends RegAssembly(None, Seq[Instruction](), AL) 
+object TODOAssembly extends RegAssembly(None, Seq[Instruction](), AL)
 
-case class GeneratedAssembly()
+case class CodeGenerator(val symbolTable: SymbolTable) {
+    
+    val text = new TextSection
+    val preSections = SetM[DataSection]()
+    val postSections = SetM[DataSection]()
 
-object CodeGenerator {
+    val labels = new LabelGenerator
+    val regs = new RegisterAllocator
+    // val mem = new MemoryAllocator
 
-    def generate(program: Program, symbolTable: SymbolTable): String = {
-
-        val regs = new RegisterAllocator
-
-        val out = program.toAssembly(regs, symbolTable)
-        val pre = (symbolTable.pre.addOne(symbolTable.text)).map(_.toAssembly).map(_.mkString("\n")).fold("")(_ + "\n" + _) + "\n"
+    def toAssembly(program: Program): String = {
+        val out = program.toAssembly(this)
+        val pre = (preSections.addOne(text)).map(_.toAssembly).map(_.mkString("\n")).fold("")(_ + "\n" + _) + "\n"
         val main = out._1.mkString("\n")
         val fs = out._2.map(_.mkString("\n")).fold("\n")(_ + "\n" + _)
-        val post = symbolTable.post.map(_.toAssembly).map(_.mkString("\n")).fold("\n")(_ + "\n" + _)
+        val post = postSections.map(_.toAssembly).map(_.mkString("\n")).fold("\n")(_ + "\n" + _)
 
         // println(out)
         return pre + main + fs + post 
     } 
-
+    
 }
+
+// TODO: code generator class that contains symbol table, sections, mem alloc, reg alloc, etc.
