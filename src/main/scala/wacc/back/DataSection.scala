@@ -7,7 +7,7 @@ import Condition._
 // TODO: modify all assembly to not clobber registers when printing
 // JAMIE LEAVES CERTAIN REGISTERS EMPTY WHILE WE DONT
 
-sealed abstract class DataSection {
+abstract class DataSection {
     def toAssembly(): Seq[Instruction]
 }
 
