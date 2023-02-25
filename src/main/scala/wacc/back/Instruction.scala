@@ -8,17 +8,25 @@ sealed trait Instruction
 /* Arithmetic Instructions */
 /* dest = src - op */
 case class Sub(dest: Register, src: Register, op: Operand) extends Instruction {
-    override def toString(): String = s"\tsub $dest, $src, $op"
+    override def toString(): String = s"\tsubs $dest, $src, $op"
 }
 /* dest = src + op */
 case class Add(dest: Register, src: Register, op: Operand) extends Instruction {
-    override def toString(): String = s"\tadd $dest, $src, $op"
+    override def toString(): String = s"\tadds $dest, $src, $op"
 }
 /* dest = src * op */
 case class Mul(dest: Register, src: Register, op: Operand) extends Instruction {
     override def toString(): String = s"\tmul $dest, $src, $op"
 }
-case class Div(dest: Register, src: Register, op: Operand) extends Instruction
+
+case class SMull(dstHi: Register, dstLow: Register, src: Register, op: Operand) extends Instruction{
+    override def toString(): String = s"\tsmull $dstHi, $dstLow, $src, $op"
+}
+
+case class Div(dest: Register, src: Register, op: Operand) extends Instruction{
+    override def toString(): String = "\tbl __aeabi_idivmod\n"
+
+}
 
 /* Compare Instructions */
 case class Cmp(src: Register, op: Operand) extends Instruction {
@@ -55,8 +63,8 @@ case class Store(dest: Register, src: Operand) extends Instruction {
 case class Branch(label: String, cond: Condition = AL) extends Instruction {
     override def toString(): String = s"\tb${cond.toString.toLowerCase()} $label"
 }
-case class LinkBranch(label: String) extends Instruction {
-    override def toString(): String = s"\tbl $label"
+case class LinkBranch(label: String, cond: Condition = AL) extends Instruction {
+    override def toString(): String = s"\tbl${cond.toString.toLowerCase()} $label"
 }
 
 /* Stack Instruction */

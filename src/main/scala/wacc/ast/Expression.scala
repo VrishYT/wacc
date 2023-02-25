@@ -54,13 +54,33 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
 
   override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Assembly = {
 
-    def binaryOpToAssembly(out: Register, x: Register, y: Operand): Instruction = op match {
-      case ast.Mul => Mul(out, x, y)
-      case ast.Div => Div(out, x, y)
-      case ast.Add => Add(out, x, y)
-      case ast.Sub => Sub(out, x, y)
-      case ast.And => And(out, x, y)
-      case ast.Or => Or(out, x, y)
+    def binaryOpToAssembly(out: Register, x: Register, y: Operand): Seq[Instruction] = op match {
+      case ast.Mul => {
+        val out2 = regs.allocate
+        Seq(
+          SMull(out2.getReg, out, x, y),
+          Cmp(out, ASR(out2.getReg, ImmInt(31))),
+          LinkBranch("_errOverflow", NE))}
+      case ast.Div => {
+        Seq(
+          //TODO add error Div Zero to datasection 
+          // TODO add prints to datasection 
+          Mov(Register(0), x),
+          Mov(Register(1), y),
+          Cmp(Register(1), ImmInt(0)),
+          LinkBranch("_errDivZero"),
+          Div(out, Register(0), Register(1)))
+      }
+      case ast.Add => Seq(
+        Add(out, x, y),
+        LinkBranch("_errOverflow", VS))
+      case ast.Sub => Seq(
+        //TODO add error Integer Overflow to datasection 
+        // TODO add prints to datasection 
+        Sub(out, x, y),
+        LinkBranch("_errOverflow", VS))
+      case ast.And => Seq(And(out, x, y))
+      case ast.Or => Seq(Or(out, x, y))
     }
 
     val expr1 = x.toAssembly(regs, symbolTable)
@@ -83,7 +103,7 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
       case ast.NotEqual => Assembly(seq :+ Cmp(r1, expr2.getOp), NE)
       case _ => {
         val out = regs.allocate
-        return Assembly(out.getReg, (seq ++ out.instr) :+ binaryOpToAssembly(out.getReg, r1, expr2.getOp))
+        return Assembly(out.getReg, (seq ++ out.instr) ++ binaryOpToAssembly(out.getReg, r1, expr2.getOp))
       }
     }
   }
