@@ -7,10 +7,10 @@ import wacc.back._
 
 /* program case class with its functions and statements */
 case class Program(fs: List[Func], stats: List[Stat]) {
-    def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): (Seq[Instruction], Seq[Seq[Instruction]]) = {
+    def toAssembly(gen: CodeGenerator): (Seq[Instruction], Seq[Seq[Instruction]]) = {
 
-        val fsOut = fs.map(_.toAssembly(regs, symbolTable))
-        val main = stats.map(_.toAssembly(regs, symbolTable)).fold(Seq())(_ ++ _)
+        val fsOut = fs.map(_.toAssembly(gen))
+        val main = stats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
 
         val statsOut = if (main.tail == LinkBranch("exit")) main else main :+ LinkBranch("exit")
 

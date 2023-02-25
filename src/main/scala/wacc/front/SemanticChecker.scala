@@ -2,9 +2,9 @@ package wacc.front
 
 object SemanticChecker {
 
+  import wacc._
   import error._
   import wacc.ast._
-  import wacc.back.SymbolTable
 
   import scala.collection.mutable.{ArrayBuffer, Map => MapM}
 
@@ -43,7 +43,7 @@ object SemanticChecker {
       if (vars.keySet.exists(_ == id)) errors += new TypeException(message = "Cannot redeclare variable '" + id + "'", pos = Seq(pos))
       else {
         vars(id) = t
-        symbolTable.add(id, t)
+        // symbolTable.add(id, t) // TODO
       }
     }
 
@@ -59,6 +59,7 @@ object SemanticChecker {
 
       /* check semantics of each statement in the function */
       checkStatements(func.stats, createChildVars(vars, childVars))
+      // symbolTable.add("func", vars.toMap) // TODO
     }
 
     /* return the type of an identifier from the parent and child scope maps */

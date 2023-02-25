@@ -6,15 +6,15 @@ import wacc.back._
 /* function case class with position */
 case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
 
-    def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
+    def toAssembly(gen: CodeGenerator): Seq[Instruction] = {
         // TODO: function assembly
 
         (1 until args.length + 1).foreach(i => {
             val param = args(i-1)
-            regs.link(param.id, Register(i))
+            gen.regs.link(param.id, Register(i))
         })
         
-        val statsOut = stats.map(_.toAssembly(regs, symbolTable)).fold(Seq())(_ ++ _)
+        val statsOut = stats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
 
         return Seq(Label(s"wacc_${fs._2}"), Push(LR)) ++ statsOut :+ Pop(PC)
     }
