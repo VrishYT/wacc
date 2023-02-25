@@ -23,8 +23,8 @@ case class SMull(dstHi: Register, dstLow: Register, src: Register, op: Operand) 
     override def toString(): String = s"\tsmull $dstHi, $dstLow, $src, $op"
 }
 
-case class Div(dest: Register, src: Register, op: Operand) extends Instruction{
-    override def toString(): String = "\tbl __aeabi_idivmod\n"
+case class Div() extends Instruction{
+    override def toString(): String = "\tbl __aeabi_idivmod"
 
 }
 

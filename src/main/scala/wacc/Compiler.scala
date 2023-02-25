@@ -79,7 +79,7 @@ class Compiler(private val file: File) {
             } 
 
             val gen = new CodeGenerator(symbolTable)
-            gen.toAssembly(x)
+            writeToFile(gen.toAssembly(x))
         }
         case None => ErrorLogger.err("generate called before parse/typecheck", 1)
     }

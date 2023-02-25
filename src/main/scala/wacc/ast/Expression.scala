@@ -68,8 +68,10 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
           Mov(Register(0), x),
           Mov(Register(1), y),
           Cmp(Register(1), ImmInt(0)),
-          LinkBranch("_errDivZero"),
-          Div(out, Register(0), Register(1)))
+          LinkBranch("_errDivZero", EQ),
+          Div(),
+          Mov(out, Register(0))
+        )
       }
       case ast.Add => Seq(
         Add(out, x, y),
