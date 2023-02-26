@@ -47,8 +47,6 @@ case class CodeGenerator(val symbolTable: SymbolTable) {
     val preSections = scala.collection.mutable.Set[DataSection]()
     val postSections = scala.collection.mutable.Set[DataSection]()
 
-    // preSections.addOne(PrintStringSection)
-
     val labels = new LabelGenerator
     val regs = new RegisterAllocator
     // val mem = new MemoryAllocator

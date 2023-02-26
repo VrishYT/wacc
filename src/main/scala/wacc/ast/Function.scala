@@ -1,4 +1,5 @@
-package wacc.ast
+package wacc
+package ast
 
 import wacc.front.ParserBridge._
 import wacc.back._
@@ -6,7 +7,7 @@ import wacc.back._
 /* function case class with position */
 case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
 
-    def toAssembly(gen: CodeGenerator): Seq[Instruction] = {
+    def toAssembly(gen: CodeGenerator, table: FuncTable): Seq[Instruction] = {
         // TODO: function assembly
 
         (1 until args.length + 1).foreach(i => {
@@ -14,7 +15,7 @@ case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val po
             gen.regs.link(param.id, Register(i))
         })
         
-        val statsOut = stats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
+        val instr = stats.map(_.toAssembly(gen, table)).fold(Seq())(_ ++ _)
 
         // return Seq(Label(s"wacc_${fs._2}"), Push(LR)) ++ instr :+ Pop(PC)
         return Func.generateFunction(s"wacc_${fs._2}", instr)
@@ -30,24 +31,24 @@ case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val po
 
         /* check the other valid case for begin or if statements */
         case _ => {
-        var valid = false
+            var valid = false
 
-        /* check if each branch of any new scope has a valid return, valid
-                    will remain false if they don't */
-        stats.foreach(stat => stat match {
-            case If(_, x, y) => {
-            valid |= validReturn(x) && validReturn(y)
-            }
-            case Begin(xs) => {
-            valid |= validReturn(xs)
-            }
-            case _ =>
-        })
+            /* check if each branch of any new scope has a valid return, valid
+                        will remain false if they don't */
+            stats.foreach(stat => stat match {
+                case If(_, x, y) => {
+                    valid |= validReturn(x) && validReturn(y)
+                }
+                case Begin(xs) => {
+                    valid |= validReturn(xs)
+                }
+                case _ =>
+            })
 
-        /* return valid once all eligible paths of control flow
-                    have been checked */
-        valid
-        }
+            /* return valid once all eligible paths of control flow
+                        have been checked */
+            valid
+            }
     }
 }
 
