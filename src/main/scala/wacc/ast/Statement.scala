@@ -201,9 +201,9 @@ case class Println(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
         gen.postSections.addOne(PrintNewLine)
         Print(x).toAssembly(gen, table) ++ Seq(
-            Push(Register(0)),
+            Push(Register(0), Register(1)),
             LinkBranch("_println"),
-            Pop(Register(0))
+            Pop(Register(0), Register(1))
         ) 
     }
 }
