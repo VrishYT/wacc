@@ -65,3 +65,6 @@ wacc-11-compiler.jar
 
 # spec
 spec.pdf
+
+# generated .s files
+*.s
