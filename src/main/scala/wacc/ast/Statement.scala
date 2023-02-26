@@ -23,8 +23,8 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
                 val out = gen.regs.allocate(id)
                 val label = assembly.getOp.toString
                 // gen.symbolTable.add(id, t, label) // TODO
-                return (assembly.instr ++ out.instr ++ Seq(Load(out.getReg, DataLabel(label))))}
-
+                return (assembly.instr ++ out.instr ++ Seq(Load(out.getReg, DataLabel(label))))
+                }
             case NewPair(fst, snd) => {
                 val assembly1 = fst.toAssembly(gen)
                 val assembly2 = snd.toAssembly(gen)
@@ -32,11 +32,20 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
                 gen.mem.insert(id, pairAssembly.getOp)
                 return (assembly1.instr ++ assembly2.instr ++ pairAssembly.instr)
             }
+            case ArrayLiteral(xs) => {
+                val assemblies = xs.map(x => x.toAssembly(gen))
+                val instrs = (assemblies.map(x => x.instr)).flatten
+                val ops = (assemblies.map(x => x.getOp))
+                val arrAssembly = gen.mem.mallocArray(ops)
+                gen.mem.insert(id, arrAssembly.getOp)
+                return (instrs ++ arrAssembly.instr)
+            }
 
             case _ => {
                 val assembly = rhs.toAssembly(gen)
                 val out = gen.regs.allocate(id)
-                return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))} 
+                return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))
+                } 
         }
     }
 }

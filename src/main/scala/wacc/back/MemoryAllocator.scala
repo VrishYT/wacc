@@ -11,6 +11,11 @@ class MemoryAllocator {
         return (assembly)
     }
 
+    def mallocArray(xs: List[Operand]): Assembly = {
+        val assembly = Assembly(Address(FP, ImmInt(0)))
+        return (assembly)
+    }
+
     def insert(id: String, add: Operand): Unit = {
         table(id) = add
     }
