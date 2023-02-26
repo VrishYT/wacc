@@ -62,9 +62,9 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
           Cmp(out, ASR(out2.getReg, ImmInt(31))),
           LinkBranch("_errOverflow", NE))}
       case ast.Div => {
+        gen.postSections.addOne(PrintStringSection)
+        gen.postSections.addOne(DivZeroError)
         Seq(
-          //TODO add error Div Zero to datasection 
-          // TODO add prints to datasection 
           Mov(Register(0), x),
           Mov(Register(1), y),
           Cmp(Register(1), ImmInt(0)),
