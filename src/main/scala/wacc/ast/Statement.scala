@@ -20,7 +20,7 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
         rhs match {
             case StrLiteral(string) => {
                 val label = assembly.getOp.toString
-                // gen.symbolTable.add(id, t, label) // TODO
+                table.update(id, label)
                 return (assembly.instr ++ out.instr ++ Seq(Load(out.getReg, DataLabel(label))))}
             case _ => {
                 return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))} 
@@ -113,10 +113,9 @@ case class Print(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
         x match {
             case id@Ident(i) => {
-                // val identType = gen.symbolTable.get(i) // TODO
-                // val ass = id.toAssembly(gen, table)
-                // return ass.instr ++ printValue(identType, ass.getReg(), gen)
-                ???
+                val identType = table.getType(i) // TODO
+                val ass = id.toAssembly(gen, table)
+                return ass.instr ++ printValue(identType, ass.getReg(), gen)
             }
             case int: IntLiteral => {
                 val ass = int.toAssembly(gen, table)

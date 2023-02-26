@@ -17,14 +17,14 @@ sealed abstract class Table extends TableEntry {
 
     private val table = MapM[String, TableEntry]()
 
-    // USED FOR BACK-END
-    private def update(id: String, symbol: Symbol): Unit = {
-        table(id) = symbol
-    }
-
-    private def getType(id: String): Type = getSymbol(id) match {
+    // ONLY USE IN BACK-END - assumes semantic correctness
+    def getType(id: String): Type = getSymbol(id) match {
         case Some(x) => x.t
         case None => ???
+    }
+
+    private def update(id: String, symbol: Symbol): Unit = {
+        table(id) = symbol
     }
     
     def update(id: String, reg: Register): Unit = {
