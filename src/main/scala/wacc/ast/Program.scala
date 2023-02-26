@@ -12,7 +12,7 @@ case class Program(fs: List[Func], stats: List[Stat]) {
         val fsOut = fs.map(_.toAssembly(regs, symbolTable))
         val main = stats.map(_.toAssembly(regs, symbolTable)).fold(Seq())(_ ++ _)
 
-        val statsOut = if (main.tail == LinkBranch("exit")) main else main :+ LinkBranch("exit")
+        val statsOut = if (!main.isEmpty && main.tail == LinkBranch("exit")) main else main ++ Seq(Mov(Register(0), ImmInt(0)), LinkBranch("exit"))
 
         return (Seq(Section(".global main"), Label("main")) ++ statsOut, fsOut)
     }
