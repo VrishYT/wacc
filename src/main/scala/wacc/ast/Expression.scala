@@ -73,14 +73,22 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
           Mov(out, Register(0))
         )
       }
-      case ast.Add => Seq(
-        Add(out, x, y),
-        LinkBranch("_errOverflow", VS))
-      case ast.Sub => Seq(
-        //TODO add error Integer Overflow to datasection 
-        // TODO add prints to datasection 
-        Sub(out, x, y),
-        LinkBranch("_errOverflow", VS))
+      case ast.Add => {
+        gen.postSections.addOne(IntegerOverflow)
+        gen.postSections.addOne(PrintStringSection)
+        Seq(
+          Add(out, x, y),
+          LinkBranch("_errOverflow", VS)
+        )
+      }
+      case ast.Sub => {
+        gen.postSections.addOne(IntegerOverflow)
+        gen.postSections.addOne(PrintStringSection)
+        Seq(
+          Sub(out, x, y),
+          LinkBranch("_errOverflow", VS)
+        )
+      }
       case ast.And => Seq(And(out, x, y))
       case ast.Or => Seq(Or(out, x, y))
     }
