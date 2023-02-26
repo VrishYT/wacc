@@ -73,3 +73,6 @@ case class Label(label: String) extends Instruction {
 case class Section(section: String) extends Instruction {
     override def toString(): String = section
 }
+case class Directive(directive: String) extends Instruction {
+    override def toString(): String = s"\t$directive"
+}

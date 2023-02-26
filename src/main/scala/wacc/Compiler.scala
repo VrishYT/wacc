@@ -19,7 +19,7 @@ class Compiler(private val file: File) {
     import wacc.front.Lexing.{lexer, keywords}
 
     private var program: Option[Program] = None 
-    private val symbolTable = new SymbolTable(new DataSection)
+    private val symbolTable = new SymbolTable
 
     def parse(): Boolean = {
         val pNode = Parser.program

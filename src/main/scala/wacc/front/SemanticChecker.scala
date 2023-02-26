@@ -2,9 +2,9 @@ package wacc.front
 
 object SemanticChecker {
 
+  import wacc._
   import error._
   import wacc.ast._
-  import wacc.back.SymbolTable
 
   import scala.collection.mutable.{ArrayBuffer, Map => MapM}
 
@@ -18,65 +18,46 @@ object SemanticChecker {
     val functions = program.fs
 
     /* create a map for the global scope, containing function identifiers to return types */
-    val vars = MapM[String, Type]()
+    val vars = symbolTable.declare("main")
 
-    /* create a map for functions to an ordered list of their parameter types */
-    val funcArgs = MapM[String, List[Type]]()
     functions.foreach(func => {
 
       /* check if the functions already exists in the map */
-      if (vars.keySet.exists(_ == func.fs._2)) {
+      if (symbolTable.contains(func.fs._2)) {
 
         /* error if the function has been declared more than once */
         errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
       } else {
-
         /* Add the function into the global scope */
-        vars(func.fs._2) = func.fs._1
-        /* Add the function into the map of functions to parameter types */
-        funcArgs(func.fs._2) = func.args.map(arg => arg.t)
+        if (func.args.distinct.size != func.args.size) errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
+        else symbolTable.declare(func.fs._2, func.args, func.fs._1)
       }
     })
 
     /* check if a variable already exists in scope, error if it does, and add it to the scope if it doesn't */
-    def declareVar(id: String, t: Type, vars: MapM[String, Type], pos: (Int, Int)): Unit = {
-      if (vars.keySet.exists(_ == id)) errors += new TypeException(message = "Cannot redeclare variable '" + id + "'", pos = Seq(pos))
-      else {
-        vars(id) = t
-        symbolTable.add(id, t)
-      }
+    def declareVar(id: String, t: Type, vars: Table, pos: (Int, Int)): Unit = {
+      if (!vars.add(id, Symbol(t))) errors += new TypeException(message = "Cannot redeclare variable '" + id + "'", pos = Seq(pos))
     }
 
     /* checks for invalid semantics within a specific function */
-    def checkFunction(func: Func, vars: Map[String, Type]): Unit = {
-      val childVars = MapM[String, Type]()
-
-      /* add each function identifier to the global scope map */
-      func.args.foreach(param => declareVar(param.id, param.t, childVars, param.pos))
-
-      /* add the type of the function to the front of childVars so we know what type to return */
-      declareVar("\\func", func.fs._1, childVars, func.pos)
-
-      /* check semantics of each statement in the function */
-      checkStatements(func.stats, createChildVars(vars, childVars))
+    def checkFunction(func: Func): Unit = {
+      symbolTable.get(func.fs._2) match {
+        case Some(x) => checkStatements(func.stats, x)
+        case None => errors += new TypeException(message = "Invalid function declaration", pos = Seq(func.pos))
+      }      
     }
 
     /* return the type of an identifier from the parent and child scope maps */
-    def getTypeFromVars(id: String, parent: Map[String, Type], child: MapM[String, Type] = MapM(), pos: (Int, Int)): Type = {
-      child.get(id) match {
-        case Some(x) => x
-        case None => parent.get(id) match {
-          case Some(x) => x
-          case None => ErrorLogger.err("Variable " + id + " not found", pos)
-        }
-      }
+    def getTypeFromVars(id: String, vars: Table, pos: (Int, Int)): Type = vars.getSymbol(id) match {
+      case Some(x) => x.t
+      case None => vars match {
+        case ChildTable(parent) => getTypeFromVars(id, parent, pos)
+        case _ => ErrorLogger.err("Variable " + id + " not found", pos)
+      } 
     }
 
     /* traverse a list of statements and error on semantic errors */
-    def checkStatements(statements: List[Stat], vars: Map[String, Type]): Unit = {
-
-      /* create a new, empty child scope */
-      val childVars = MapM[String, Type]()
+    def checkStatements(statements: List[Stat], vars: Table): Unit = {
 
       /* returns the type of the contents of a pairElem (fst(x) or snd(x), where x is passed in) */
       def getPairElemType(t: Type): Type = t match {
@@ -101,10 +82,10 @@ object SemanticChecker {
         lVal match {
 
           /* if its an identifier then get it's type from the parent and child scope maps */
-          case (x@Ident(id)) => getTypeFromVars(id, vars, childVars, x.pos)
+          case (x@Ident(id)) => getTypeFromVars(id, vars, x.pos)
 
           /* if its an array element, then get it's type from the parent and child scope maps */
-          case (elem@ArrayElem(id, xs)) => getTypeFromVars(id, vars, childVars, elem.pos) match {
+          case (elem@ArrayElem(id, xs)) => getTypeFromVars(id, vars, elem.pos) match {
 
             /* check if the type is an array type */
             case ArrayType(t) => t
@@ -161,10 +142,11 @@ object SemanticChecker {
           case (func@Call(id, args)) => {
 
             /* get a list of its parameter types in order */
-            val currentArgs = funcArgs.get(id) match {
+            val funcVars = symbolTable.get(id) match {
               case Some(x) => x
-              case _ => List()
+              case None => ErrorLogger.err("Function '${id}' is undefined", func.pos) 
             }
+            val currentArgs = funcVars.paramTypes
 
             /* error if the number of arguments is wrong */
             if (args.length != currentArgs.length) ErrorLogger.err("Invalid number of arguments for function '" + id + "'. expected: " + currentArgs.length + ". actual: " + args.length, func.pos)
@@ -179,7 +161,7 @@ object SemanticChecker {
             }
 
             /* return the type of the function from the identifier maps */
-            return getTypeFromVars(id, vars, pos = func.pos)
+            return funcVars.returnType
           }
 
           /* for an expression, match on the specific type of expression : */
@@ -193,7 +175,7 @@ object SemanticChecker {
             case _: PairLiteralNull => Pair
 
             /* for an identifier, get its type from the identifier maps */
-            case (x@Ident(id)) => getTypeFromVars(id, vars, childVars, x.pos)
+            case (x@Ident(id)) => getTypeFromVars(id, vars, x.pos)
 
             /* error for array element with no index */
             case (array@ArrayElem(_, Nil)) => ErrorLogger.err("invalid array access\n  no index provided", array.pos)
@@ -228,7 +210,7 @@ object SemanticChecker {
               }
 
               /* get the array's type from the variable maps, and error if it's a non-array type, or undefined */
-              getTypeFromVars(id, vars, childVars, elem.pos) match {
+              getTypeFromVars(id, vars, elem.pos) match {
                 case ArrayType(t) => checkArrayIndex(exps, t)
                 case x => ErrorLogger.err("cannot get elem from non-array type", x, ArrayType(AnyType), elem.pos)
               }
@@ -236,65 +218,34 @@ object SemanticChecker {
 
             /* for a unary operator, get its input and output types as val types */
             case UnaryOpExpr(op, exp) => {
-              val types = op match {
-                case Not => (BoolType, BoolType)
-                case Negate => (IntType, IntType)
-                case Ord => (CharType, IntType)
-                case Chr => (IntType, CharType)
-                case Length => (ArrayType(AnyType), IntType)
-              }
               val rType = getRValType(exp)
 
               /* error if the type of its input expression isn't the same as its input type */
-              if (rType != types._1) ErrorLogger.err("invalid type for unary op param", rType, types._1, exp.pos)
+              if (rType != op.input) ErrorLogger.err("invalid type for unary op param", rType, op.input, exp.pos)
 
               /* return the output type */
-              return types._2
+              return op.output
             }
 
             /* for a binary operator : */
             case BinaryOpExpr(op, exp1, exp2) => {
 
-              /* checks that the input expression has correct type for given binary operator's operand */
-              def checkType(exp: Expr, ReturnType: Type): Unit = {
+              /* checks that the input expression has correct type for given binary operator's operand and returns the type */
+              def getType(exp: Expr, types: Seq[Type]): Type = {
                 val rValType = getRValType(exp)
-                if (ReturnType == AnyType) return
-                rValType match {
-                  case ReturnType =>
-                  case _ => ErrorLogger.err("invalid binary op type", rValType, ReturnType, exp.pos)
-                }
-              }
-
-              /* define returnType as specific operator's tow operand types and output type  */
-              val returnType = op match {
-                case Mul | Div | Mod | Add | Sub => (IntType, IntType, IntType)
-                case Equal | NotEqual => (AnyType, AnyType, BoolType)
-                case And | Or => (BoolType, BoolType, BoolType)
-                case Greater | GreaterEquals | Less | LessEquals => {
-                  val t1 = getRValType(exp1)
-                  val t2 = getRValType(exp2)
-
-                  /* define valid types for greater(equals) and less(equals) as integers and characters */
-                  def validType(t: Type) = CharType == t || IntType == t
-
-                  /* error if the type of either operand is invalid */
-                  if (!validType(t1)) ErrorLogger.err("invalid type for binary op", t1, Seq(CharType, IntType), exp1.pos)
-                  if (!validType(t2)) ErrorLogger.err("invalid type for binary op", t2, Seq(CharType, IntType), exp2.pos)
-
-                  /* error if the type of the operands are not the same */
-                  if (t1 != t2) ErrorLogger.err("invalid type for binary op\n  cannot execute binary op on two args of differing type", t2, t1, exp1.pos, exp2.pos)
-
-                  /* return boolean type */
-                  return BoolType
-                }
+                types.foreach(t => {
+                  if (t == rValType) return rValType
+                })
+                ErrorLogger.err("invalid binary op type", rValType, types, exp.pos)
               }
 
               /* check both operands are of correct type */
-              checkType(exp1, returnType._1)
-              checkType(exp2, returnType._2)
+              val t1 = getType(exp1, op.input)
+              val t2 = getType(exp2, op.input)
+              if (t1 != t2) ErrorLogger.err("invalid type for binary op\n  cannot execute binary op on two args of differing type", t2, t1, exp1.pos, exp2.pos)
 
               /* return the output type */
-              returnType._3
+              return op.output
             }
             /* Default case - should be unreachable. */
             case _ => ErrorLogger.err("Unknown expression passed in", 1)
@@ -313,7 +264,7 @@ object SemanticChecker {
           if (rType != t) ErrorLogger.err("invalid type for declare", rType, t, rhs.pos)
 
           /* check identifier hasn't already been declared, and add it to the scope */
-          declareVar(id, t, childVars, rhs.pos)
+          declareVar(id, t, vars, rhs.pos)
         }
 
         /* check assign statement */
@@ -321,7 +272,7 @@ object SemanticChecker {
 
           /* error if the identifier being reassigned is a function. */
           x match {
-            case (ident@Ident(id)) if (funcArgs.keySet.exists(_ == id) && !childVars.keySet.exists(_ == id)) => ErrorLogger.err("Cannot re-assign value for a function: " + id, ident.pos)
+            case (ident@Ident(id)) if (symbolTable.contains(id) && !vars.contains(id)) => ErrorLogger.err("Cannot re-assign value for a function: " + id, ident.pos)
             case _ =>
           }
 
@@ -361,10 +312,10 @@ object SemanticChecker {
           val rType = getRValType(x)
 
           /* error if we are not inside of a function */
-          if (!vars.keySet.exists(_ == "\\func")) ErrorLogger.err("invalid return call\n  cannot return outside a function body", x.pos)
+          if (!vars.isInFunction) ErrorLogger.err("invalid return call\n  cannot return outside a function body", x.pos)
 
           /* error if return type does not match return type of the current function being checked */
-          val funcType = getTypeFromVars("\\func", vars, childVars, x.pos)
+          val funcType = vars.getReturnType
           if (rType != funcType) ErrorLogger.err("invalid type for return", rType, funcType, x.pos)
         }
 
@@ -390,9 +341,11 @@ object SemanticChecker {
           if (rValType != BoolType) ErrorLogger.err("invalid type for if cond", rValType, BoolType, p.pos)
 
           /* check semantics of both branches of if statement */
-          val newChildVars = createChildVars(vars, childVars)
-          checkStatements(xs, newChildVars)
-          checkStatements(ys, newChildVars)
+          val thenVars = ChildTable(vars)
+          checkStatements(xs, thenVars)
+          val elseVars = ChildTable(vars)
+          checkStatements(ys, elseVars)
+          if (!thenVars.isEmpty && !elseVars.isEmpty) vars.addIf(thenVars, elseVars)
         }
 
         /* check while statement */
@@ -403,11 +356,17 @@ object SemanticChecker {
           if (rtype != BoolType) ErrorLogger.err("invalid type for while cond", rtype, BoolType, p.pos)
 
           /* check semantics of loop body's statements */
-          checkStatements(xs, createChildVars(vars, childVars))
+          val child = ChildTable(vars)
+          checkStatements(xs, child)
+          if (!child.isEmpty) vars.addWhile(child)
         }
 
         /* check begin statement, by checking the semantics of its body's statements */
-        case Begin(xs) => checkStatements(xs, createChildVars(vars, childVars))
+        case Begin(xs) => {
+          val child = ChildTable(vars)
+          checkStatements(xs, child)
+          if (!child.isEmpty) vars.addBegin(child)
+        }
 
         /* defualt case */
         case default =>
@@ -421,15 +380,9 @@ object SemanticChecker {
       })
     }
 
-    /* create a new parent scope by combining the current parent and child identifier maps */
-    def createChildVars(parent: Map[String, Type], child: MapM[String, Type]): Map[String, Type] = child.toMap ++ parent
-
-    /* make global scope map immutable */
-    val varsImm = vars.toMap
-
     /* check semantics of all statements in the program */
-    functions.foreach(func => checkFunction(func, varsImm))
-    checkStatements(statements, varsImm)
+    functions.foreach(func => checkFunction(func))
+    checkStatements(statements, vars)
 
     return errors
   }
