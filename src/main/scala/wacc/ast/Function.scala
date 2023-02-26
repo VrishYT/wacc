@@ -3,6 +3,7 @@ package ast
 
 import wacc.front.ParserBridge._
 import wacc.back._
+import scala.collection.mutable.ListBuffer
 
 /* function case class with position */
 case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
@@ -58,7 +59,6 @@ object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Fu
     import scala.collection.mutable.{ListBuffer}
 
     val Func_Regs = Seq(
-        Register(0),
         Register(1),
         Register(2),
         Register(3),
@@ -71,26 +71,31 @@ object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Fu
         Register(10)
     )
 
-    def generateFunction(id: String, instr: Seq[Instruction]): Seq[Instruction] = Seq(
+    def generateFunction(id: String, instr: Seq[Instruction], regsToSave: Register*): Seq[Instruction] = Seq(
         Label(id),
-        Push{LR}
-    ) ++ (instr :+ Pop{PC})
+        Push{(LR +: regsToSave):_*}
+    ) ++ instr :+ Pop{(PC +: regsToSave):_*}
 
-    def callFunction(id: String, args: Seq[Operand] = Seq(), regsToSave: Seq[Register] = Seq()): Seq[Instruction] = {
+    def callFunction(id: String, args: Seq[Operand] = Seq(), gen: CodeGenerator): Seq[Instruction] = {
 
         if (args.length > Func_Regs.length) println("Too many args to load in") // TODO: load excess into mem 
 
         val range = (0 until args.length.min(Func_Regs.length))
 
-        val regs = (range.map(Register(_)) ++ regsToSave).distinct
-        val push = Push(regs:_*)
-        val loadArgs = range.map(i => args(i) match {
+        val instr = ListBuffer[Instruction]()
+        val regs = range.map(Register(_)).filter(gen.regs.isAllocated(_))
+
+        if (!regs.isEmpty) instr += Push(regs:_*)
+
+        instr ++= range.map(i => args(i) match {
             case x: Register => Mov(Register(i), x)
             case x => Operands.opToReg(x, Register(i)) 
         })
-        val pop = Pop(regs:_*)
 
-        return push +: loadArgs :+ pop
+        instr += LinkBranch(s"wacc_${id}")
+        if (!regs.isEmpty) instr += Pop(regs:_*)
+
+        return instr.toSeq
     }
 
 }
