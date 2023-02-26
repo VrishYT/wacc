@@ -203,7 +203,7 @@ case class Println(x: Expr) extends Stat {
         Print(x).toAssembly(gen, table) ++ Seq(
             Push(Register(0)),
             LinkBranch("_println"),
-            Pop(Register(0), Register(1))
+            Pop(Register(0))
         ) 
     }
 }
