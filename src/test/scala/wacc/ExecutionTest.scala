@@ -4,14 +4,15 @@ import org.scalatest._
 
 import scala.sys.process._
 import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest._
 import java.nio.file.{Files, Paths, Path}
 import java.io.{File, BufferedReader, FileReader}
 import scala.jdk.StreamConverters._
 import scala.jdk.CollectionConverters._
 import scala.collection.mutable.ArrayBuffer
 
-@Ignore
-class ExecutionTest extends AnyFunSuite {
+// @Ignore
+class ExecutionTest extends AnyFunSuite with BeforeAndAfter {
 
     def getOutputAndExit(path: Path): (Int, Seq[String]) = {
         val iterator = new BufferedReader(new FileReader(path.toFile.getAbsolutePath)).lines().toScala(Iterator);
@@ -45,7 +46,7 @@ class ExecutionTest extends AnyFunSuite {
     }
 
     val make = "make".!!
-    var examples = Paths.get("src/test/scala/wacc/wacc_examples/valid/")
+    var examples = Paths.get("src/test/scala/wacc/wacc_examples/valid")
     Files.walk(examples).iterator().asScala.filter(_.getFileName.toString.endsWith(".wacc")).foreach(path => {
         val filename = path.getFileName.toString.replace(".wacc", "")
         val parentPath = path.getParent.toString
@@ -54,7 +55,7 @@ class ExecutionTest extends AnyFunSuite {
             val expected = getOutputAndExit(path)
 
             val compilation = Seq("./compile", path.toString).!!
-            val basename = path.toString.replace(".wacc", "")
+            val basename = path.getFileName.toString.replace(".wacc", "")
             val gcc = Seq("arm-linux-gnueabi-gcc", "-o", basename, "-mcpu=arm1176jzf-s", "-mtune=arm1176jzf-s", basename + ".s").!!
 
             val out = new StringBuilder
@@ -63,8 +64,11 @@ class ExecutionTest extends AnyFunSuite {
 
             val exit = Seq("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", basename).!(logger)
 
+            Seq("rm", basename).!!
+            Seq("rm", basename + ".s").!!
+
             assert(exit == expected._1)
-            assert(out == expected._2.mkString("\n"))
+            assert(out.toString == expected._2.mkString("\n"))
 
         }
     })
