@@ -24,6 +24,7 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
                 table.update(id, label)
                 return (assembly.instr ++ out.instr ++ Seq(Load(out.getReg, DataLabel(label))))
                 }
+                
             case NewPair(fst, snd) => {
                 val assembly1 = fst.toAssembly(gen, table)
                 val assembly2 = snd.toAssembly(gen, table)
@@ -39,7 +40,6 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
                 gen.mem.insert(id, arrAssembly.getOp)
                 return (instrs ++ out.instr ++ arrAssembly.instr)
             }
-
             case _ => {
                 val assembly = rhs.toAssembly(gen, table)
                 return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))
