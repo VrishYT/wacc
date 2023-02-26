@@ -1,0 +1,13 @@
+# evaluating and
+
+# Output:
+# false
+# true
+# false
+#
+
+# Program:
+
+begin
+  print 16 / 0  
+end
