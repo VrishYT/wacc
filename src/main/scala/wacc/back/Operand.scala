@@ -27,6 +27,11 @@ case class Address(reg: Register, op: Operand) extends Operand{
     override def toString(): String = arm11
 }
 
+case class ASR(reg: Register, op: Operand) extends Operand{
+    def arm11: String = reg + "," + " asr " + op 
+    override def toString(): String = arm11
+}
+
 object Operands {
     def opToReg(op: Operand, regs: RegisterAllocator): RegAssembly = op match {
         case x: Register => RegAssembly(x)
