@@ -15,23 +15,20 @@ sealed abstract class PrintSection(val short: String, val format: String, val na
     def toAssembly(): Seq[Instruction] = {
         val label = s".L._print${short}_${name}"
         val size = format.length + 1
-        var ass = Seq(
+        return Seq(
             Section(".data"),
             Directive(s".word $size"),
             Label(label),
             Directive(s".asciz \"${format}\""),
             Section(".text"),
             Label(s"_print${short}"),
-            Push(LR))
-        if (short == "s"){
-            ass ++= Seq(Load(Register(1), Address(Register(0), ImmInt(-4)))) 
-        }
-        ass ++= Seq(Load(Register(0), DataLabel(label)),
+            Push(LR),
+            Load(Register(0), DataLabel(label)),
             LinkBranch("printf"),
             Mov(Register(0), ImmInt(0)),
             LinkBranch("fflush"),
-            Pop(PC))
-        return ass
+            Pop(PC)
+        )
     }
 }
 
