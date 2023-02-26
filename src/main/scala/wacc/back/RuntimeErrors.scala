@@ -1,75 +1,29 @@
-package wacc.back
+package wacc
+package back
 
-abstract class RuntimeErrors extends DataSection 
+import ast.Func
 
-case object DivZeroError extends RuntimeErrors {
-    def toAssembly(): Seq[Instruction] = {
-        return Seq(
-            Section(".data"),
-            Directive(".word 40"),
-            Label(".L._errDivZero_str0"),
-            Directive(".asciz \"fatal error: division or modulo by zero\""),
-            Section(".text"),
-            Label("_errDivZero"),
-            Load(Register(0), DataLabel(".L._errDivZero_str0")),
-            Mov(Register(2), Register(0)),
-            Load(Register(1), Address(Register(0), ImmInt(-4))),
-            LinkBranch("_prints"),
-            Mov(Register(0), ImmInt(255)),
-            LinkBranch("exit")
-        )
-    }
-}
+sealed abstract class RuntimeErrors(val label: String, val msg: String) extends DataSection {
 
-case object ArrayBoundsCheck extends RuntimeErrors {
-    def toAssembly(): Seq[Instruction] = {
-        return Seq(
-            Section(".data"),
-            Directive(".word 42"),
-            Label(".L._boundsCheck_str0"),
-            Directive(".asciz \"fatal error: array index %d out of bounds\n\""),
-            Section(".text"),
-            Label("_boundsCheck"),
-            Load(Register(0), DataLabel(".L._boundsCheck_str0")),
-            LinkBranch("printf"),
-            Mov(Register(0), ImmInt(0)),
-            LinkBranch("fflush"),
-            Mov(Register(0), ImmInt(255)),
-            LinkBranch("exit")
-        )
-    }
-}
+    def generateData: Seq[Instruction] = Seq(
+        Section(".data"),
+        Directive(s".word ${msg.length}"),
+        Label(s".L.${label}_err"),
+        Directive(s".asciz \"${msg}\""),
+        Section(".text")
+    )
 
-case object IntegerOverflow extends RuntimeErrors {
-    def toAssembly(): Seq[Instruction] = {
-        return Seq(
-            Section(".data"),
-            Directive(".word 52"),
-            Label(".L._errOverflow_str0"),
-            Directive(".asciz \"fatal error: integer overflow or underflow occurred\n\""),
-            Section(".text"),
-            Label("_errOverflow"),
-            Load(Register(0), DataLabel(".L._errOverflow_str0")),
-            LinkBranch("_prints"),
-            Mov(Register(0), ImmInt(255)),
-            LinkBranch("exit")
-        )
-    }
-}
+    def generateFunction: Seq[Instruction] = Func.generateFunction(label, Seq(
+        Load(Register(0), DataLabel(s".L.${label}_err")),
+        LinkBranch("_prints"),
+        Mov(Register(0), ImmInt(-1)),
+        LinkBranch("exit")
+    ))
 
-case object NullDereference extends RuntimeErrors {
-    def toAssembly(): Seq[Instruction] = {
-        return Seq(
-            Section(".data"),
-            Directive(".word 45"),
-            Label(".L._errNull_str0"),
-            Directive(".asciz \"fatal error: null pair dereferenced or freed\n\""),
-            Section(".text"),
-            Label("_errNull"),
-            Load(Register(0), DataLabel(".L._errNull_str0")),
-            LinkBranch("_prints"),
-            Mov(Register(0), ImmInt(255)),
-            LinkBranch("exit")
-        )
-    }
-}
+    def toAssembly(): Seq[Instruction] = generateData ++ generateFunction
+} 
+
+case object DivZeroError extends RuntimeErrors ("_errDivZero", "fatal error: division or modulo by zero")
+case object ArrayBoundsCheck extends RuntimeErrors ("_boundsCheck", "fatal error: array index %d out of bounds")
+case object IntegerOverflow extends RuntimeErrors ("_errOverflow", "fatal error: integer overflow or underflow occurred")
+case object NullDereference extends RuntimeErrors ("_errNull", "fatal error: null pair dereferenced or freed")
