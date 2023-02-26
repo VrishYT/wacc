@@ -15,6 +15,8 @@ sealed abstract class RuntimeErrors(val label: String, val msg: String) extends 
 
     def generateFunction: Seq[Instruction] = Func.generateFunction(label, Seq(
         Load(Register(0), DataLabel(s".L.${label}_err")),
+        Mov(Register(2), Register(0)),
+        Load(Register(1), Address(Register(0), ImmInt(-4))),
         LinkBranch("_prints"),
         Mov(Register(0), ImmInt(-1)),
         LinkBranch("exit")
