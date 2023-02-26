@@ -42,39 +42,40 @@ case class Assign(x: LValue, y: RValue) extends Stat {
 object Assign extends ParserBridge2[LValue, RValue, Assign]
 
 case class Read(x: LValue) extends Stat {
-    override def toAssembly(regs: RegisterAllocator, symbolTable: SymbolTable): Seq[Instruction] = {
-        x match {
-            case id@Ident(i) => {
-                val identType = symbolTable.getType(i)
-                val ass = id.toAssembly(regs, symbolTable)
-                identType match {
-                    case IntType => {
-                        symbolTable.post.addOne(ReadIntSection)
-                        return ass.instr ++ Seq(
-                            Push(Register(12)),
-                            Push(Register(0), Register(1)),
-                            Mov(Register(0), ass.getReg()),
-                            LinkBranch("_readi"),
-                            Mov(Register(12), Register(0)),
-                            Pop(Register(0), Register(1)),
-                            Mov(ass.getReg, Register(12)),
-                            Pop(Register(12))
-                        )} 
-                    case CharType => 
-                        symbolTable.post.addOne(ReadCharSection)
-                        return ass.instr ++ Seq(
-                            Push(Register(0), Register(1)),
-                            Mov(Register(0), ass.getReg()),
-                            LinkBranch("_readc"),
-                            Mov(Register(12), Register(0)),
-                            Pop(Register(0), Register(1)),
-                            Mov(ass.getReg, Register(12)),
-                            Pop(Register(12))
-                        )
-                    case StringType => Seq()
-                }
-            }
-        }
+    override def toAssembly(gen: CodeGenerator): Seq[Instruction] = {
+        Seq()
+        // x match {
+        //     case id@Ident(i) => {
+        //         val identType = symbolTable.getType(i)
+        //         val ass = id.toAssembly(regs, symbolTable)
+        //         identType match {
+        //             case IntType => {
+        //                 symbolTable.post.addOne(ReadIntSection)
+        //                 return ass.instr ++ Seq(
+        //                     Push(Register(12)),
+        //                     Push(Register(0), Register(1)),
+        //                     Mov(Register(0), ass.getReg()),
+        //                     LinkBranch("_readi"),
+        //                     Mov(Register(12), Register(0)),
+        //                     Pop(Register(0), Register(1)),
+        //                     Mov(ass.getReg, Register(12)),
+        //                     Pop(Register(12))
+        //                 )} 
+        //             case CharType => 
+        //                 symbolTable.post.addOne(ReadCharSection)
+        //                 return ass.instr ++ Seq(
+        //                     Push(Register(0), Register(1)),
+        //                     Mov(Register(0), ass.getReg()),
+        //                     LinkBranch("_readc"),
+        //                     Mov(Register(12), Register(0)),
+        //                     Pop(Register(0), Register(1)),
+        //                     Mov(ass.getReg, Register(12)),
+        //                     Pop(Register(12))
+        //                 )
+        //             case StringType => Seq()
+        //         }
+        //     }
+        // }
     }
 }
 
@@ -137,23 +138,13 @@ case class Print(x: Expr) extends Stat {
             }
             case unop@UnaryOpExpr(op, _) => {
                 val unopType = op.output 
-                val ass = unop.toAssembly(regs, symbolTable)
-                return ass.instr ++ printValue(unopType, ass.getOp(), regs, symbolTable)
+                val ass = unop.toAssembly(gen)
+                return ass.instr ++ printValue(unopType, ass.getOp(), gen)
             }
             case binop@BinaryOpExpr(op, _, _) => {
                 val binopType = op.output 
-                val ass = binop.toAssembly(regs, symbolTable)
-                return ass.instr ++ printValue(binopType, ass.getOp(), regs, symbolTable)
-            }
-            case unop@UnaryOpExpr(op, _) => {
-                val unopType = op.output 
-                val ass = unop.toAssembly(regs, symbolTable)
-                return ass.instr ++ printValue(unopType, ass.getOp(), regs, symbolTable)
-            }
-            case binop@BinaryOpExpr(op, _, _) => {
-                val binopType = op.output 
-                val ass = binop.toAssembly(regs, symbolTable)
-                return ass.instr ++ printValue(binopType, ass.getOp(), regs, symbolTable)
+                val ass = binop.toAssembly(gen)
+                return ass.instr ++ printValue(binopType, ass.getOp(), gen)
             }
             case _ => return Seq()
         }
@@ -164,7 +155,7 @@ case class Print(x: Expr) extends Stat {
     def printValue(baseType: Type, operand: Operand, gen: CodeGenerator) : Seq[Instruction] = {
         baseType match {
             case StringType => {
-                // gen.symbolTable.post.addOne(PrintStringSection) // TODO
+                gen.postSections.addOne(PrintStringSection) 
                 return Seq(
                     Push(Register(0), Register(1), Register(2)),
                     Mov(Register(2), operand),
@@ -174,7 +165,7 @@ case class Print(x: Expr) extends Stat {
                 )
             }
             case IntType => {
-                // symbolTable.post.addOne(PrintIntSection) // TODO
+                gen.postSections.addOne(PrintIntSection)
                 return Seq(
                     Push(Register(0), Register(1)),
                     Mov(Register(1), operand),
@@ -183,7 +174,7 @@ case class Print(x: Expr) extends Stat {
                 )
             }
             case CharType => {
-                // symbolTable.post.addOne(PrintCharSection) // TODO
+                gen.postSections.addOne(PrintCharSection)
                 return Seq(
                     Push(Register(0), Register(1)),
                     Mov(Register(1), operand),
@@ -192,7 +183,7 @@ case class Print(x: Expr) extends Stat {
                 )
             }
             case BoolType => {
-                //symbolTable.post.addOne(PrintBoolSection) // TODO
+                gen.postSections.addOne(PrintBoolSection)
                 return Seq(
                     Push(Register(0)),
                     Mov(Register(0), operand),
@@ -209,7 +200,7 @@ object Print extends ParserBridge1[Expr, Print]
 
 case class Println(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator): Seq[Instruction] = {
-        // symbolTable.post.addOne(PrintNewLine) // TODO
+        gen.postSections.addOne(PrintNewLine)
         Print(x).toAssembly(gen) ++ Seq(
             Push(Register(0)),
             LinkBranch("_println"),
