@@ -15,8 +15,31 @@ sealed abstract class Table extends TableEntry {
     def isInFunction: Boolean
     def getReturnType: Type
 
-    val table = MapM[String, TableEntry]()
+    private val table = MapM[String, TableEntry]()
 
+    // ONLY USE IN BACK-END - assumes semantic correctness
+    def getType(id: String): Type = getSymbol(id) match {
+        case Some(x) => x.t
+        case None => ???
+    }
+
+    private def update(id: String, symbol: Symbol): Unit = {
+        table(id) = symbol
+    }
+    
+    def update(id: String, reg: Register): Unit = {
+        table(id) = RegSymbol(getType(id), reg)
+    }
+
+    def update(id: String, addr: Int): Unit = {
+        table(id) = MemSymbol(getType(id), addr)
+    }
+    
+    def update(id: String, label: String): Unit = {
+        table(id) = LabelSymbol(getType(id), label)
+    }
+
+    // USED FOR FRONT-END
     def add(id: String, symbol: Symbol): Boolean = {
         getSymbol(id) match {
             case Some(x) => x match {

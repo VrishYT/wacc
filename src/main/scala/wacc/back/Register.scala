@@ -39,10 +39,10 @@ class RegisterAllocator {
     import scala.collection.mutable.{Map => MapM}
 
     // TODO: make private
-    val table = MapM[String, Register]() 
+    private val table = MapM[String, Register]() 
 
     // TODO: check if still needed after re-implement
-    val regsInUse = Queue[Register]()
+    private val regsInUse = Queue[Register]()
     // val savedRegs = Queue[Register]()
 
     val freeRegs = Queue(
@@ -59,6 +59,8 @@ class RegisterAllocator {
         Register(10), 
         Register(12)
     )
+
+    def isAllocated(reg: Register): Boolean = regsInUse.contains(reg)
 
     def link(id: String, reg: Register): Unit = {
         table(id) = reg
