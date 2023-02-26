@@ -14,7 +14,7 @@ abstract class DataSection {
 sealed abstract class PrintSection(val short: String, val format: String, val name: String) extends DataSection {
     def toAssembly(): Seq[Instruction] = {
         val label = s".L._print${short}_${name}"
-        val size = format.length + 1
+        val size = format.length
         return Seq(
             Section(".data"),
             Directive(s".word $size"),
