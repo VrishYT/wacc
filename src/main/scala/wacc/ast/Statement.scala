@@ -29,7 +29,7 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
                 val assembly1 = fst.toAssembly(gen)
                 val assembly2 = snd.toAssembly(gen)
                 val pairAssembly = gen.mem.mallocPair(assembly1.getOp, assembly2.getOp)
-                // add to some table: id => pairAssembly.getOp
+                gen.mem.insert(id, pairAssembly.getOp)
                 return (assembly1.instr ++ assembly2.instr ++ pairAssembly.instr)
             }
 
