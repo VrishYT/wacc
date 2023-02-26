@@ -12,6 +12,8 @@ case object DivZeroError extends RuntimeErrors {
             Section(".text"),
             Label("_errDivZero"),
             Load(Register(0), DataLabel(".L._errDivZero_str0")),
+            Mov(Register(2), Register(0)),
+            Load(Register(1), Address(Register(0), ImmInt(-4))),
             LinkBranch("_prints"),
             Mov(Register(0), ImmInt(255)),
             LinkBranch("exit")
