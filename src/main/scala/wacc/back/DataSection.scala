@@ -65,6 +65,70 @@ case object PrintBoolSection extends DataSection {
 }
 
 
+case object ReadIntSection extends DataSection {
+    def toAssembly(): Seq[Instruction] = {
+        return Seq(
+            Section(".data"),
+            Directive(".word 2"),
+            Label(".L._readi_str0"),
+            Directive(".asciz \"%d\""),
+            Section(".text"),
+            Label("_readi"),
+            Push(LR),
+            Push(Register(0)),
+            Mov(Register(1), SP),
+            Load(Register(0), DataLabel(".L._readi_str0")),
+            LinkBranch("scanf"),
+            Load(Register(0), Address(SP, ImmInt(0))),
+            Add(SP, SP, ImmInt(4)),
+		    Pop(PC)
+        )
+    }
+}
+
+case object ReadCharSection extends DataSection {
+    def toAssembly(): Seq[Instruction] = {
+        return Seq(
+            Section(".data"),
+            Directive(".word 3"),
+            Label(".L._readc_str0"),
+            Directive(".asciz \" %c\""),
+            Section(".text"),
+            Label("_readc"),
+            Push(LR),
+            Push(Register(0)),
+            Mov(Register(1), SP),
+            Load(Register(0), DataLabel("=.L._readc_str0")),
+            LinkBranch("scanf"),
+            Load(Register(0), Address(SP, ImmInt(0))),
+            Add(SP, SP, ImmInt(1)),
+		    Pop(PC)
+        )
+    }
+}
+
+// case object ReadCharSection extends DataSection {
+//     def toAssembly(): Seq[Instruction] = {
+//         return Seq{
+//             Section(".data"),
+//             Directive(".word 3"),
+//             Label(".L._readc_str0"),
+// 		    Directive(".asciz \" %c\""),
+//             Section(".text"),
+//             Label("_readc"),
+// 		    Push(LR),
+//             Push(Register(0)),
+//             Mov(Register(1), SP),
+//             Load(Register(0), DataLabel("=.L._readc_str0")),
+//             LinkBranch("scanf"),
+// 		    Load(Register(0), Address(SP, ImmInt(0))),
+// 		    Add(SP, SP, ImmInt(1)),
+// 		    Pop(PC)
+//         }
+//     }
+// }
+
+
 class TextSection extends DataSection {
 
     // TODO: change key type to label ???
