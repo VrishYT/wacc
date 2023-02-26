@@ -51,7 +51,7 @@ case class CodeGenerator(val symbolTable: SymbolTable) {
 
     val labels = new LabelGenerator
     val regs = new RegisterAllocator
-    // val mem = new MemoryAllocator
+    val mem = new MemoryAllocator
 
     def toAssembly(program: Program): String = {
         val out = program.toAssembly(this)

@@ -15,14 +15,27 @@ case object Skip extends Stat with ParserBridge0[Stat]
 
 case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator): Seq[Instruction] = {
-        val assembly = rhs.toAssembly(gen)
-        val out = gen.regs.allocate(id)
+        //val assembly = rhs.toAssembly(gen)
+        //val out = gen.regs.allocate(id)
         rhs match {
             case StrLiteral(string) => {
+                val assembly = rhs.toAssembly(gen)
+                val out = gen.regs.allocate(id)
                 val label = assembly.getOp.toString
                 // gen.symbolTable.add(id, t, label) // TODO
                 return (assembly.instr ++ out.instr ++ Seq(Load(out.getReg, DataLabel(label))))}
+
+            case NewPair(fst, snd) => {
+                val assembly1 = fst.toAssembly(gen)
+                val assembly2 = snd.toAssembly(gen)
+                val pairAssembly = gen.mem.mallocPair(assembly1.getOp, assembly2.getOp)
+                // add to some table: id => pairAssembly.getOp
+                return (assembly1.instr ++ assembly2.instr ++ pairAssembly.instr)
+            }
+
             case _ => {
+                val assembly = rhs.toAssembly(gen)
+                val out = gen.regs.allocate(id)
                 return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))} 
         }
     }
