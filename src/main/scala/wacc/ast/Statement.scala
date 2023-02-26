@@ -15,24 +15,24 @@ case object Skip extends Stat with ParserBridge0[Stat]
 
 case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
-        val assembly = rhs.toAssembly(gen, table)
+        //val assembly = rhs.toAssembly(gen, table)
         val out = gen.regs.allocate(id)
         rhs match {
             case StrLiteral(string) => {
-                val assembly = rhs.toAssembly(gen)
+                val assembly = rhs.toAssembly(gen, table)
                 val label = assembly.getOp.toString
                 table.update(id, label)
                 return (assembly.instr ++ out.instr ++ Seq(Load(out.getReg, DataLabel(label))))
                 }
             case NewPair(fst, snd) => {
-                val assembly1 = fst.toAssembly(gen)
-                val assembly2 = snd.toAssembly(gen)
+                val assembly1 = fst.toAssembly(gen, table)
+                val assembly2 = snd.toAssembly(gen, table)
                 val pairAssembly = gen.mem.mallocPair(assembly1.getOp, assembly2.getOp, out.getReg)
                 gen.mem.insert(id, pairAssembly.getOp)
                 return (assembly1.instr ++ assembly2.instr ++ out.instr ++ pairAssembly.instr)
             }
             case ArrayLiteral(xs) => {
-                val assemblies = xs.map(x => x.toAssembly(gen))
+                val assemblies = xs.map(x => x.toAssembly(gen, table))
                 val instrs = (assemblies.map(x => x.instr)).flatten
                 val ops = (assemblies.map(x => x.getOp))
                 val arrAssembly = gen.mem.mallocArray(ops, out.getReg)
@@ -41,7 +41,7 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
             }
 
             case _ => {
-                val assembly = rhs.toAssembly(gen)
+                val assembly = rhs.toAssembly(gen, table)
                 return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))
                 } 
         }

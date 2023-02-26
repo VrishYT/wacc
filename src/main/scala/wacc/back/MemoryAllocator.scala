@@ -7,11 +7,12 @@ class MemoryAllocator {
     val table = MapM[String, Operand]()
     val elemSize = 4
 
+    val malloc = LinkBranch("malloc")
+
     def mallocPair(fst: Operand, snd: Operand, out: Register): Assembly = {
 
         val pop = Pop(Register(8))
         val push = Push(Register(8))
-        val malloc = LinkBranch("malloc")
 
         def mallocElem(elem: Operand): Seq[Instruction] = {
             val instrs = Seq()
@@ -56,7 +57,24 @@ class MemoryAllocator {
     }
 
     def mallocArray(xs: List[Operand], out: Register): Assembly = {
-        val assembly = Assembly(Address(FP, ImmInt(0)))
+        val instrs = Seq()
+        val numElems = xs.length
+
+        instrs :+ Mov(Register(0), ImmInt(elemSize * (numElems + 1)))
+        instrs :+ malloc
+        instrs :+ Mov(out, Register(0))
+        instrs :+ Add(out, out, ImmInt(elemSize))
+        instrs :+ Mov(Register(8), ImmInt(numElems))
+        instrs :+ Store(Register(8), Address(out, ImmInt(-elemSize)))
+
+        for (elem <- 1 to numElems) {
+            instrs :+ Mov(Register(8), xs(elem - 1))
+            instrs :+ Store(Register(8), Address(out, ImmInt((elem - 1) * elemSize)))
+        }
+
+        instrs :+ Mov(Register(8), out)
+
+        val assembly = Assembly(out, instrs)
         return (assembly)
     }
 
