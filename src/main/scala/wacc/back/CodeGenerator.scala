@@ -44,8 +44,10 @@ object TODOAssembly extends RegAssembly(None, Seq[Instruction](), AL)
 case class CodeGenerator(val symbolTable: SymbolTable) {
     
     val text = new TextSection
-    val preSections = SetM[DataSection]()
-    val postSections = SetM[DataSection]()
+    val preSections = scala.collection.mutable.Set[DataSection]()
+    val postSections = scala.collection.mutable.Set[DataSection]()
+
+    // preSections.addOne(PrintStringSection)
 
     val labels = new LabelGenerator
     val regs = new RegisterAllocator
