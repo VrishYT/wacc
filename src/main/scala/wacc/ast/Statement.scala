@@ -27,7 +27,7 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
             case NewPair(fst, snd) => {
                 val assembly1 = fst.toAssembly(gen)
                 val assembly2 = snd.toAssembly(gen)
-                val pairAssembly = gen.mem.mallocPair(assembly1.getOp, assembly2.getOp, out.getOp)
+                val pairAssembly = gen.mem.mallocPair(assembly1.getOp, assembly2.getOp, out.getReg)
                 gen.mem.insert(id, pairAssembly.getOp)
                 return (assembly1.instr ++ assembly2.instr ++ out.instr ++ pairAssembly.instr)
             }
@@ -35,7 +35,7 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
                 val assemblies = xs.map(x => x.toAssembly(gen))
                 val instrs = (assemblies.map(x => x.instr)).flatten
                 val ops = (assemblies.map(x => x.getOp))
-                val arrAssembly = gen.mem.mallocArray(ops, out.getOp)
+                val arrAssembly = gen.mem.mallocArray(ops, out.getReg)
                 gen.mem.insert(id, arrAssembly.getOp)
                 return (instrs ++ out.instr ++ arrAssembly.instr)
             }
