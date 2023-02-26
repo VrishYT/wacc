@@ -16,11 +16,10 @@ case object Skip extends Stat with ParserBridge0[Stat]
 case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator): Seq[Instruction] = {
         //val assembly = rhs.toAssembly(gen)
-        //val out = gen.regs.allocate(id)
+        val out = gen.regs.allocate(id)
         rhs match {
             case StrLiteral(string) => {
                 val assembly = rhs.toAssembly(gen)
-                val out = gen.regs.allocate(id)
                 val label = assembly.getOp.toString
                 // gen.symbolTable.add(id, t, label) // TODO
                 return (assembly.instr ++ out.instr ++ Seq(Load(out.getReg, DataLabel(label))))
@@ -28,22 +27,21 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
             case NewPair(fst, snd) => {
                 val assembly1 = fst.toAssembly(gen)
                 val assembly2 = snd.toAssembly(gen)
-                val pairAssembly = gen.mem.mallocPair(assembly1.getOp, assembly2.getOp)
+                val pairAssembly = gen.mem.mallocPair(assembly1.getOp, assembly2.getOp, out.getOp)
                 gen.mem.insert(id, pairAssembly.getOp)
-                return (assembly1.instr ++ assembly2.instr ++ pairAssembly.instr)
+                return (assembly1.instr ++ assembly2.instr ++ out.instr ++ pairAssembly.instr)
             }
             case ArrayLiteral(xs) => {
                 val assemblies = xs.map(x => x.toAssembly(gen))
                 val instrs = (assemblies.map(x => x.instr)).flatten
                 val ops = (assemblies.map(x => x.getOp))
-                val arrAssembly = gen.mem.mallocArray(ops)
+                val arrAssembly = gen.mem.mallocArray(ops, out.getOp)
                 gen.mem.insert(id, arrAssembly.getOp)
-                return (instrs ++ arrAssembly.instr)
+                return (instrs ++ out.instr ++ arrAssembly.instr)
             }
 
             case _ => {
                 val assembly = rhs.toAssembly(gen)
-                val out = gen.regs.allocate(id)
                 return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))
                 } 
         }
