@@ -80,7 +80,7 @@ object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Fu
 
         if (args.length > Func_Regs.length) println("Too many args to load in") // TODO: load excess into mem 
 
-        val range = (1 until args.length.min(Func_Regs.length))
+        val range = (0 until args.length.min(Func_Regs.length))
 
         val instr = ListBuffer[Instruction]()
         val regs = range.map(Register(_)).filter(gen.regs.isAllocated(_))
@@ -88,8 +88,8 @@ object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Fu
         if (!regs.isEmpty) instr += Push(regs:_*)
 
         instr ++= range.map(i => args(i) match {
-            case x: Register => Mov(Register(i), x)
-            case x => Operands.opToReg(x, Register(i)) 
+            case x: Register => Mov(Register(i + 1), x)
+            case x => Operands.opToReg(x, Register(i + 1)) 
         })
 
         instr += LinkBranch(s"wacc_${id}")
