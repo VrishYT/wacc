@@ -183,6 +183,7 @@ case class Print(x: Expr) extends Stat {
             }
             case BoolType => {
                 gen.postSections.addOne(PrintBoolSection)
+                gen.postSections.addOne(PrintStringSection) 
                 return Seq(
                     Push(Register(0)),
                     Mov(Register(0), operand),
