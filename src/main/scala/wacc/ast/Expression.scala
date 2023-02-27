@@ -48,7 +48,12 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
     val expr = x.toAssembly(gen, table)
 
     return op match {
-      case Not => expr.not()
+      case Not => {
+        expr.getOp match {
+          case x: Register => Assembly(x, expr.instr ++ Seq(Xor(x, x, ImmInt(1))), expr.cond)
+          case _ => expr.not()
+        }
+      }
       case Ord | Chr => expr
       case Negate => {
         val out = gen.regs.allocate
