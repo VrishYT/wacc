@@ -19,8 +19,8 @@ case class Mul(dest: Register, src: Register, op: Operand) extends Instruction {
     override def toString(): String = s"\tmul $dest, $src, $op"
 }
 
-case class SMull(dstHi: Register, dstLow: Register, src: Register, op: Operand) extends Instruction{
-    override def toString(): String = s"\tsmull $dstHi, $dstLow, $src, $op"
+case class SMull(dstHi: Register, dstLow: Register, reg1: Register, reg2: Register) extends Instruction{
+    override def toString(): String = s"\tsmull $dstHi, $dstLow, $reg1, $reg2"
 }
 
 case class DivMod() extends Instruction{
