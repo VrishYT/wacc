@@ -11,7 +11,18 @@ trait Expr extends RValue
 
 /* atomic types as case classes */
 case class IntLiteral(x: Int)(val pos: (Int, Int)) extends Expr {
-  override def toAssembly(gen: CodeGenerator, table: Table): Assembly = Assembly(ImmInt(x))
+  override def toAssembly(gen: CodeGenerator, table: Table): Assembly = {
+    if (x < 0 || x > 65536){
+      val out = gen.regs.allocate
+      val instr: Seq[Instruction] = Seq(
+        Load(out.getReg, DataLabel(x + ""))
+      )
+      return RegAssembly(out.getReg, instr);
+    }else{
+      return Assembly(ImmInt(x));
+    }
+
+  } 
 } 
 
 case class CharLiteral(x: Char)(val pos: (Int, Int)) extends Expr {
@@ -42,7 +53,9 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
       case Negate => {
         val out = gen.regs.allocate
         val reg = gen.regs.allocate
-        Assembly(out.getReg, (reg.instr :+ back.Mov(reg.getReg, ImmInt(0))) ++ out.instr ++ (back.Sub(out.getReg, reg.getReg, expr.getOp) +: expr.instr))
+        gen.postSections.addOne(PrintStringSection)
+        gen.postSections.addOne(IntegerOverflow)
+        Assembly(out.getReg, (reg.instr :+ back.Mov(reg.getReg, ImmInt(0))) ++ out.instr ++ Seq (back.Sub(out.getReg, reg.getReg, expr.getOp), LinkBranch("_errOverflow", VS)) ++ expr.instr)
       }
       case Length => ??? // TODO
     }
@@ -56,6 +69,8 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
 
     def binaryOpToAssembly(out: Register, x: Register, y: Operand): Seq[Instruction] = op match {
       case ast.Mul => {
+        gen.postSections.addOne(PrintStringSection)
+        gen.postSections.addOne(IntegerOverflow)
         val out3 = gen.regs.allocate
         val out2 = gen.regs.allocate
         Seq(

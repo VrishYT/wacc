@@ -4,7 +4,7 @@ package ast
 import wacc.back._
 import parsley.genericbridges._ 
 
-// TODO: modify AST to take CodeGenearator instances
+// TODO: modify AST to take CodeGenerator instances
 
 /* statements as objects extending the sealed trait Stat */
 sealed trait Stat {
