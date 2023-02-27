@@ -60,19 +60,26 @@ class MemoryAllocator {
         val instrs = Seq()
         val numElems = xs.length
 
+        /* Malloc for the size of array */
         instrs :+ Mov(Register(0), ImmInt(elemSize * (numElems + 1)))
         instrs :+ malloc
+
+        /* Set out to malloced address + elemSize */
         instrs :+ Mov(out, Register(0))
         instrs :+ Add(out, out, ImmInt(elemSize))
+
+        /* Store array length at malloced memory location */
         instrs :+ Mov(Register(8), ImmInt(numElems))
         instrs :+ Store(Register(8), Address(out, ImmInt(-elemSize)))
 
+        /* Store array elems in correct mem location */
         for (elem <- 1 to numElems) {
             instrs :+ Mov(Register(8), xs(elem - 1))
             instrs :+ Store(Register(8), Address(out, ImmInt((elem - 1) * elemSize)))
         }
 
-        instrs :+ Mov(Register(8), out)
+        /* Store address of first element in out */
+        instrs :+ Mov(out, Register(8))
 
         val assembly = Assembly(out, instrs)
         return (assembly)
