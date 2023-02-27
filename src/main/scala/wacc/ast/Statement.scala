@@ -15,7 +15,7 @@ case object Skip extends Stat with ParserBridge0[Stat]
 
 case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
-        val assembly = rhs.toAssembly(gen, table)
+        val assembly = rhs.toAssembly(gen, table).condToReg(gen.regs)
         val out = gen.regs.allocate(id)
         rhs match {
             case StrLiteral(string) => {
@@ -32,7 +32,7 @@ object Declare extends ParserBridge3[Type, String, RValue, Declare]
 
 case class Assign(x: LValue, y: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
-        val rhsAssembly = y.toAssembly(gen, table)
+        val rhsAssembly = y.toAssembly(gen, table).condToReg(gen.regs)
         val lval = x.toAssembly(gen, table)
 
         return (lval.instr ++ rhsAssembly.instr ++ Seq(Mov(lval.getReg, rhsAssembly.getOp)))
@@ -137,12 +137,12 @@ case class Print(x: Expr) extends Stat {
             }
             case unop@UnaryOpExpr(op, _) => {
                 val unopType = op.output 
-                val ass = unop.toAssembly(gen, table)
+                val ass = unop.toAssembly(gen, table).condToReg(gen.regs)
                 return ass.instr ++ printValue(unopType, ass.getOp(), gen)
             }
             case binop@BinaryOpExpr(op, _, _) => {
                 val binopType = op.output 
-                val ass = binop.toAssembly(gen, table)
+                val ass = binop.toAssembly(gen, table).condToReg(gen.regs)
                 return ass.instr ++ printValue(binopType, ass.getOp(), gen)
             }
             case _ => return Seq()

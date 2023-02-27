@@ -48,8 +48,8 @@ case class Len(dest: Register, op: Operand) extends Instruction {
 }
 
 /* Loading and storing Instructions */
-case class Mov(dest: Register, op: Operand) extends Instruction {
-    override def toString(): String = s"\tmov $dest, $op"
+case class Mov(dest: Register, op: Operand, cond: Condition = AL) extends Instruction {
+    override def toString(): String = s"\tmov${cond.toString.toLowerCase()} $dest, $op"
 }
 case class Load(dest: Register, src: Operand) extends Instruction {
     override def toString(): String = s"\tldr $dest, $src"

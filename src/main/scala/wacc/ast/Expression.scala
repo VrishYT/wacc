@@ -12,7 +12,7 @@ trait Expr extends RValue
 /* atomic types as case classes */
 case class IntLiteral(x: Int)(val pos: (Int, Int)) extends Expr {
   override def toAssembly(gen: CodeGenerator, table: Table): Assembly = {
-    if (x < 0 || x > 65536){
+    if (x < 0 || x > 255){
       val out = gen.regs.allocate
       val instr: Seq[Instruction] = Seq(
         Load(out.getReg, DataLabel(x + ""))
