@@ -69,7 +69,7 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
           Mov(Register(1), y),
           Cmp(Register(1), ImmInt(0)),
           LinkBranch("_errDivZero", EQ),
-          Div(),
+          DivMod(),
           Mov(out, Register(0))
         )
       }
@@ -87,6 +87,18 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
         Seq(
           Sub(out, x, y),
           LinkBranch("_errOverflow", VS)
+        )
+      }
+      case ast.Mod => {
+        gen.postSections.addOne(PrintStringSection)
+        gen.postSections.addOne(DivZeroError)
+        Seq(
+          Mov(Register(0), x),
+          Mov(Register(1), y),
+          Cmp(Register(1), ImmInt(0)),
+          LinkBranch("_errDivZero", EQ),
+          DivMod(),
+          Mov(out, Register(1))
         )
       }
       case ast.And => Seq(And(out, x, y))
