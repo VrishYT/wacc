@@ -5,20 +5,24 @@ import org.scalatest._
 import scala.sys.process._
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest._
+import org.scalatest.concurrent.TimeLimitedTests
+import org.scalatest.time.{Span, Seconds}
 import java.nio.file.{Files, Paths, Path}
 import java.io.{File, BufferedReader, FileReader}
 import scala.jdk.StreamConverters._
 import scala.jdk.CollectionConverters._
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.ListBuffer
 
 // @Ignore
-class ExecutionTest extends AnyFunSuite with BeforeAndAfter {
+class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTests {
+
+    val timeLimit = Span(3, Seconds)
 
     def getOutputAndExit(path: Path): (Int, Seq[String]) = {
         val iterator = new BufferedReader(new FileReader(path.toFile.getAbsolutePath)).lines().toScala(Iterator);
 
-        def getOutput: ArrayBuffer[String] = {
-            val output = ArrayBuffer[String]()
+        def getOutput: ListBuffer[String] = {
+            val output = ListBuffer[String]()
             while (iterator.hasNext) {
                 val line = iterator.next().trim
                 if (line.startsWith("#")) {
@@ -58,9 +62,9 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter {
             val basename = path.getFileName.toString.replace(".wacc", "")
             val gcc = Seq("arm-linux-gnueabi-gcc", "-o", basename, "-mcpu=arm1176jzf-s", "-mtune=arm1176jzf-s", basename + ".s").!!
 
-            val out = new StringBuilder
-            val err = new StringBuilder
-            val logger = ProcessLogger(stdout append _, stderr append _)
+            var out = ""
+            var err = ""
+            val logger = ProcessLogger(out += _, err += _)
 
             val exit = Seq("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", basename).!(logger)
 
@@ -68,7 +72,7 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter {
             Seq("rm", basename + ".s").!!
 
             assert(exit == expected._1)
-            assert(out.toString == expected._2.mkString("\n"))
+            assert(out == expected._2.mkString)
 
         }
     })
