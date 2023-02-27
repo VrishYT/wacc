@@ -25,7 +25,7 @@ sealed abstract class RuntimeErrors(val label: String, val msg: String) extends 
     def toAssembly(): Seq[Instruction] = generateData ++ generateFunction
 } 
 
-case object DivZeroError extends RuntimeErrors ("_errDivZero", "fatal error: division or modulo by zero")
-case object ArrayBoundsCheck extends RuntimeErrors ("_boundsCheck", "fatal error: array index %d out of bounds")
-case object IntegerOverflow extends RuntimeErrors ("_errOverflow", "fatal error: integer overflow or underflow occurred")
-case object NullDereference extends RuntimeErrors ("_errNull", "fatal error: null pair dereferenced or freed")
+case object DivZeroError extends RuntimeErrors ("_errDivZero", "#runtime_error#")
+case object ArrayBoundsCheck extends RuntimeErrors ("_boundsCheck", "#runtime_error#")
+case object IntegerOverflow extends RuntimeErrors ("_errOverflow", "#runtime_error#")
+case object NullDereference extends RuntimeErrors ("_errNull", "#runtime_error#")
