@@ -39,10 +39,10 @@ class RegisterAllocator {
     import scala.collection.mutable.{Map => MapM}
 
     // TODO: make private
-    val table = MapM[String, Register]() 
+    private val table = MapM[String, Register]() 
 
     // TODO: check if still needed after re-implement
-    val regsInUse = Queue[Register]()
+    private val regsInUse = Queue[Register]()
     // val savedRegs = Queue[Register]()
 
     val freeRegs = Queue(
@@ -59,6 +59,8 @@ class RegisterAllocator {
         Register(10), 
         Register(12)
     )
+
+    def isAllocated(reg: Register): Boolean = regsInUse.contains(reg)
 
     def link(id: String, reg: Register): Unit = {
         table(id) = reg
@@ -83,25 +85,25 @@ class RegisterAllocator {
         return reg
     }
 
-    def allocate(id: String, mem: MemoryAllocator): RegAssembly = {
-        val reg = allocate(mem)
-        link(id, reg.getReg)
-        return reg
-    }
+    // def allocate(id: String, mem: MemoryAllocator): RegAssembly = {
+    //     val reg = allocate(mem)
+    //     link(id, reg.getReg)
+    //     return reg
+    // }
 
-    def allocate(mem: MemoryAllocator): RegAssembly = {
+    // def allocate(mem: MemoryAllocator): RegAssembly = {
 
-        def realloc(): RegAssembly = {
-            val reg = regsInUse.head
-            val id = table.filter(_._2 == reg).head._1
-            val assembly = mem.allocate(id)
-            return RegAssembly(reg, assembly.instr)
-        }
+    //     def realloc(): RegAssembly = {
+    //         val reg = regsInUse.head
+    //         val id = table.filter(_._2 == reg).head._1
+    //         // val assembly = mem.allocate(id)
+    //         return RegAssembly(reg, assembly.instr)
+    //     }
 
-        val reg = if (freeRegs.isEmpty) realloc() else RegAssembly(freeRegs.dequeue)
-        regsInUse.enqueue(reg.getReg)
-        return reg
-    }
+    //     val reg = if (freeRegs.isEmpty) realloc() else RegAssembly(freeRegs.dequeue)
+    //     regsInUse.enqueue(reg.getReg)
+    //     return reg
+    // }
 
     def get(id: String): Register = table.get(id) match {
         case Some(x) => x

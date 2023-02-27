@@ -19,7 +19,7 @@ class Compiler(private val file: File) {
     import wacc.front.Lexing.{lexer, keywords}
 
     private var program: Option[Program] = None 
-    private val symbolTable = new SymbolTable(new TextSection)
+    private val symbolTable = new SymbolTable
 
     def parse(): Boolean = {
         val pNode = Parser.program
@@ -78,7 +78,9 @@ class Compiler(private val file: File) {
                 writer.close
             } 
 
-            writeToFile(CodeGenerator.generate(x, symbolTable))
+            val gen = new CodeGenerator(symbolTable)
+            val out = gen.toAssembly(x)
+            writeToFile(out)
         }
         case None => ErrorLogger.err("generate called before parse/typecheck", 1)
     }
