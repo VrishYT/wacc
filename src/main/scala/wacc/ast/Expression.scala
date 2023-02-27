@@ -71,12 +71,11 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
       case ast.Mul => {
         gen.postSections.addOne(PrintStringSection)
         gen.postSections.addOne(IntegerOverflow)
-        val out3 = gen.regs.allocate
         val out2 = gen.regs.allocate
-        Seq(
-          Mov(out3.getReg, y),
-          SMull(out3.getReg, out, x, out3.getReg),
-          Cmp(out, ASR(out3.getReg, ImmInt(31))),
+        val reg = Operands.opToReg(y, gen.regs)
+        reg.instr ++ Seq(
+          SMull(out, out2.getReg, x, reg.getReg),
+          Cmp(out2.getReg, ASR(out, ImmInt(31))),
           LinkBranch("_errOverflow", NE))}
       case ast.Div => {
         gen.postSections.addOne(PrintStringSection)
