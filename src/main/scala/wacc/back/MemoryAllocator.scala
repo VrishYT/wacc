@@ -28,7 +28,7 @@ class MemoryAllocator {
     }
 
     def store(id: String, reg: Register): Instruction = {
-        val operand = Address(FP, ImmInt(count * 4))
+        val operand = Address(FP, ImmInt(-(count + 1) * 4))
         count += 1
         insert(id, operand)
 
