@@ -1,6 +1,6 @@
 package wacc.back
 
-sealed class Register(i: Int) extends Operand {
+sealed class Register(val i: Int) extends Operand {
     override def toString(): String = "r" + i
 }
 
@@ -38,7 +38,6 @@ class RegisterAllocator {
     // import scala.collection.mutable.Stack
     import scala.collection.mutable.{Map => MapM}
 
-    // TODO: make private
     private val table = MapM[String, Register]() 
 
     // TODO: check if still needed after re-implement
@@ -64,15 +63,18 @@ class RegisterAllocator {
 
     def link(id: String, reg: Register): Unit = {
         table(id) = reg
+        freeRegs.removeFirst(_.i == reg.i)
+        regsInUse.enqueue(reg)
     }
 
     def allocate(id: String): RegAssembly = {
         val reg = allocate
-        link(id, reg.getReg)
+        table(id) = reg.getReg
         return reg
     }
 
     def allocate: RegAssembly = {
+
 
         def realloc(): RegAssembly = {
             val reg = regsInUse.head
