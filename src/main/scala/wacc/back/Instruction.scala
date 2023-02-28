@@ -83,3 +83,6 @@ case class Section(section: String) extends Instruction {
 case class Directive(directive: String) extends Instruction {
     override def toString(): String = s"\t$directive"
 }
+case class Comment(comment: String) extends Instruction {
+    override def toString(): String = s"@ ${comment}"
+}
