@@ -15,15 +15,34 @@ case object Skip extends Stat with ParserBridge0[Stat]
 
 case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
-        val assembly = rhs.toAssembly(gen, table).condToReg(gen.regs)
         val out = gen.regs.allocate(id)
         rhs match {
             case StrLiteral(string) => {
+                val assembly = rhs.toAssembly(gen, table)
                 val label = assembly.getOp.toString
                 table.update(id, label)
-                return (assembly.instr ++ out.instr ++ Seq(Load(out.getReg, DataLabel(label))))}
+                return (assembly.instr ++ out.instr ++ Seq(Load(out.getReg, DataLabel(label))))
+                }
+                
+            // case NewPair(fst, snd) => {
+            //     val assembly1 = fst.toAssembly(gen, table)
+            //     val assembly2 = snd.toAssembly(gen, table)
+            //     val pairAssembly = gen.mem.mallocPair(assembly1.getOp, assembly2.getOp, out.getReg)
+            //     gen.mem.insert(id, pairAssembly.getOp)
+            //     return (assembly1.instr ++ assembly2.instr ++ out.instr ++ pairAssembly.instr)
+            // }
+            // case ArrayLiteral(xs) => {
+            //     val assemblies = xs.map(x => x.toAssembly(gen, table))
+            //     val instrs = (assemblies.map(x => x.instr)).flatten
+            //     val ops = (assemblies.map(x => x.getOp))
+            //     val arrAssembly = gen.mem.mallocArray(ops, out.getReg)
+            //     gen.mem.insert(id, arrAssembly.getOp)
+            //     return (instrs ++ out.instr ++ arrAssembly.instr)
+            // }
             case _ => {
-                return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))} 
+                val assembly = rhs.toAssembly(gen, table)
+                return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))
+                } 
         }
     }
 }
@@ -97,7 +116,7 @@ case class Return(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
         val expr = x.toAssembly(gen, table)
         if (expr.getOp == Register(0)) return expr.instr 
-        else return expr.instr :+ Mov(Register(0), expr.getOp)
+        else return expr.instr ++ Seq(Mov(Register(0), expr.getOp), Pop(PC))
     }
 }
 
@@ -242,13 +261,14 @@ object If extends ParserBridge3[Expr, List[Stat], List[Stat], If] {
 case class While(p: Expr, x: List[Stat]) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
         
-        val cond = p.toAssembly(gen, table).not()
+        val cond = p.toAssembly(gen, table)
         val block = x.map(_.toAssembly(gen, table)).foldLeft(Seq[Instruction]())(_ ++ _) // TODO: symbol table
 
         val startLabel = gen.labels.generate
         val endLabel = gen.labels.generate
+        val branch = if (cond.cond == Condition.AL) Seq() else Seq(Branch(endLabel, Condition.invert(cond.cond)))
 
-        return (Label(startLabel) +: cond.instr :+ Branch(endLabel, cond.cond)) ++ block ++ Seq(Branch(startLabel), Label(endLabel))   
+        return (Label(startLabel) +: cond.instr) ++ branch ++ block ++ Seq(Branch(startLabel), Label(endLabel))   
     }
 }
 
