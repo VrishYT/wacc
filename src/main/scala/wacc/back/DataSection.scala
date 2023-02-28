@@ -27,7 +27,8 @@ sealed abstract class PrintSection(val short: String, val format: String, val na
             Load(Register(0), DataLabel(label)),
             LinkBranch("printf"),
             Mov(Register(0), ImmInt(0)),
-            LinkBranch("fflush")
+            LinkBranch("fflush"),
+            Pop(PC)
         ))
     }
 }
@@ -57,7 +58,8 @@ case object PrintBoolSection extends DataSection {
                 ".L_printb_fi"
             ) ++ Seq(
                 Load(Register(1), Address(Register(2), ImmInt(-4))),
-                LinkBranch("_prints")
+                LinkBranch("_prints"),
+                Pop(PC)
             )
         )
     }
@@ -77,7 +79,8 @@ case object ReadIntSection extends DataSection {
             Load(Register(0), DataLabel(".L._readi_str0")),
             LinkBranch("scanf"),
             Load(Register(0), Address(SP, ImmInt(0))),
-            Add(SP, SP, ImmInt(4))
+            Add(SP, SP, ImmInt(4)),
+            Pop(PC)
         ), Register(0), Register(1))
     }
 }
@@ -95,7 +98,8 @@ case object ReadCharSection extends DataSection {
             Load(Register(0), DataLabel("=.L._readc_str0")),
             LinkBranch("scanf"),
             Load(Register(0), Address(SP, ImmInt(0))),
-            Add(SP, SP, ImmInt(1))
+            Add(SP, SP, ImmInt(1)),
+            Pop(PC)
         ), Register(0), Register(1))
     }
 }
