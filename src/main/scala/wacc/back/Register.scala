@@ -44,6 +44,8 @@ class RegisterAllocator {
     private val regsInUse = Queue[Register]()
     // val savedRegs = Queue[Register]()
 
+    private val mem = new MemoryAllocator
+
     val freeRegs = Queue(
         Register(0),
         Register(1), 
@@ -79,10 +81,12 @@ class RegisterAllocator {
         def realloc(): RegAssembly = {
             val reg = regsInUse.head
             val id = table.filter(_._2 == reg).head._1
-            return RegAssembly(reg)
+            val instr = mem.store(id, reg)
+            regsInUse.dequeue
+            return RegAssembly(reg, Seq(instr))
         }
 
-        val reg = if (freeRegs.isEmpty) realloc() else RegAssembly(freeRegs.dequeue)
+        val reg = if (freeRegs.isEmpty) realloc else RegAssembly(freeRegs.dequeue)
         regsInUse.enqueue(reg.getReg)
         return reg
     }

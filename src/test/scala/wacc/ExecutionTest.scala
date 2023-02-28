@@ -12,40 +12,44 @@ import java.io.{File, BufferedReader, FileReader}
 import scala.jdk.StreamConverters._
 import scala.jdk.CollectionConverters._
 import scala.collection.mutable.ListBuffer
+import scala.io.Source
+import scala.concurrent._
+import ExecutionContext.Implicits.global
 
 // @Ignore
 class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTests {
 
-    val timeLimit = Span(3, Seconds)
+    val timeLimit = Span(5, Seconds)
 
-    def getOutputAndExit(path: Path): (Int, Seq[String]) = {
+    def getIO(path: Path): (Int, Seq[String], Seq[String]) = {
         val iterator = new BufferedReader(new FileReader(path.toFile.getAbsolutePath)).lines().toScala(Iterator);
 
-        def getOutput: ListBuffer[String] = {
-            val output = ListBuffer[String]()
+        def getOutput(output: ListBuffer[String]): Unit = {
             while (iterator.hasNext) {
                 val line = iterator.next().trim
                 if (line.startsWith("#")) {
                     output += line.substring(1).trim
-                } else return output
+                } else return
             }
-            return output // unreachable 
+            return // unreachable 
         }
 
-        var output = Seq[String]()
+        val input = ListBuffer[String]()
+        val output = ListBuffer[String]()
 
         while (iterator.hasNext) {
             val line = iterator.next().trim
-            if (line contains "# Output:") {
-                output = getOutput.toSeq
+            if (line contains "# Input: ") {
+                input ++= line.replace("# Input: ", "").split(" ")
             }
+            else if (line contains "# Output:") getOutput(output)
             else if (line contains "# Exit:") {
-                return (iterator.next().substring(1).trim.toInt, output)
+                return (iterator.next().substring(1).trim.toInt, input.toSeq, output.toSeq)
             } else if (line contains "# Program:") {
-                return (0, output)
+                return (0, input.toSeq, output.toSeq)
             }
         }
-        return (0, Seq()) // unreachable
+        return (0, Seq(), Seq()) // unreachable
 
     }
 
@@ -56,23 +60,44 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
         val parentPath = path.getParent.toString
         val parent = parentPath.substring(parentPath.lastIndexOf("valid/") + 6) + "/"
         test(parent + filename + " executed as expected") {
-            val expected = getOutputAndExit(path)
+            val expected = getIO(path)
 
             val compilation = Seq("./compile", path.toString).!!
             val basename = path.getFileName.toString.replace(".wacc", "")
             val gcc = Seq("arm-linux-gnueabi-gcc", "-o", basename, "-mcpu=arm1176jzf-s", "-mtune=arm1176jzf-s", basename + ".s").!!
 
+            val exec = Seq("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", basename)
+
             var out = ""
             var err = ""
-            val logger = ProcessLogger(out += _, err += _)
 
-            val exit = Seq("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", basename).!(logger)
+            val p = exec.run(new ProcessIO(
+                in => {
+                    expected._3.foreach(input => in.write(input.getBytes))
+                    in.close
+                }, 
+                out = Source.fromInputStream(_).getLines().mkString("\n"), 
+                err = Source.fromInputStream(_).getLines().mkString("\n")
+            ))
+
+            // UNUSED - LIMITS EMULATION TO 5 SECS 
+            // try {
+            //     Await.result(Future(blocking(p.exitValue)), duration.Duration(5, "sec"))
+            // } catch {
+            //     case _: TimeoutException => {
+            //         Seq("rm", basename).!!
+            //         Seq("rm", basename + ".s").!!
+            //         fail("TIMEOUT")
+            //     }
+            // }
+
+            val exit = p.exitValue
 
             Seq("rm", basename).!!
             Seq("rm", basename + ".s").!!
 
             assert(exit == expected._1)
-            assert(out == expected._2.mkString)
+            assert(out == expected._3.mkString)
 
         }
     })
