@@ -126,8 +126,8 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
       case ast.Or => Seq(Or(out, x, y))
     }
 
-    val expr1 = x.toAssembly(gen, table)
-    val expr2 = y.toAssembly(gen, table)
+    val expr1 = x.toAssembly(gen, table).condToReg(gen.regs)
+    val expr2 = y.toAssembly(gen, table).condToReg(gen.regs)
 
     val instr = ListBuffer[Instruction]()
     instr ++= expr1.instr

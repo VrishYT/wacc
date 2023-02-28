@@ -49,38 +49,38 @@ object Assign extends ParserBridge2[LValue, RValue, Assign] // TODO refactor thi
 case class Read(x: LValue) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
         Seq()
-        // x match {
-        //     case id@Ident(i) => {
-        //         val identType = symbolTable.getType(i)
-        //         val ass = id.toAssembly(regs, symbolTable)
-        //         identType match {
-        //             case IntType => {
-        //                 symbolTable.post.addOne(ReadIntSection)
-        //                 return ass.instr ++ Seq(
-        //                     Push(Register(12)),
-        //                     Push(Register(0), Register(1)),
-        //                     Mov(Register(0), ass.getReg()),
-        //                     LinkBranch("_readi"),
-        //                     Mov(Register(12), Register(0)),
-        //                     Pop(Register(0), Register(1)),
-        //                     Mov(ass.getReg, Register(12)),
-        //                     Pop(Register(12))
-        //                 )} 
-        //             case CharType => 
-        //                 symbolTable.post.addOne(ReadCharSection)
-        //                 return ass.instr ++ Seq(
-        //                     Push(Register(0), Register(1)),
-        //                     Mov(Register(0), ass.getReg()),
-        //                     LinkBranch("_readc"),
-        //                     Mov(Register(12), Register(0)),
-        //                     Pop(Register(0), Register(1)),
-        //                     Mov(ass.getReg, Register(12)),
-        //                     Pop(Register(12))
-        //                 )
-        //             case StringType => Seq()
-        //         }
-        //     }
-        // }
+        x match {
+            case id@Ident(i) => {
+                val identType = table.getType(i)
+                val ass = id.toAssembly(gen, table)
+                identType match {
+                    case IntType => {
+                        gen.postSections.addOne(ReadIntSection)
+                        return ass.instr ++ Seq(
+                            Push(Register(12)),
+                            Push(Register(0), Register(1)),
+                            Mov(Register(0), ass.getReg()),
+                            LinkBranch("_readi"),
+                            Mov(Register(12), Register(0)),
+                            Pop(Register(0), Register(1)),
+                            Mov(ass.getReg, Register(12)),
+                            Pop(Register(12))
+                        )} 
+                    case CharType => 
+                        gen.postSections.addOne(ReadCharSection)
+                        return ass.instr ++ Seq(
+                            Push(Register(0), Register(1)),
+                            Mov(Register(0), ass.getReg()),
+                            LinkBranch("_readc"),
+                            Mov(Register(12), Register(0)),
+                            Pop(Register(0), Register(1)),
+                            Mov(ass.getReg, Register(12)),
+                            Pop(Register(12))
+                        )
+                    case StringType => Seq()
+                }
+            }
+        }
     }
 }
 
@@ -116,7 +116,7 @@ object Exit extends ParserBridge1[Expr, Exit]
 
 case class Print(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
-        Comment("start println") +: (
+        Comment("start print") +: (
         x match {
             case id@Ident(i) => {
                 val identType = table.getType(i) 
@@ -152,7 +152,7 @@ case class Print(x: Expr) extends Stat {
                 return ass.instr ++ printValue(binopType, ass.getOp(), gen)
             }
             case _ => Seq()
-        }) :+ Comment("end println") 
+        }) :+ Comment("end print") 
     }
 
 
@@ -162,39 +162,39 @@ case class Print(x: Expr) extends Stat {
             case StringType => {
                 gen.postSections.addOne(PrintStringSection) 
                 return Seq(
-                    Push(Register(0), Register(1), Register(2)),
+                    Push(Register(0), Register(1), Register(2), Register(3)),
                     Mov(Register(2), operand),
                     Load(Register(1), Address(Register(2), ImmInt(-4))),
                     LinkBranch("_prints"),
-                    Pop(Register(0), Register(1), Register(2))
+                    Pop(Register(0), Register(1), Register(2), Register(3))
                 )
             }
             case IntType => {
                 gen.postSections.addOne(PrintIntSection)
                 return Seq(
-                    Push(Register(0), Register(1)),
+                    Push(Register(0), Register(1), Register(2), Register(3)),
                     Mov(Register(1), operand),
                     LinkBranch("_printi"),
-                    Pop(Register(0), Register(1))
+                    Pop(Register(0), Register(1), Register(2), Register(3))
                 )
             }
             case CharType => {
                 gen.postSections.addOne(PrintCharSection)
                 return Seq(
-                    Push(Register(0), Register(1)),
+                    Push(Register(0), Register(1), Register(2), Register(3)),
                     Mov(Register(1), operand),
                     LinkBranch("_printc"),
-                    Pop(Register(0), Register(1))
+                    Pop(Register(0), Register(1), Register(2), Register(3))
                 )
             }
             case BoolType => {
                 gen.postSections.addOne(PrintBoolSection)
                 gen.postSections.addOne(PrintStringSection) 
                 return Seq(
-                    Push(Register(0), Register(1), Register(2)),
+                    Push(Register(0), Register(1), Register(2), Register(3)),
                     Mov(Register(0), operand),
                     LinkBranch("_printb"),
-                    Pop(Register(0), Register(1), Register(2))
+                    Pop(Register(0), Register(1), Register(2), Register(3))
                 )
             }
             case _ => return Seq()
@@ -207,11 +207,11 @@ object Print extends ParserBridge1[Expr, Print]
 case class Println(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
         gen.postSections.addOne(PrintNewLine)
-        (Comment("start print") +: Print(x).toAssembly(gen, table)) ++ Seq(
-            Push(Register(0), Register(1), Register(2)),
+        (Comment("start println") +: Print(x).toAssembly(gen, table)) ++ Seq(
+            Push(Register(0), Register(1), Register(2), Register(3)),
             LinkBranch("_println"),
-            Pop(Register(0), Register(1), Register(2))
-        ) :+ Comment("end print")
+            Pop(Register(0), Register(1), Register(2), Register(3))
+        ) :+ Comment("end println")
     }
 }
 
