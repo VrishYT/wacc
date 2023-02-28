@@ -38,6 +38,9 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
         val firstAss = first.toAssembly(gen, table)
         val firstOp = firstAss.getOp
 
+        val accAss = gen.regs.allocate
+        val accReg = accAss.getReg
+
         gen.postSections.addOne(ArrayBoundsCheck)
 
         val instrns = reg1Ass.instr ++ reg2Ass.instr ++ outAss.instr ++ arrAss.instr
@@ -46,22 +49,22 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
         instrns :+ Mov(reg1, firstOp)
         instrns :+ Mov(reg2, arrayOp)
         instrns :+ LinkBranch("_arrload") // to define
-        instrns :+ Mov(Register(8), reg2)
+        instrns :+ Mov(accReg, reg2)
 
         rest.foreach(x => {
           val xAss = x.toAssembly(gen, table)
           val op = xAss.getOp
           instrns :+ xAss.instr
-          instrns :+ Push(Register(8))
+          instrns :+ Push(accReg)
           instrns :+ Mov(reg1, op)
-          instrns :+ Pop(Register(8))
-          instrns :+ Mov(reg2, Register(8))
+          instrns :+ Pop(accReg)
+          instrns :+ Mov(reg2, accReg)
           instrns :+ LinkBranch("_arrload") // to define
-          instrns :+ Mov(Register(8), reg2)
+          instrns :+ Mov(accReg, reg2)
           }
         )
 
-        instrns :+ Mov(outReg, Register(8))
+        instrns :+ Mov(outReg, accReg)
 
         return RegAssembly(outReg, instrns)
     }
