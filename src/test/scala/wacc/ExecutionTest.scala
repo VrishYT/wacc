@@ -28,7 +28,9 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
             while (iterator.hasNext) {
                 val line = iterator.next().trim
                 if (line.startsWith("#")) {
-                    output += line.substring(1).trim
+                    val sanitised = line.substring(1).trim
+                    if (sanitised.isEmpty) return
+                    else output += line.substring(1).trim
                 } else return
             }
             return // unreachable 
