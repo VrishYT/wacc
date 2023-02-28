@@ -36,6 +36,7 @@ case object PrintCharSection extends PrintSection("c", "%c", "char")
 case object PrintIntSection extends PrintSection("i", "%d", "int")
 case object PrintStringSection extends PrintSection("s", "%.*s", "str") 
 case object PrintNewLine extends PrintSection("ln", "\\n", "ln")
+case object PrintPointerSection extends PrintSection("p", "%p", "p")
 
 case object PrintBoolSection extends DataSection {
     def toAssembly(): Seq[Instruction] = {
