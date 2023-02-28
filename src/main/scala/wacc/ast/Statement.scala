@@ -221,7 +221,7 @@ case class Print(x: Expr) extends Stat {
                 gen.postSections.addOne(PrintPointerSection)
                 return Seq(
                     Push(Register(0), Register(1), Register(2), Register(3)),
-                    Mov(Register(0), operand),
+                    Mov(Register(1), operand),
                     LinkBranch("_printp"),
                     Pop(Register(0), Register(1), Register(2), Register(3))
                 )
