@@ -68,16 +68,16 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
 
             val exec = Seq("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", basename)
 
-            var out = ""
-            var err = ""
+            val out = ListBuffer[String]()
+            var err = ListBuffer[String]()
 
             val p = exec.run(new ProcessIO(
                 in => {
                     expected._3.foreach(input => in.write(input.getBytes))
                     in.close
                 }, 
-                out = Source.fromInputStream(_).getLines().mkString("\n"), 
-                err = Source.fromInputStream(_).getLines().mkString("\n")
+                out ++= Source.fromInputStream(_).getLines, 
+                err ++= Source.fromInputStream(_).getLines
             ))
 
             // UNUSED - LIMITS EMULATION TO 5 SECS 
@@ -97,7 +97,7 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
             Seq("rm", basename + ".s").!!
 
             assert(exit == expected._1)
-            assert(out == expected._3.mkString)
+            assert(out.mkString == expected._3.mkString)
 
         }
     })
