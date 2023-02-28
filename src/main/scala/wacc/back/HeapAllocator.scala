@@ -1,20 +1,18 @@
 package wacc.back
 
-object HeapAllocator {
+class HeapAllocator {
 
 
     import scala.collection.mutable.{Map => MapM, ListBuffer}
 
-    val table = MapM[String, Operand]()
-
     val malloc = LinkBranch("malloc")
     val elemSize = 4
-
 
     def mallocPair(fst: Operand, snd: Operand, out: Register): Assembly = {
         
         val pop = Pop(Register(8))
         val push = Push(Register(8))
+
 
         def mallocPairElem(elem: Operand): ListBuffer[Instruction] = {
             val instrs = ListBuffer[Instruction]()
@@ -85,9 +83,5 @@ object HeapAllocator {
 
         val assembly = Assembly(out, instrs.toSeq)
         return (assembly)
-    }
-
-    def insert(id: String, add: Operand): Unit = {
-        table(id) = add
     }
 }
