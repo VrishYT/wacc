@@ -11,9 +11,9 @@ case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val po
     def toAssembly(gen: CodeGenerator, table: FuncTable): Seq[Instruction] = {
         // TODO: function assembly
 
-        (1 until args.length + 1).foreach(i => {
-            val param = args(i-1)
-            gen.regs.link(param.id, Register(i))
+        (0 until args.length).foreach(i => {
+            val param = args(i)
+            gen.regs.link(param.id, Register(i + 1))
         })
         
         val instr = stats.map(_.toAssembly(gen, table)).fold(Seq())(_ ++ _)
@@ -86,7 +86,7 @@ object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Fu
         val range = (0 until args.length.min(Func_Regs.length))
 
         val instr = ListBuffer[Instruction]()
-        val regs = range.map(Register(_)).filter(gen.regs.isAllocated(_))
+        val regs = range.map(i => Register(i + 1))/*.filter(gen.regs.isAllocated(_))*/
 
         if (!regs.isEmpty) instr += Push(regs:_*)
 
