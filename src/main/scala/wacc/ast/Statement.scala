@@ -97,7 +97,7 @@ case class Return(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
         val expr = x.toAssembly(gen, table)
         if (expr.getOp == Register(0)) return expr.instr 
-        else return expr.instr :+ Mov(Register(0), expr.getOp)
+        else return expr.instr ++ Seq(Mov(Register(0), expr.getOp), Pop(PC))
     }
 }
 
@@ -242,13 +242,14 @@ object If extends ParserBridge3[Expr, List[Stat], List[Stat], If] {
 case class While(p: Expr, x: List[Stat]) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
         
-        val cond = p.toAssembly(gen, table).not()
+        val cond = p.toAssembly(gen, table)
         val block = x.map(_.toAssembly(gen, table)).foldLeft(Seq[Instruction]())(_ ++ _) // TODO: symbol table
 
         val startLabel = gen.labels.generate
         val endLabel = gen.labels.generate
+        val branch = if (cond.cond == Condition.AL) Seq() else Seq(Branch(endLabel, Condition.invert(cond.cond)))
 
-        return (Label(startLabel) +: cond.instr :+ Branch(endLabel, cond.cond)) ++ block ++ Seq(Branch(startLabel), Label(endLabel))   
+        return (Label(startLabel) +: cond.instr) ++ branch ++ block ++ Seq(Branch(startLabel), Label(endLabel))   
     }
 }
 

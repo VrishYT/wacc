@@ -71,10 +71,13 @@ object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Fu
         Register(10)
     )
 
-    def generateFunction(id: String, instr: Seq[Instruction], regsToSave: Register*): Seq[Instruction] = Seq(
-        Label(id),
-        Push{(LR +: regsToSave):_*}
-    ) ++ instr :+ Pop{(PC +: regsToSave):_*}
+    def generateFunction(id: String, instr: Seq[Instruction], regsToSave: Register*): Seq[Instruction] = {
+            val pop = if (regsToSave.isEmpty) Seq() else Seq(Pop{regsToSave:_*})
+            Seq(
+                Label(id),
+                Push{(LR +: regsToSave):_*}
+            ) ++ instr ++ pop
+    }
 
     def callFunction(id: String, args: Seq[Operand] = Seq(), gen: CodeGenerator): Seq[Instruction] = {
 
