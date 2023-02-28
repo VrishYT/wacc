@@ -34,12 +34,17 @@ case class Assign(x: LValue, y: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
         val rhsAssembly = y.toAssembly(gen, table).condToReg(gen.regs)
         val lval = x.toAssembly(gen, table)
-
-        return (lval.instr ++ rhsAssembly.instr ++ Seq(Mov(lval.getReg, rhsAssembly.getOp)))
+        y match {
+            case StrLiteral(string) => {
+                val label = rhsAssembly.getOp.toString
+                return (rhsAssembly.instr ++ lval.instr ++ Seq(Load(lval.getReg, DataLabel(label))))}
+            case _ => {
+                return (rhsAssembly.instr ++ lval.instr ++ Seq(Mov(lval.getReg, rhsAssembly.getOp)))} 
+        }
     }
 }
 
-object Assign extends ParserBridge2[LValue, RValue, Assign]
+object Assign extends ParserBridge2[LValue, RValue, Assign] // TODO refactor this later
 
 case class Read(x: LValue) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
@@ -185,10 +190,10 @@ case class Print(x: Expr) extends Stat {
                 gen.postSections.addOne(PrintBoolSection)
                 gen.postSections.addOne(PrintStringSection) 
                 return Seq(
-                    Push(Register(0), Register(1)),
+                    Push(Register(0), Register(1), Register(2)),
                     Mov(Register(0), operand),
                     LinkBranch("_printb"),
-                    Pop(Register(0), Register(1))
+                    Pop(Register(0), Register(1), Register(2))
                 )
             }
             case _ => return Seq()
@@ -202,9 +207,9 @@ case class Println(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
         gen.postSections.addOne(PrintNewLine)
         Print(x).toAssembly(gen, table) ++ Seq(
-            Push(Register(0), Register(1)),
+            Push(Register(0), Register(1), Register(2)),
             LinkBranch("_println"),
-            Pop(Register(0), Register(1))
+            Pop(Register(0), Register(1), Register(2))
         ) 
     }
 }
