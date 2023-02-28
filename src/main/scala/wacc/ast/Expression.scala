@@ -37,7 +37,7 @@ case class StrLiteral(str: String)(val pos: (Int, Int)) extends Expr {
 }
 
 case class BoolLiteral(x: Boolean)(val pos: (Int, Int)) extends Expr {
-    override def toAssembly(gen: CodeGenerator, table: Table): Assembly = Assembly(ImmInt(if (x) 1 else 0), Seq())
+    override def toAssembly(gen: CodeGenerator, table: Table): Assembly = Assembly(ImmInt(if (x) 1 else 0), Seq(), if (x) AL else NO)
 }
 
 /* operators as case classes */
