@@ -113,7 +113,7 @@ case class Print(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
         x match {
             case id@Ident(i) => {
-                val identType = table.getType(i) // TODO
+                val identType = table.getType(i) 
                 val ass = id.toAssembly(gen, table)
                 return ass.instr ++ printValue(identType, ass.getReg(), gen)
             }
@@ -185,10 +185,10 @@ case class Print(x: Expr) extends Stat {
                 gen.postSections.addOne(PrintBoolSection)
                 gen.postSections.addOne(PrintStringSection) 
                 return Seq(
-                    Push(Register(0)),
+                    Push(Register(0), Register(1)),
                     Mov(Register(0), operand),
                     LinkBranch("_printb"),
-                    Pop(Register(0))
+                    Pop(Register(0), Register(1))
                 )
             }
             case _ => return Seq()
