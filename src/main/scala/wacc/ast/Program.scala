@@ -17,9 +17,7 @@ case class Program(fs: List[Func], stats: List[Stat]) {
         val fsOut = fs.map(func => func.toAssembly(gen, getFuncTable(func.fs._2)))
         val main = stats.map(_.toAssembly(gen, getFuncTable("main"))).fold(Seq())(_ ++ _)
 
-        val statsOut = if (!main.isEmpty && main.tail == LinkBranch("exit")) main else main ++ Seq(Mov(Register(0), ImmInt(0)), LinkBranch("exit"))
-
-        return (Seq(Section(".global main"), Label("main")) ++ statsOut, fsOut)
+        return (Seq(Section(".global main"), Label("main"), Push(FP, LR)) ++ main ++ Seq(Mov(Register(0), ImmInt(0)), Pop(FP, PC)), fsOut)
     }
 }
 

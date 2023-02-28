@@ -14,9 +14,12 @@ case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val po
         // val memorySpace = 0 // TODO: calculate memory for this function from symbol table
         // mem.reset(memorySpace) // resets memory to be an empty space with this block
 
-        (1 until args.length + 1).foreach(i => {
-            val param = args(i-1)
-            gen.regs.link(param.id, Register(i))
+        // val memorySpace = 0 // TODO: calculate memory for this function from symbol table
+        // mem.reset(memorySpace) // resets memory to be an empty space with this block
+
+        (0 until args.length).foreach(i => {
+            val param = args(i)
+            gen.regs.link(param.id, Register(i + 1))
         })
         
         val instr = stats.map(_.toAssembly(gen, table)).fold(Seq())(_ ++ _)
@@ -74,25 +77,28 @@ object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Fu
         Register(10)
     )
 
-    def generateFunction(id: String, instr: Seq[Instruction], regsToSave: Register*): Seq[Instruction] = Seq(
-        Label(id),
-        Push{(LR +: regsToSave):_*}
-    ) ++ instr :+ Pop{(PC +: regsToSave):_*}
+    def generateFunction(id: String, instr: Seq[Instruction], regsToSave: Register*): Seq[Instruction] = {
+            val pop = if (regsToSave.isEmpty) Seq() else Seq(Pop{regsToSave:_*})
+            Seq(
+                Label(id),
+                Push{(LR +: regsToSave):_*}
+            ) ++ instr ++ pop
+    }
 
     def callFunction(id: String, args: Seq[Operand] = Seq(), gen: CodeGenerator): Seq[Instruction] = {
 
         if (args.length > Func_Regs.length) println("Too many args to load in") // TODO: load excess into mem 
 
-        val range = (1 until args.length.min(Func_Regs.length))
+        val range = (0 until args.length.min(Func_Regs.length))
 
         val instr = ListBuffer[Instruction]()
-        val regs = range.map(Register(_)).filter(gen.regs.isAllocated(_))
+        val regs = range.map(i => Register(i + 1))/*.filter(gen.regs.isAllocated(_))*/
 
         if (!regs.isEmpty) instr += Push(regs:_*)
 
         instr ++= range.map(i => args(i) match {
-            case x: Register => Mov(Register(i), x)
-            case x => Operands.opToReg(x, Register(i)) 
+            case x: Register => Mov(Register(i + 1), x)
+            case x => Operands.opToReg(x, Register(i + 1)) 
         })
 
         instr += LinkBranch(s"wacc_${id}")

@@ -43,7 +43,7 @@ object Lexing {
     /*lexer configurations for symbols: operators / keywords*/
     symbolDesc = SymbolDesc.plain.copy(
       hardKeywords = keywords,
-      hardOperators = Set("*", "+", "-", "/", ">", ">=", "<", "<=", "==", "!=", "&&", "||"),
+      hardOperators = Set("*", "+", "-", "/", "%", ">", ">=", "<", "<=", "==", "!=", "&&", "||"),
       caseSensitive = false
     ),
     /*lexer configurations for signed integers*/

@@ -14,6 +14,13 @@ class Assembly(val op: Option[Operand], val instr: Seq[Instruction], var cond: C
         cond = Condition.invert(cond)
         this
     }
+    def condToReg(regs: RegisterAllocator): Assembly = op match {
+        case Some(x) => this
+        case None => {
+            val reg = regs.allocate
+            Assembly(reg.getReg, this.instr ++ reg.instr ++ Seq(Mov(reg.getReg, ImmInt(0)), Mov(reg.getReg, ImmInt(1), cond)), cond)
+        }
+    }
 }
 
 object Assembly {
@@ -66,4 +73,3 @@ case class CodeGenerator(val symbolTable: SymbolTable) {
     
 }
 
-// TODO: code generator class that contains symbol table, sections, mem alloc, reg alloc, etc.
