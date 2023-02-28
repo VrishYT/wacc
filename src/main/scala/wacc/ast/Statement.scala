@@ -57,7 +57,16 @@ case class Assign(x: LValue, y: RValue) extends Stat {
                 val label = rhsAssembly.getOp.toString
                 return (rhsAssembly.instr ++ lval.instr ++ Seq(Load(lval.getReg, DataLabel(label))))}
             case _ => {
-                return (rhsAssembly.instr ++ lval.instr ++ Seq(Mov(lval.getReg, rhsAssembly.getOp)))} 
+                val out = gen.regs.allocate
+                x match {
+                    case Fst(_) => {
+                        return (rhsAssembly.instr ++ lval.instr ++ out.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp), Store(out.getReg, Address(lval.getReg, ImmInt(0)))))}
+                    case Snd(_) => {
+                        return (rhsAssembly.instr ++ lval.instr ++ out.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp), Store(out.getReg, Address(lval.getReg, ImmInt(4)))))}
+                    case _ => {
+                        return (rhsAssembly.instr ++ lval.instr ++ Seq(Mov(lval.getReg, rhsAssembly.getOp)))}
+                }
+            }
         }
     }
 }
