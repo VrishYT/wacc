@@ -6,13 +6,11 @@ class HeapAllocator {
     import scala.collection.mutable.{Map => MapM, ListBuffer}
 
     val malloc = LinkBranch("malloc")
+    val pop = Pop(Register(8))
+    val push = Push(Register(8))
     val elemSize = 4
 
     def mallocPair(fst: Operand, snd: Operand, out: Register): Assembly = {
-        
-        val pop = Pop(Register(8))
-        val push = Push(Register(8))
-
 
         def mallocPairElem(elem: Operand): ListBuffer[Instruction] = {
             val instrs = ListBuffer[Instruction]()
@@ -36,6 +34,7 @@ class HeapAllocator {
         }
 
         val instrs = mallocPairElem(fst) ++= mallocPairElem(snd)
+        push +=: instrs
 
         /* Malloc with pair size parameter */
         instrs += Mov(Register(0), ImmInt(elemSize * 2))
@@ -51,6 +50,7 @@ class HeapAllocator {
          /* Pop and store fst elem address in pair address */
         instrs += pop
         instrs += Store(Register(8), Address(out, ImmInt(0)))
+        instrs += pop
 
         val assembly = Assembly(out, instrs.toSeq)
         return (assembly)
@@ -61,6 +61,7 @@ class HeapAllocator {
         val numElems = xs.length
 
         /* Malloc for the size of array */
+        instrs += push
         instrs += Mov(Register(0), ImmInt(elemSize * (numElems + 1)))
         instrs += malloc
 
@@ -80,6 +81,7 @@ class HeapAllocator {
 
         /* Store address of first element in out */
         instrs += Mov(out, Register(8))
+        instrs += pop
 
         val assembly = Assembly(out, instrs.toSeq)
         return (assembly)
