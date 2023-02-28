@@ -28,7 +28,9 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
             while (iterator.hasNext) {
                 val line = iterator.next().trim
                 if (line.startsWith("#")) {
-                    output += line.substring(1).trim
+                    val sanitised = line.substring(1).trim
+                    if (sanitised.isEmpty) return
+                    else output += line.substring(1).trim
                 } else return
             }
             return // unreachable 
@@ -39,7 +41,7 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
 
         while (iterator.hasNext) {
             val line = iterator.next().trim
-            if (line contains "# Input: ") {
+            if (line contains "# Input:") {
                 input ++= line.replace("# Input: ", "").split(" ")
             }
             else if (line contains "# Output:") getOutput(output)
@@ -53,9 +55,7 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
 
     }
 
-    val make = "make".!!
-    var examples = Paths.get("src/test/scala/wacc/wacc_examples/valid")
-    Files.walk(examples).iterator().asScala.filter(_.getFileName.toString.endsWith(".wacc")).foreach(path => {
+    def testFile(path: Path) {
         val filename = path.getFileName.toString.replace(".wacc", "")
         val parentPath = path.getParent.toString
         val parent = parentPath.substring(parentPath.lastIndexOf("valid/") + 6) + "/"
@@ -68,28 +68,28 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
 
             val exec = Seq("qemu-arm", "-L", "/usr/arm-linux-gnueabi/", basename)
 
-            var out = ""
-            var err = ""
+            val out = ListBuffer[String]()
+            var err = ListBuffer[String]()
 
             val p = exec.run(new ProcessIO(
                 in => {
                     expected._3.foreach(input => in.write(input.getBytes))
                     in.close
                 }, 
-                out = Source.fromInputStream(_).getLines().mkString("\n"), 
-                err = Source.fromInputStream(_).getLines().mkString("\n")
+                out ++= Source.fromInputStream(_).getLines, 
+                err ++= Source.fromInputStream(_).getLines
             ))
 
             // UNUSED - LIMITS EMULATION TO 5 SECS 
-            // try {
-            //     Await.result(Future(blocking(p.exitValue)), duration.Duration(5, "sec"))
-            // } catch {
-            //     case _: TimeoutException => {
-            //         Seq("rm", basename).!!
-            //         Seq("rm", basename + ".s").!!
-            //         fail("TIMEOUT")
-            //     }
-            // }
+            try {
+                Await.result(Future(blocking(p.exitValue)), duration.Duration(5, "sec"))
+            } catch {
+                case _: TimeoutException => {
+                    Seq("rm", basename).!!
+                    Seq("rm", basename + ".s").!!
+                    fail("TIMEOUT")
+                }
+            }
 
             val exit = p.exitValue
 
@@ -97,9 +97,14 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
             Seq("rm", basename + ".s").!!
 
             assert(exit == expected._1)
-            assert(out == expected._3.mkString)
+            assert(out.mkString == expected._3.mkString)
 
         }
-    })
+    }
+
+
+    val make = "make".!!
+    var examples = Paths.get("src/test/scala/wacc/wacc_examples/valid")
+    Files.walk(examples).iterator().asScala.filter(_.getFileName.toString.endsWith(".wacc")).foreach(testFile(_))
 
 }
