@@ -17,7 +17,6 @@ sealed abstract class Table extends TableEntry {
 
     private val table = MapM[String, TableEntry]()
 
-    // ONLY USE IN BACK-END - assumes semantic correctness
     def getType(id: String): Type = getSymbol(id) match {
         case Some(x) => x.t
         case None => ???

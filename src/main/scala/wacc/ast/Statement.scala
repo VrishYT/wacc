@@ -49,38 +49,38 @@ object Assign extends ParserBridge2[LValue, RValue, Assign] // TODO refactor thi
 case class Read(x: LValue) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
         Seq()
-        // x match {
-        //     case id@Ident(i) => {
-        //         val identType = symbolTable.getType(i)
-        //         val ass = id.toAssembly(regs, symbolTable)
-        //         identType match {
-        //             case IntType => {
-        //                 symbolTable.post.addOne(ReadIntSection)
-        //                 return ass.instr ++ Seq(
-        //                     Push(Register(12)),
-        //                     Push(Register(0), Register(1)),
-        //                     Mov(Register(0), ass.getReg()),
-        //                     LinkBranch("_readi"),
-        //                     Mov(Register(12), Register(0)),
-        //                     Pop(Register(0), Register(1)),
-        //                     Mov(ass.getReg, Register(12)),
-        //                     Pop(Register(12))
-        //                 )} 
-        //             case CharType => 
-        //                 symbolTable.post.addOne(ReadCharSection)
-        //                 return ass.instr ++ Seq(
-        //                     Push(Register(0), Register(1)),
-        //                     Mov(Register(0), ass.getReg()),
-        //                     LinkBranch("_readc"),
-        //                     Mov(Register(12), Register(0)),
-        //                     Pop(Register(0), Register(1)),
-        //                     Mov(ass.getReg, Register(12)),
-        //                     Pop(Register(12))
-        //                 )
-        //             case StringType => Seq()
-        //         }
-        //     }
-        // }
+        x match {
+            case id@Ident(i) => {
+                val identType = table.getType(i)
+                val ass = id.toAssembly(gen, table)
+                identType match {
+                    case IntType => {
+                        gen.postSections.addOne(ReadIntSection)
+                        return ass.instr ++ Seq(
+                            Push(Register(12)),
+                            Push(Register(0), Register(1)),
+                            Mov(Register(0), ass.getReg()),
+                            LinkBranch("_readi"),
+                            Mov(Register(12), Register(0)),
+                            Pop(Register(0), Register(1)),
+                            Mov(ass.getReg, Register(12)),
+                            Pop(Register(12))
+                        )} 
+                    case CharType => 
+                        gen.postSections.addOne(ReadCharSection)
+                        return ass.instr ++ Seq(
+                            Push(Register(0), Register(1)),
+                            Mov(Register(0), ass.getReg()),
+                            LinkBranch("_readc"),
+                            Mov(Register(12), Register(0)),
+                            Pop(Register(0), Register(1)),
+                            Mov(ass.getReg, Register(12)),
+                            Pop(Register(12))
+                        )
+                    case StringType => Seq()
+                }
+            }
+        }
     }
 }
 

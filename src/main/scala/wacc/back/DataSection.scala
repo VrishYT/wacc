@@ -73,12 +73,13 @@ case object ReadIntSection extends DataSection {
             Directive(".asciz \"%d\""),
             Section(".text")
         ) ++ Func.generateFunction("_readi", Seq(
+            Push(Register(0)),
             Mov(Register(1), SP),
             Load(Register(0), DataLabel(".L._readi_str0")),
             LinkBranch("scanf"),
             Load(Register(0), Address(SP, ImmInt(0))),
             Add(SP, SP, ImmInt(4))
-        ), Register(0), Register(1))
+        ), Register(1))
     }
 }
 
