@@ -14,6 +14,8 @@ trait LValue {
 sealed trait PairElem extends LValue with RValue {
     override def toAssembly(gen: CodeGenerator, table: Table): RegAssembly = {
 
+        gen.postSections.addOne(NullDereference)
+
         val (pair, offset) = this match {
             case Fst(x) => (x, 0)
             case Snd(x) => (x, gen.elemSize)
