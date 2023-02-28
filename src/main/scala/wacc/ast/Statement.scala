@@ -116,29 +116,30 @@ object Exit extends ParserBridge1[Expr, Exit]
 
 case class Print(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
+        Comment("start println") +: (
         x match {
             case id@Ident(i) => {
                 val identType = table.getType(i) 
                 val ass = id.toAssembly(gen, table)
-                return ass.instr ++ printValue(identType, ass.getReg(), gen)
+                ass.instr ++ printValue(identType, ass.getReg(), gen)
             }
             case int: IntLiteral => {
                 val ass = int.toAssembly(gen, table)
-                return ass.instr ++ printValue(IntType, ass.getOp(), gen)
+                ass.instr ++ printValue(IntType, ass.getOp(), gen)
             }
             case str: StrLiteral => {
                 val ass = str.toAssembly(gen, table)
                 val label = ass.getOp.toString
                 val reg = gen.regs.allocate 
-                return ass.instr ++ reg.instr ++ (Load(reg.getReg, DataLabel(label)) +: printValue(StringType, reg.getReg, gen))
+                ass.instr ++ reg.instr ++ (Load(reg.getReg, DataLabel(label)) +: printValue(StringType, reg.getReg, gen))
             }
             case char: CharLiteral => {
                 val ass = char.toAssembly(gen, table)
-                return ass.instr ++ printValue(CharType, ass.getOp(), gen)
+                ass.instr ++ printValue(CharType, ass.getOp(), gen)
             }
             case bool: BoolLiteral => {
                 val ass = bool.toAssembly(gen, table)
-                return ass.instr ++ printValue(BoolType, ass.getOp(), gen)
+                ass.instr ++ printValue(BoolType, ass.getOp(), gen)
             }
             case unop@UnaryOpExpr(op, _) => {
                 val unopType = op.output 
@@ -150,8 +151,8 @@ case class Print(x: Expr) extends Stat {
                 val ass = binop.toAssembly(gen, table).condToReg(gen.regs)
                 return ass.instr ++ printValue(binopType, ass.getOp(), gen)
             }
-            case _ => return Seq()
-        }
+            case _ => Seq()
+        }) :+ Comment("end println") 
     }
 
 
@@ -206,11 +207,11 @@ object Print extends ParserBridge1[Expr, Print]
 case class Println(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
         gen.postSections.addOne(PrintNewLine)
-        Print(x).toAssembly(gen, table) ++ Seq(
+        (Comment("start print") +: Print(x).toAssembly(gen, table)) ++ Seq(
             Push(Register(0), Register(1), Register(2)),
             LinkBranch("_println"),
             Pop(Register(0), Register(1), Register(2))
-        ) 
+        ) :+ Comment("end print")
     }
 }
 
