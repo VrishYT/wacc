@@ -218,11 +218,11 @@ case class Print(x: Expr) extends Stat {
                 )
             }
             case x : PairType => {
-                gen.postSections.addOne(PrintBoolSection)
+                gen.postSections.addOne(PrintPointerSection)
                 return Seq(
                     Push(Register(0), Register(1), Register(2), Register(3)),
                     Mov(Register(0), operand),
-                    LinkBranch("_printf"),
+                    LinkBranch("_printp"),
                     Pop(Register(0), Register(1), Register(2), Register(3))
                 )
             }
