@@ -11,6 +11,12 @@ case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val po
     def toAssembly(gen: CodeGenerator, table: FuncTable): Seq[Instruction] = {
         // TODO: function assembly
 
+        // val memorySpace = 0 // TODO: calculate memory for this function from symbol table
+        // mem.reset(memorySpace) // resets memory to be an empty space with this block
+
+        // val memorySpace = 0 // TODO: calculate memory for this function from symbol table
+        // mem.reset(memorySpace) // resets memory to be an empty space with this block
+
         (0 until args.length).foreach(i => {
             val param = args(i)
             gen.regs.link(param.id, Register(i + 1))
