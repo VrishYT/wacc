@@ -4,14 +4,27 @@ class MemoryAllocator {
 
     import scala.collection.mutable.{Map => MapM}
 
-    val table = MapM[String, Operand]()
-    var size = 0
-    var count = 0
+    private val table = MapM[String, Operand]()
+    private var size = 0
+    private var count = 0
+
+    def memorySize(): Int = {
+        return size
+    }
 
     def reset(newSize: Int): Unit = {
         size = newSize
         count = 0
         table.clear()
+    }
+
+    def clear: Unit = {
+        reset(0)
+    }
+
+    def setSize(newSize: Int): Unit = {
+        assert(newSize >= count, "The new size is less than current size, use reset instead.")
+        size = newSize
     }
 
     def store(id: String, reg: Register): Instruction = {
@@ -22,7 +35,7 @@ class MemoryAllocator {
         return Store(reg, operand)
     }
 
-    def insert(id: String, add: Operand): Unit = {
+    private def insert(id: String, add: Operand): Unit = {
         table(id) = add
     }
 
