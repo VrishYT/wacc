@@ -51,11 +51,23 @@ case class Len(dest: Register, op: Operand) extends Instruction {
 case class Mov(dest: Register, op: Operand, cond: Condition = AL) extends Instruction {
     override def toString(): String = s"\tmov${cond.toString.toLowerCase()} $dest, $op"
 }
-case class Load(dest: Register, src: Operand) extends Instruction {
-    override def toString(): String = s"\tldr $dest, $src"
+case class Load(dest: Register, src: Operand, signedByte: Boolean = false) extends Instruction {
+    override def toString(): String = {
+        if (signedByte){
+            return s"\tldrsb $dest, $src"
+        }else {
+            return s"\tldr $dest, $src"
+        }
+    }
 }
-case class Store(dest: Register, src: Operand) extends Instruction {
-    override def toString(): String = s"\tstr $dest, $src"
+case class Store(dest: Register, src: Operand, postAddress: Boolean = false, byte: Boolean = false) extends Instruction {
+    override def toString(): String = {
+        if (byte && postAddress) {
+            return s"\tstrb $dest, $src!"
+        }else {
+            s"\tstr $dest, $src"
+        }
+    } 
 }
 
 /* Branch Instructions */
