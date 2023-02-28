@@ -92,12 +92,13 @@ case object ReadCharSection extends DataSection {
             Directive(".asciz \" %c\""),
             Section(".text")
         ) ++ Func.generateFunction("_readc", Seq(
+            Push(Register(0)),
             Mov(Register(1), SP),
-            Load(Register(0), DataLabel("=.L._readc_str0")),
+            Load(Register(0), DataLabel(".L._readc_str0")),
             LinkBranch("scanf"),
             Load(Register(0), Address(SP, ImmInt(0))),
             Add(SP, SP, ImmInt(1))
-        ), Register(0), Register(1))
+        ), Register(1))
     }
 }
 
