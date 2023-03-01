@@ -57,7 +57,7 @@ sealed abstract class Table extends TableEntry {
 
     // USED FOR FRONT-END
     def add(id: String, symbol: Symbol): Boolean = {
-        getSymbol(id) match {
+        table.get(id) match {
             case Some(x) => x match {
                 case _: ParamSymbol => 
                 case _ => return false 
