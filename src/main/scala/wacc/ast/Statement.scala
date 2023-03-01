@@ -189,7 +189,7 @@ case class Print(x: Expr) extends Stat {
                 val ass = str.toAssembly(gen)
                 val label = ass.getOp.toString
                 val reg = gen.regs.allocate 
-                ass.instr ++ reg.instr ++ (Load(reg.getReg, DataLabel(label)) +: printValue(StringType, reg.getReg, gen))
+                ass.instr ++ reg.instr ++ (Load(reg.getReg, ass.getOp) +: printValue(StringType, reg.getReg, gen))
             }
             case char: CharLiteral => {
                 val ass = char.toAssembly(gen)
