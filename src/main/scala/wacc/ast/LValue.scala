@@ -29,7 +29,7 @@ sealed trait PairElem extends LValue with RValue {
         val accumAss = gen.regs.allocate
         val accumReg = accumAss.getReg
 
-        val instrs = outAss.instr ++ pairAss.instr ++ accumAss.instr ++ Seq(Mov(accumReg, pairReg), Cmp(accumReg, ImmInt(0)), LinkBranch("_errNull", Condition.EQ), Load(outReg, Address(pairReg, ImmInt(offset))))
+        val instrs = outAss.instr ++ pairAss.instr ++ accumAss.instr ++ Seq(Mov(accumReg, pairReg), Cmp(accumReg, ImmInt(0)), Push(Register(0)), LinkBranch("_errNull", Condition.EQ), Pop(Register(0)), Load(accumReg, Address(pairReg, ImmInt(0))), Load(outReg, Address(accumReg, ImmInt(offset))))
         // instrs :+ Cmp(pairReg, ImmInt(0))
         // instrs :+ LinkBranch("_errNull") //Error function needs to be defined
         // instrs :+ Load(outReg, Address(pairReg, ImmInt(offset)))
