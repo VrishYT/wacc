@@ -48,10 +48,10 @@ class RegisterAllocator(val mem: MemoryAllocator) {
         // TODO: move and update symbol table with new address
         def realloc(): RegAssembly = {
             val reg = regsInUse.head
-            val id = table.filter(_._2 == reg).head._1
-            table.remove(id)
+            val id = this.table.filter(_._2 == reg).head._1
+            this.table.remove(id)
             val instr = mem.store(id, reg)
-            // table.update(id, instr.getOp)
+            table.update(id, instr.getOp)
             regsInUse.dequeue
             return RegAssembly(reg, instr.instr)
         }
