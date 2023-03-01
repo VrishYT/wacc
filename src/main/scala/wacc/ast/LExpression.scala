@@ -3,6 +3,7 @@ package ast
 
 import wacc.front.ParserBridge._
 import wacc.back._
+import scala.collection.mutable.ListBuffer
 
 /* left expressions extending expressions and left values */
 sealed trait LExpr extends Expr with LValue {
@@ -43,30 +44,29 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
 
         gen.postSections.addOne(ArrayBoundsCheck)
 
-        val instrns = reg1Ass.instr ++ reg2Ass.instr ++ outAss.instr ++ arrAss.instr
-        instrns :+ firstAss.instr
-
-        instrns :+ Mov(reg1, firstOp)
-        instrns :+ Mov(reg2, arrayOp)
-        instrns :+ LinkBranch("_arrload") // to define
-        instrns :+ Mov(accReg, reg2)
-
-        rest.foreach(x => {
-          val xAss = x.toAssembly(gen, table)
-          val op = xAss.getOp
-          instrns :+ xAss.instr
-          instrns :+ Push(accReg)
-          instrns :+ Mov(reg1, op)
-          instrns :+ Pop(accReg)
-          instrns :+ Mov(reg2, accReg)
-          instrns :+ LinkBranch("_arrload") // to define
-          instrns :+ Mov(accReg, reg2)
-          }
+        val startInstrs: Seq[Instruction] = reg1Ass.instr ++ reg2Ass.instr ++ outAss.instr ++ arrAss.instr ++ firstAss.instr ++ Seq(
+          Mov(reg1, firstOp),
+          Mov(reg2, arrayOp),
+          LinkBranch("_arrload"), // to define
+          Mov(accReg, reg2)
         )
 
-        instrns :+ Mov(outReg, accReg)
+        val restInstrs: Seq[Instruction] = rest.map(x => {
+          val xAss = x.toAssembly(gen, table)
+          val op = xAss.getOp
+          xAss.instr ++ Seq(
+            Push(accReg),
+            Mov(reg1, op),
+            Pop(accReg),
+            Mov(reg2, accReg),
+            LinkBranch("_arrload"), // to define
+            Mov(accReg, reg2)
+          )
+        }).flatten
 
-        return RegAssembly(outReg, instrns)
+        val finalInstrs = Seq(Mov(outReg, accReg))
+
+        return RegAssembly(outReg, startInstrs ++ restInstrs ++ finalInstrs)
     }
 }
   
