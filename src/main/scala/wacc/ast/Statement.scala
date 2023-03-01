@@ -232,7 +232,8 @@ case class Print(x: Expr) extends Stat {
                     Pop(Register(0), Register(1), Register(2), Register(3))
                 )
             }
-            case x : PairType => {
+            
+            case PairType(_,_) | ArrayType(_) => {
                 gen.postSections.addOne(PrintPointerSection)
                 return Seq(
                     Push(Register(0), Register(1), Register(2), Register(3)),

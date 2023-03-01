@@ -107,6 +107,7 @@ object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Fu
         if (!regs.isEmpty) instr += Push(regs:_*)
 
         instr ++= range.map(i => args(i) match {
+            case ImmLabel(label) => Load(Register(i + 1), DataLabel(label))
             case x: Register => Mov(Register(i + 1), x)
             case x => Operands.opToReg(x, Register(i + 1)) 
         })
