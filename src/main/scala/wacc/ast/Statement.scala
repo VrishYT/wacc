@@ -61,13 +61,15 @@ case class Assign(x: LValue, y: RValue) extends Stat {
                 val out = gen.regs.allocate
                 x match {
                     case Fst(x) => {
+                        gen.postSections.addOne(NullDereference)
                         val pairAss = x.toAssembly(gen, table)
                         val pairReg = pairAss.getReg
-                        return (Seq(Push(Register(8))) ++ rhsAssembly.instr ++ pairAss.instr ++ out.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp), Load(Register(8), Address(pairReg, ImmInt(0))), Store(out.getReg, Address(Register(8), ImmInt(0))), Pop(Register(8))))}
+                        return (Seq(Push(Register(8))) ++ rhsAssembly.instr ++ pairAss.instr ++ out.instr ++ Seq(Mov(Register(8), pairReg), Cmp(Register(8), ImmInt(0)), LinkBranch("_errNull", Condition.EQ), Mov(out.getReg, rhsAssembly.getOp), Load(Register(8), Address(pairReg, ImmInt(0))), Store(out.getReg, Address(Register(8), ImmInt(0))), Pop(Register(8))))}
                     case Snd(x) => {
+                        gen.postSections.addOne(NullDereference)
                         val pairAss = x.toAssembly(gen, table)
                         val pairReg = pairAss.getReg
-                        return (Seq(Push(Register(8))) ++ rhsAssembly.instr ++ pairAss.instr ++ out.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp), Load(Register(8), Address(pairReg, ImmInt(0))), Store(out.getReg, Address(Register(8), ImmInt(4))), Pop(Register(8))))}
+                        return (Seq(Push(Register(8))) ++ rhsAssembly.instr ++ pairAss.instr ++ out.instr ++ Seq(Mov(Register(8), pairReg), Cmp(Register(8), ImmInt(0)), LinkBranch("_errNull", Condition.EQ),Mov(out.getReg, rhsAssembly.getOp), Load(Register(8), Address(pairReg, ImmInt(0))), Store(out.getReg, Address(Register(8), ImmInt(4))), Pop(Register(8))))}
                     case _ => {
                         return Assign.assDec(lval, rhsAssembly, false)
                     }
@@ -138,9 +140,9 @@ case class Free(x: Expr) extends Stat {
         val xAssembly = x.toAssembly(gen, table)
         val xOp = xAssembly.getOp
 
-        val instrns = xAssembly.instr ++ Seq(Push(Register(8), Register(0)), Mov(Register(8), xOp), 
+        val instrns = xAssembly.instr ++ Seq(Push(Register(8)), Mov(Register(8), xOp), 
                                          Mov(Register(0), Register(8)), LinkBranch("_freepair"), 
-                                         Mov(Register(0), ImmInt(0)), Pop(Register(0), Register(8)))
+                                         Mov(Register(0), ImmInt(0)), Pop( Register(8)))
         return instrns
 
 
