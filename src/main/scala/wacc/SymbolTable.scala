@@ -26,16 +26,20 @@ sealed abstract class Table extends TableEntry {
         table(id) = symbol
     }
     
-    def update(id: String, reg: Register): Unit = {
-        table(id) = RegSymbol(getType(id), reg)
-    }
+    // def update(id: String, reg: Register): Unit = {
+    //     table(id) = RegSymbol(getType(id), reg)
+    // }
 
-    def update(id: String, addr: Int): Unit = {
-        table(id) = MemSymbol(getType(id), addr)
-    }
+    // def update(id: String, addr: Address): Unit = {
+    //     table(id) = MemSymbol(getType(id), addr)
+    // }
     
-    def update(id: String, label: String): Unit = {
-        table(id) = LabelSymbol(getType(id), label)
+    // def update(id: String, label: String): Unit = {
+    //     table(id) = LabelSymbol(getType(id), label)
+    // }
+
+    def update(id: String, op: Operand): Unit = {
+        table(id) = OpSymbol(getType(id), op)
     }
 
     // USED FOR FRONT-END
@@ -102,9 +106,10 @@ object Symbol {
 }
 
 case class ParamSymbol(override val t: Type) extends Symbol(t)
-case class RegSymbol(override val t: Type, val reg: Register) extends Symbol(t)
-case class MemSymbol(override val t: Type, val addr: Int) extends Symbol(t)
-case class LabelSymbol(override val t: Type, val label: String) extends Symbol(t)
+case class OpSymbol(override val t: Type, val op: Operand) extends Symbol(t)
+// case class RegSymbol(override val t: Type, val reg: Register) extends Symbol(t)
+// case class MemSymbol(override val t: Type, val addr: Address) extends Symbol(t)
+// case class LabelSymbol(override val t: Type, val label: String) extends Symbol(t)
 
 class SymbolTable {
 
