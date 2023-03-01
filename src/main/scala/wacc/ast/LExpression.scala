@@ -29,7 +29,7 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
         val reg2Ass = gen.regs.allocate
         val reg2 = reg2Ass.getReg
 
-        val arrAss = RegAssembly(gen.regs.get(id))
+        val arrAss = Operands.opToReg(table.getOp(id), gen.regs)
         val arrayOp = arrAss.getOp
 
         val first = xs.head
