@@ -15,7 +15,7 @@ case object Skip extends Stat with ParserBridge0[Stat]
 
 case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
-        val out = gen.regs.allocate(id)
+        var out = gen.regs.allocate(id)
         rhs match {
             case StrLiteral(string) => {
                 val assembly = rhs.toAssembly(gen, table)
@@ -31,6 +31,9 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
                 return (assembly1.instr ++ assembly2.instr ++ out.instr ++ pairAssembly.instr)
             }
             case arrLit@ArrayLiteral(_) => {
+                if (out.getReg.i == 0) {
+                    out = gen.regs.allocate(id) // reallocate to make sure r0 is not clobbered
+                }
                 return arrLit.toInstructions(gen, table, out)
             }
 
