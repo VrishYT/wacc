@@ -19,10 +19,10 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
         rhs match {
             case StrLiteral(string) => {
                 val assembly = rhs.toAssembly(gen, table)
-                val label = assembly.getOp.toString
+                val label = DataLabel(assembly.getOp.toString)
                 table.update(id, label)
-                return (assembly.instr ++ out.instr ++ Seq(Load(out.getReg, DataLabel(label))))
-                }
+                return (assembly.instr ++ out.instr ++ Seq(Load(out.getReg, label)))
+            }
                 
             case NewPair(fst, snd) => {
                 val assembly1 = fst.toAssembly(gen, table)
