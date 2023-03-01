@@ -7,12 +7,12 @@ import wacc.front.ParserBridge._
 /* left values as a sealed trait with a position */
 trait LValue {
     def pos: (Int, Int)
-    def toAssembly(gen: CodeGenerator, table: Table): RegAssembly = TODOAssembly
+    def toAssembly(gen: CodeGenerator)(implicit table: Table): RegAssembly = TODOAssembly
 }
 
 /* pair elements as a sealed trait with a position */
 sealed trait PairElem extends LValue with RValue {
-    override def toAssembly(gen: CodeGenerator, table: Table): RegAssembly = {
+    override def toAssembly(gen: CodeGenerator)(implicit table: Table): RegAssembly = {
 
         gen.postSections.addOne(PrintStringSection)
         gen.postSections.addOne(NullDereference)
@@ -22,7 +22,7 @@ sealed trait PairElem extends LValue with RValue {
             case Snd(x) => (x, gen.elemSize)
         }   
         
-        val pairAss = pair.toAssembly(gen, table)
+        val pairAss = pair.toAssembly(gen)
         val pairReg = pairAss.getReg
         val outAss = gen.regs.allocate
         val outReg = outAss.getReg

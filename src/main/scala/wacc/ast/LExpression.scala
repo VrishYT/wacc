@@ -7,18 +7,18 @@ import wacc.back._
 /* left expressions extending expressions and left values */
 sealed trait LExpr extends Expr with LValue {
   def pos: (Int, Int)
-  override def toAssembly(gen: CodeGenerator, table: Table): RegAssembly = TODOAssembly
+  override def toAssembly(gen: CodeGenerator)(implicit table: Table): RegAssembly = TODOAssembly
 }
 
 /* expressions extending left expressions */
 case class Ident(id: String)(val pos: (Int, Int)) extends LExpr {
-  override def toAssembly(gen: CodeGenerator, table: Table): RegAssembly = RegAssembly(gen.regs.get(id))
+  override def toAssembly(gen: CodeGenerator)(implicit table: Table): RegAssembly = RegAssembly(gen.regs.get(id))
 }
 
 object Ident extends ParserBridgePos1[String, Ident]
 
 case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LExpr {
-  override def toAssembly(gen: CodeGenerator, table: Table): RegAssembly = {
+  override def toAssembly(gen: CodeGenerator)(implicit table: Table): RegAssembly = {
 
         val outAss = gen.regs.allocate
         val outReg = outAss.getReg
@@ -35,7 +35,7 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
         val first = xs.head
         val rest = xs.tail
 
-        val firstAss = first.toAssembly(gen, table)
+        val firstAss = first.toAssembly(gen)
         val firstOp = firstAss.getOp
 
         val accAss = gen.regs.allocate
@@ -52,7 +52,7 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
         instrns :+ Mov(accReg, reg2)
 
         rest.foreach(x => {
-          val xAss = x.toAssembly(gen, table)
+          val xAss = x.toAssembly(gen)
           val op = xAss.getOp
           instrns :+ xAss.instr
           instrns :+ Push(accReg)

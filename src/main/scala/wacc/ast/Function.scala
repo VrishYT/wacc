@@ -8,7 +8,7 @@ import scala.collection.mutable.ListBuffer
 /* function case class with position */
 case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
 
-    def toAssembly(gen: CodeGenerator, table: FuncTable): Seq[Instruction] = {
+    def toAssembly(gen: CodeGenerator)(implicit table: FuncTable): Seq[Instruction] = {
 
         // TODO: modify to work with more args than regs
         (0 until args.length).foreach(i => {
@@ -16,7 +16,7 @@ case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val po
             gen.regs.link(param.id, Register(i + 1))
         })
         
-        val instr = stats.map(_.toAssembly(gen, table)).fold(Seq())(_ ++ _)
+        val instr = stats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
 
         return gen.mem.grow(table.getSize) +: Func.generateFunction(s"wacc_${fs._2}", instr) :+ gen.mem.shrink(table.getSize)
     }

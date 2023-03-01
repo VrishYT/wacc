@@ -1,7 +1,7 @@
-package wacc.back
+package wacc
+package back
 
-import wacc.ast._
-import wacc.SymbolTable
+import ast._
 import Condition._
 import scala.collection.mutable.{Set => SetM}
 
@@ -14,7 +14,7 @@ class Assembly(val op: Option[Operand], val instr: Seq[Instruction], var cond: C
         cond = Condition.invert(cond)
         this
     }
-    def condToReg(regs: RegisterAllocator): Assembly = op match {
+    def condToReg(regs: RegisterAllocator)(implicit table: Table): Assembly = op match {
         case Some(x) => this
         case None => {
             val reg = regs.allocate

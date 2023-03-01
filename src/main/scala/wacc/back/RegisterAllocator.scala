@@ -31,19 +31,20 @@ class RegisterAllocator(val mem: MemoryAllocator) {
 
     def isAllocated(reg: Register): Boolean = regsInUse.contains(reg)
 
+    // REMOVE / MOVE ELSWHERE
     def link(id: String, reg: Register): Unit = {
         table(id) = reg
         freeRegs.removeFirst(_.i == reg.i)
         regsInUse.enqueue(reg)
     }
 
-    def allocate(id: String): RegAssembly = {
+    def allocate(id: String)(implicit table: Table): RegAssembly = {
         val reg = allocate
         table(id) = reg.getReg
         return reg
     }
 
-    def allocate: RegAssembly = {
+    def allocate(implicit table: Table): RegAssembly = {
 
         // TODO: move and update symbol table with new address
         def realloc(): RegAssembly = {

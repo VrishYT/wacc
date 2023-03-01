@@ -1,4 +1,5 @@
-package wacc.back
+package wacc
+package back
 
 trait Operand
 
@@ -40,7 +41,7 @@ object Operands {
         case x => Mov(dest, x)
     }
 
-    def opToReg(op: Operand, regs: RegisterAllocator): RegAssembly = op match {
+    def opToReg(op: Operand, regs: RegisterAllocator)(implicit table: Table): RegAssembly = op match {
         case x: Register => RegAssembly(x)
         case x => {
             val reg = regs.allocate

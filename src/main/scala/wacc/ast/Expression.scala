@@ -11,7 +11,7 @@ trait Expr extends RValue
 
 /* atomic types as case classes */
 case class IntLiteral(x: Int)(val pos: (Int, Int)) extends Expr {
-  override def toAssembly(gen: CodeGenerator, table: Table): Assembly = {
+  override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
     if (x < 0 || x > 255){
       val out = gen.regs.allocate
       val instr: Seq[Instruction] = Seq(
@@ -26,26 +26,26 @@ case class IntLiteral(x: Int)(val pos: (Int, Int)) extends Expr {
 } 
 
 case class CharLiteral(x: Char)(val pos: (Int, Int)) extends Expr {
-    override def toAssembly(gen: CodeGenerator, table: Table): Assembly = Assembly(ImmChar(x))
+    override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = Assembly(ImmChar(x))
 }
 
 case class StrLiteral(str: String)(val pos: (Int, Int)) extends Expr {
-  override def toAssembly(gen: CodeGenerator, table: Table) : Assembly = {
+  override def toAssembly(gen: CodeGenerator)(implicit table: Table) : Assembly = {
     val label = gen.text.add(str)
     Assembly(ImmLabel(label))
   }
 }
 
 case class BoolLiteral(x: Boolean)(val pos: (Int, Int)) extends Expr {
-    override def toAssembly(gen: CodeGenerator, table: Table): Assembly = Assembly(ImmInt(if (x) 1 else 0), Seq(), if (x) AL else NO)
+    override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = Assembly(ImmInt(if (x) 1 else 0), Seq(), if (x) AL else NO)
 }
 
 /* operators as case classes */
 case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
 
-  override def toAssembly(gen: CodeGenerator, table: Table): Assembly = {
+  override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
 
-    val expr = x.toAssembly(gen, table)
+    val expr = x.toAssembly(gen)
 
     return op match {
       case Not => {
@@ -70,7 +70,7 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
 
 case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val pos2: (Int, Int)) extends Expr {
 
-  override def toAssembly(gen: CodeGenerator, table: Table): Assembly = {
+  override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
 
     def binaryOpToAssembly(out: Register, x: Register, y: Operand): Seq[Instruction] = op match {
       case ast.Mul => {
@@ -126,8 +126,8 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
       case ast.Or => Seq(Or(out, x, y))
     }
 
-    val expr1 = x.toAssembly(gen, table).condToReg(gen.regs)
-    val expr2 = y.toAssembly(gen, table).condToReg(gen.regs)
+    val expr1 = x.toAssembly(gen).condToReg(gen.regs)
+    val expr2 = y.toAssembly(gen).condToReg(gen.regs)
 
     val instr = ListBuffer[Instruction]()
     instr ++= expr1.instr
