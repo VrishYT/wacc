@@ -27,21 +27,24 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
             case NewPair(fst, snd) => {
                 val assembly1 = fst.toAssembly(gen, table)
                 val assembly2 = snd.toAssembly(gen, table)
-                val pairAssembly = gen.heapAlloc.mallocPair(assembly1.getOp, assembly2.getOp, out.getReg)
+                val pairAssembly = gen.heap.mallocPair(assembly1.getOp, assembly2.getOp, out.getReg)
+                // TODO: update symbol table
                 return (assembly1.instr ++ assembly2.instr ++ out.instr ++ pairAssembly.instr)
             }
             case ArrayLiteral(xs) => {
                 val assemblies = xs.map(x => x.toAssembly(gen, table))
                 val instrs = (assemblies.map(x => x.instr)).flatten
                 val ops = (assemblies.map(x => x.getOp))
-                val arrAssembly = gen.heapAlloc.mallocArray(ops, out.getReg)
+                val arrAssembly = gen.heap.mallocArray(ops, out.getReg)
+                // TODO: update symbol table
                 return (instrs ++ out.instr ++ arrAssembly.instr)
             }
 
             case _ => {
                 val assembly = rhs.toAssembly(gen, table).condToReg(gen.regs)
+                table.update(id, assembly.getOp)
                 return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))
-                } 
+            } 
         }
     }
 }
@@ -64,7 +67,8 @@ case class Assign(x: LValue, y: RValue) extends Stat {
                     case Snd(_) => {
                         return (rhsAssembly.instr ++ lval.instr ++ out.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp), Store(out.getReg, Address(lval.getReg, ImmInt(4)))))}
                     case _ => {
-                        return (rhsAssembly.instr ++ lval.instr ++ Seq(Mov(lval.getReg, rhsAssembly.getOp)))}
+                        return (rhsAssembly.instr ++ lval.instr ++ Seq(Mov(lval.getReg, rhsAssembly.getOp)))
+                    }
                 }
             }
         }

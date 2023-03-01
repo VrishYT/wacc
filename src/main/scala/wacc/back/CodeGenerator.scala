@@ -55,8 +55,9 @@ case class CodeGenerator(val symbolTable: SymbolTable) {
     val postSections = scala.collection.mutable.Set[DataSection]()
 
     val labels = new LabelGenerator
-    val regs = new RegisterAllocator
-    val heapAlloc = new HeapAllocator
+    val heap = new HeapAllocator
+    val mem = new MemoryAllocator
+    val regs = new RegisterAllocator(mem)
 
     val elemSize = 4
 
