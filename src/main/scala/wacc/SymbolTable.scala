@@ -27,7 +27,7 @@ sealed abstract class Table extends TableEntry {
 
     private def update(id: String, symbol: Symbol): Unit = {
 
-        def updateParent(id: String, symbol: Symbol, implicit table: Table): Unit = {
+        def updateParent(id: String, symbol: Symbol, table: Table): Unit = {
             if (table.contains(id)) table(id) = symbol
             else {
                 table match {
