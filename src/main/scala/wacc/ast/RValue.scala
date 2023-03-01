@@ -12,7 +12,15 @@ trait RValue {
 }
 
 /* case classes for right values */
-case class ArrayLiteral(xs: List[Expr])(val pos: (Int, Int)) extends RValue
+case class ArrayLiteral(xs: List[Expr])(val pos: (Int, Int)) extends RValue {
+    def toInstructions(gen: CodeGenerator, table: Table, out: RegAssembly): Seq[Instruction] = {
+        val assemblies = xs.map(x => x.toAssembly(gen, table))
+        val instrs = (assemblies.map(x => x.instr)).flatten
+        val ops = (assemblies.map(x => x.getOp))
+        val arrAssembly = gen.heapAlloc.mallocArray(ops, out.getReg)
+        return (instrs ++ out.instr ++ arrAssembly.instr)
+    }
+}
 
 /* companion objects for right values */
 object ArrayLiteral extends ParserBridgePos1[List[Expr], ArrayLiteral]

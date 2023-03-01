@@ -30,12 +30,8 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
                 val pairAssembly = gen.heapAlloc.mallocPair(assembly1.getOp, assembly2.getOp, out.getReg)
                 return (assembly1.instr ++ assembly2.instr ++ out.instr ++ pairAssembly.instr)
             }
-            case ArrayLiteral(xs) => {
-                val assemblies = xs.map(x => x.toAssembly(gen, table))
-                val instrs = (assemblies.map(x => x.instr)).flatten
-                val ops = (assemblies.map(x => x.getOp))
-                val arrAssembly = gen.heapAlloc.mallocArray(ops, out.getReg)
-                return (instrs ++ out.instr ++ arrAssembly.instr)
+            case arrLit@ArrayLiteral(_) => {
+                return arrLit.toInstructions(gen, table, out)
             }
 
             case _ => {
