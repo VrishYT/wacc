@@ -14,6 +14,9 @@ trait LValue {
 sealed trait PairElem extends LValue with RValue {
     override def toAssembly(gen: CodeGenerator, table: Table): RegAssembly = {
 
+        gen.postSections.addOne(PrintStringSection)
+        gen.postSections.addOne(NullDereference)
+
         val (pair, offset) = this match {
             case Fst(x) => (x, 0)
             case Snd(x) => (x, gen.elemSize)
@@ -23,11 +26,13 @@ sealed trait PairElem extends LValue with RValue {
         val pairReg = pairAss.getReg
         val outAss = gen.regs.allocate
         val outReg = outAss.getReg
+        val accumAss = gen.regs.allocate
+        val accumReg = accumAss.getReg
 
-        val instrs = outAss.instr ++ pairAss.instr
-        instrs :+ Cmp(pairReg, ImmInt(0))
-        instrs :+ LinkBranch("_errNull") //Error function needs to be defined
-        instrs :+ Load(outReg, Address(pairReg, ImmInt(offset)))
+        val instrs = outAss.instr ++ pairAss.instr ++ accumAss.instr ++ Seq(Mov(accumReg, pairReg), Cmp(accumReg, ImmInt(0)), LinkBranch("_errNull", Condition.EQ), Load(outReg, Address(pairReg, ImmInt(offset))))
+        // instrs :+ Cmp(pairReg, ImmInt(0))
+        // instrs :+ LinkBranch("_errNull") //Error function needs to be defined
+        // instrs :+ Load(outReg, Address(pairReg, ImmInt(offset)))
 
         return RegAssembly(outReg, instrs)
     }

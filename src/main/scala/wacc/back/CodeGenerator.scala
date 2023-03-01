@@ -56,6 +56,7 @@ case class CodeGenerator(val symbolTable: SymbolTable) {
 
     val labels = new LabelGenerator
     val regs = new RegisterAllocator
+    val heapAlloc = new HeapAllocator
 
     val elemSize = 4
 
