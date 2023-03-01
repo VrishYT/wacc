@@ -43,6 +43,7 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
         val accReg = accAss.getReg
 
         gen.postSections.addOne(ArrayBoundsCheck)
+        gen.postSections.addOne(ArrayLoadSection)
 
         val startInstrs: Seq[Instruction] = reg1Ass.instr ++ reg2Ass.instr ++ outAss.instr ++ arrAss.instr ++ firstAss.instr ++ Seq(
           Mov(reg1, firstOp),
@@ -66,7 +67,9 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
 
         val finalInstrs = Seq(Mov(outReg, accReg))
 
-        return RegAssembly(outReg, startInstrs ++ restInstrs ++ finalInstrs)
+        // val comment: String = s"START: ${startInstrs}, REST: ${restInstrs}, FINAL: ${finalInstrs}"
+
+        return RegAssembly(outReg, startInstrs ++ restInstrs ++ finalInstrs /*++ Seq(Comment(comment))*/)
     }
 }
   

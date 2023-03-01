@@ -32,6 +32,11 @@ case class ASR(reg: Register, op: Operand) extends Operand {
     override def toString(): String = arm11
 }
 
+case class LSL(reg: Register, op: Operand) extends Operand {
+    def arm11: String = reg + "," + " lsl " + op 
+    override def toString(): String = arm11
+}
+
 object Operands {
 
     def opToReg(op: Operand, dest: Register): Instruction = op match {

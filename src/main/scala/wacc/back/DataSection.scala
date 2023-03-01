@@ -66,6 +66,23 @@ case object PrintBoolSection extends DataSection {
     }
 }
 
+case object ArrayLoadSection extends DataSection {
+    def toAssembly(): Seq[Instruction] = {
+        return Seq(
+            Section(".text")
+        ) ++ Func.generateFunction("_arrLoad", Seq(
+            Cmp(Register(10), ImmInt(0)),
+            Mov(Register(1), Register(10), Condition.LT),
+            LinkBranch("_boundsCheck", Condition.LT),
+            Load(LR, Address(Register(3), ImmInt(-4))),
+            Cmp(Register(10), LR),
+            Mov(Register(1), Register(10), Condition.GE),
+            LinkBranch("_boundsCheck", Condition.GE),
+            Load(Register(3), Address(Register(3), LSL(Register(10), ImmInt(2)))),
+            Pop(PC)
+        ))
+    }
+}
 
 case object ReadIntSection extends DataSection {
     def toAssembly(): Seq[Instruction] = {
