@@ -40,7 +40,7 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
             //     return (instrs ++ out.instr ++ arrAssembly.instr)
             // }
             case _ => {
-                val assembly = rhs.toAssembly(gen, table)
+                val assembly = rhs.toAssembly(gen, table).condToReg(gen.regs)
                 return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))
                 } 
         }
