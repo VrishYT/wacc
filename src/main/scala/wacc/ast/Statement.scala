@@ -187,7 +187,6 @@ case class Print(x: Expr) extends Stat {
             }
             case str: StrLiteral => {
                 val ass = str.toAssembly(gen)
-                val label = ass.getOp.toString
                 val reg = gen.regs.allocate 
                 ass.instr ++ reg.instr ++ (Load(reg.getReg, ass.getOp) +: printValue(StringType, reg.getReg, gen))
             }
@@ -304,8 +303,8 @@ object If extends ParserBridge3[Expr, List[Stat], List[Stat], If] {
     def generateIf(cond: Assembly, thenLabel: String, thenBlock: Seq[Instruction], elseBlock: Seq[Instruction], endLabel: String): Seq[Instruction] = {
         val branch = if (cond.cond == Condition.NO) Seq() else Seq(Branch(thenLabel, cond.cond))
         cond.instr ++ branch ++ 
-            elseBlock ++ Seq(Branch(endLabel), Label(thenLabel)) ++ 
-            thenBlock :+ Label(endLabel)
+        elseBlock ++ Seq(Branch(endLabel), Label(thenLabel)) ++ 
+        thenBlock :+ Label(endLabel)
     }
 }
 
