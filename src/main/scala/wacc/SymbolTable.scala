@@ -56,18 +56,18 @@ sealed abstract class Table extends TableEntry {
     }
 
     def addIf(thenVars: ChildTable, elseVars: ChildTable) = {
-        addTable(s"if${ifCount}", thenVars)
-        addTable(s"else${ifCount}", elseVars)
+        addTable(s"_if${ifCount}", thenVars)
+        addTable(s"_else${ifCount}", elseVars)
         ifCount += 1
     }
 
     def addWhile(vars: ChildTable) = {
-        addTable(s"while${whileCount}", vars)
+        addTable(s"_while${whileCount}", vars)
         whileCount += 1
     }
 
     def addBegin(vars: ChildTable) = {
-        addTable(s"begin${beginCount}", vars)
+        addTable(s"_begin${beginCount}", vars)
         beginCount += 1
     }
 
