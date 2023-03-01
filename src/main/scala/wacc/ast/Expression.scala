@@ -162,6 +162,14 @@ object StrLiteral extends ParserBridgePos1[String, StrLiteral]
 object BoolLiteral extends ParserBridgePos1[Boolean, BoolLiteral]
 
 /* case class for a pair literal, (always null) */
-case class PairLiteralNull(val pos: (Int, Int)) extends Expr with ParserBridgePos0[Expr]
+case class PairLiteralNull(val pos: (Int, Int)) extends Expr with ParserBridgePos0[Expr] {
+  override def toAssembly(gen: CodeGenerator, table: Table): Assembly = {
+    val regAss = gen.regs.allocate
+    val reg = regAss.getReg
+    val regInstr = regAss.instr
+    val instrns =  Seq(Mov(reg, ImmInt(0)))
+    return Assembly(reg, regInstr ++ instrns.toSeq)
+  }
+}
 
   
