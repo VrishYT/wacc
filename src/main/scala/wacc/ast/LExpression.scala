@@ -98,23 +98,27 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
     val lastAss = last.toAssembly(gen, table)
     val lastOp = lastAss.getOp
 
-    val _partOne: Seq[Instruction] = Seq(
+    gen.postSections.addOne(ArrayBoundsCheck)
+    gen.postSections.addOne(ArrayLoadSection(indexReg, ptrReg))
+    gen.postSections.addOne(ArrayStoreSection(indexReg, ptrReg, valReg))
+
+    val _arrStore: Seq[Instruction] = Seq(
       Mov(indexReg, lastOp),
       Mov(valReg, rhs.getOp),
       Mov(ptrReg, arrayOp),
-      LinkBranch("_arrStore")
+      LinkBranch("__arrStore")
     )
     
     val initList: List[Expr] = xs.init
     if (initList.isEmpty) {
-      return RegAssembly(Register(0), lastAss.instr ++ _partOne)
+      return RegAssembly(Register(0), lastAss.instr ++ _arrStore)
     }
 
     val first: Expr = initList.head
     val firstAss = first.toAssembly(gen, table)
     val firstOp = firstAss.getOp
 
-    def _partTwo(op: Operand, pop: Seq[Instruction]): Seq[Instruction] = {
+    def _arrLoad(op: Operand, pop: Seq[Instruction]): Seq[Instruction] = {
       Seq(Mov(indexReg, op)) ++ pop ++ Seq(
         Mov(ptrReg, arrayOp),
         LinkBranch("_arrLoad"),
@@ -125,23 +129,23 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
 
     val middleList: List[Expr] = initList.tail
     if (middleList.isEmpty) {
-      val pop = Pop
+      // val pop = Pop()
       return RegAssembly(Register(0),
-        firstAss.instr ++ _partTwo(firstOp, Seq()) ++
-        lastAss.instr ++ _partOne
+        firstAss.instr ++ _arrLoad(firstOp, Seq()) ++
+        lastAss.instr ++ _arrStore
       )
     }
     
     val middleInstr: Seq[Instruction] = initList.map(x => {
       val xAss = x.toAssembly(gen, table)
       val xOp = xAss.getOp
-      xAss.instr ++ _partTwo(xOp, Seq(Pop(accReg)))
+      xAss.instr ++ _arrLoad(xOp, Seq(Pop(accReg)))
     }).flatten
 
     return RegAssembly(Register(0),
-      firstAss.instr ++ _partTwo(firstOp, Seq()) ++
+      firstAss.instr ++ _arrLoad(firstOp, Seq()) ++
       middleInstr ++
-      lastAss.instr ++ _partOne
+      lastAss.instr ++ _arrStore
     )
     
   }
