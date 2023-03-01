@@ -1,4 +1,5 @@
-package wacc.back
+package wacc
+package back
 
 import org.scalatest._
 

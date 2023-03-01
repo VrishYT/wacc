@@ -1,4 +1,5 @@
-package wacc.front
+package wacc
+package front
 
 object SemanticChecker {
 

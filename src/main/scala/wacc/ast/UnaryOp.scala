@@ -1,4 +1,5 @@
-package wacc.ast
+package wacc
+package ast
 
 import parsley.genericbridges._ 
 

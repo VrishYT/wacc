@@ -1,4 +1,5 @@
-package wacc.back
+package wacc
+package back
 
 sealed class Register(val i: Int) extends Operand {
     override def toString(): String = "r" + i
