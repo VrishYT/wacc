@@ -20,11 +20,6 @@ sealed abstract class Table extends TableEntry {
 
     def getSize: Int = size
 
-    def getType(id: String): Type = getSymbol(id) match {
-        case Some(x) => x.t
-        case None => ???
-    }
-
     private def update(id: String, symbol: Symbol): Unit = {
 
         def updateParent(id: String, symbol: Symbol, table: Table): Unit = {
@@ -53,7 +48,11 @@ sealed abstract class Table extends TableEntry {
     // }
 
     def update(id: String, op: Operand): Unit = {
-        table(id) = OpSymbol(getType(id), op)
+        val t = getType(id) match {
+            case Some(x) => x
+            case None => ???
+        }
+        table(id) = OpSymbol(t, op)
     }
 
     // USED FOR FRONT-END
@@ -92,12 +91,38 @@ sealed abstract class Table extends TableEntry {
 
     def contains(id: String): Boolean = table.contains(id)
 
-    def getSymbol(id: String): Option[Symbol] = table.get(id) match {
+    private def get(id: String): Option[TableEntry] = {
+
+        def getFromParent(id: String, table: Table): Option[TableEntry] = table.table.get(id) match {
+            case x: Some[_] => x
+            case None => table match {
+                case ChildTable(parent) => getFromParent(id, parent)
+                case _ => None
+            }
+        }
+
+        getFromParent(id, this)
+    }
+
+    def getType(id: String): Option[Type] = getSymbol(id) match {
+        case Some(x) => Some(x.t)
+        case _ => None
+    }
+
+    def getOp(id: String): Operand = getSymbol(id) match {
+        case Some(x) => x match {
+            case x: OpSymbol => x.op
+            case _ => ???
+        }
+        case _ => ???
+    }
+
+    private def getSymbol(id: String): Option[Symbol] = get(id) match {
         case x: Some[Symbol] => x
         case None => None
     }
 
-    def getTable(id: String): Option[ChildTable] = table.get(id) match {
+    def getTable(id: String): Option[ChildTable] = get(id) match {
         case x: Some[ChildTable] => x
         case None => None
     }
