@@ -21,8 +21,8 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
                 val assembly = rhs.toAssembly(gen, table)
                 val label = assembly.getOp.toString
                 table.update(id, label)
-                return (assembly.instr ++ out.instr ++ Seq(Load(out.getReg, DataLabel(label))))
-                }
+                return Assign.assDec(out, assembly, true)
+            }
                 
             case NewPair(fst, snd) => {
                 val assembly1 = fst.toAssembly(gen, table)
@@ -39,9 +39,9 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
             }
 
             case _ => {
-                val assembly = rhs.toAssembly(gen, table)
-                return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))
-                } 
+                val assembly = rhs.toAssembly(gen, table).condToReg(gen.regs)
+                return Assign.assDec(out, assembly, false)
+            } 
         }
     }
 }
@@ -55,7 +55,8 @@ case class Assign(x: LValue, y: RValue) extends Stat {
         y match {
             case StrLiteral(string) => {
                 val label = rhsAssembly.getOp.toString
-                return (rhsAssembly.instr ++ lval.instr ++ Seq(Load(lval.getReg, DataLabel(label))))}
+                return Assign.assDec(lval, rhsAssembly, true)
+            }
             case _ => {
                 val out = gen.regs.allocate
                 x match {
@@ -64,14 +65,25 @@ case class Assign(x: LValue, y: RValue) extends Stat {
                     case Snd(_) => {
                         return (rhsAssembly.instr ++ lval.instr ++ out.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp), Store(out.getReg, Address(lval.getReg, ImmInt(4)))))}
                     case _ => {
-                        return (rhsAssembly.instr ++ lval.instr ++ Seq(Mov(lval.getReg, rhsAssembly.getOp)))}
+                        return Assign.assDec(lval, rhsAssembly, false)
+                    }
                 }
             }
         }
     }
 }
 
-object Assign extends ParserBridge2[LValue, RValue, Assign] // TODO refactor this later
+
+object Assign extends ParserBridge2[LValue, RValue, Assign]{
+    def assDec(lval : RegAssembly, rval : Assembly, strLit: Boolean) : Seq[Instruction]= {
+        if (strLit){
+            val label = rval.getOp.toString
+            return (rval.instr ++ lval.instr ++ Seq(Load(lval.getReg, DataLabel(label))))
+        }else{
+            return (rval.instr ++ lval.instr ++ Seq(Mov(lval.getReg, rval.getOp)))
+        }
+    }
+}
 
 case class Read(x: LValue) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
@@ -235,6 +247,16 @@ case class Print(x: Expr) extends Stat {
                     Push(Register(0), Register(1), Register(2), Register(3)),
                     Mov(Register(0), operand),
                     LinkBranch("_printb"),
+                    Pop(Register(0), Register(1), Register(2), Register(3))
+                )
+            }
+            
+            case PairType(_,_) | ArrayType(_) => {
+                gen.postSections.addOne(PrintPointerSection)
+                return Seq(
+                    Push(Register(0), Register(1), Register(2), Register(3)),
+                    Mov(Register(1), operand),
+                    LinkBranch("_printp"),
                     Pop(Register(0), Register(1), Register(2), Register(3))
                 )
             }
