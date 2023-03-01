@@ -11,11 +11,14 @@ sealed abstract class Table extends TableEntry {
     private var ifCount = 0
     private var whileCount = 0
     private var beginCount = 0 
+    var varCount = 0
 
     def isInFunction: Boolean
     def getReturnType: Type
 
     private val table = MapM[String, TableEntry]()
+
+    def size(): Int = table.size
 
     def getType(id: String): Type = getSymbol(id) match {
         case Some(x) => x.t
@@ -48,6 +51,7 @@ sealed abstract class Table extends TableEntry {
             case None => 
         }
         table(id) = symbol
+        varCount += 1
         return true
     }
 

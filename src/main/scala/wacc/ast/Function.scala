@@ -24,8 +24,18 @@ case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val po
         
         val instr = stats.map(_.toAssembly(gen, table)).fold(Seq())(_ ++ _)
 
+        // val memorySpace = (table.varCount - 12) * 4
+
+        var stackDown: Seq[Instruction] = Seq()
+        var stackUp: Seq[Instruction] = Seq()
+
+        // if (memorySpace > 0) {
+        //     stackDown = Seq(Sub(SP, SP, ImmInt(memorySpace)))
+        //     stackUp = Seq(Add(SP, SP, ImmInt(memorySpace)))
+        // }
+
         // return Seq(Label(s"wacc_${fs._2}"), Push(LR)) ++ instr :+ Pop(PC)
-        return Func.generateFunction(s"wacc_${fs._2}", instr)
+        return Func.generateFunction(s"wacc_${fs._2}", stackDown ++ instr ++ stackUp)
     }
 
     /* define validReturn of a function, and match on the last statement : */
