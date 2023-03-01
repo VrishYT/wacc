@@ -60,10 +60,14 @@ case class Assign(x: LValue, y: RValue) extends Stat {
             case _ => {
                 val out = gen.regs.allocate
                 x match {
-                    case Fst(_) => {
-                        return (rhsAssembly.instr ++ lval.instr ++ out.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp), Store(out.getReg, Address(lval.getReg, ImmInt(0)))))}
-                    case Snd(_) => {
-                        return (rhsAssembly.instr ++ lval.instr ++ out.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp), Store(out.getReg, Address(lval.getReg, ImmInt(4)))))}
+                    case Fst(x) => {
+                        val pairAss = x.toAssembly(gen, table)
+                        val pairReg = pairAss.getReg
+                        return (Seq(Push(Register(8))) ++ rhsAssembly.instr ++ pairAss.instr ++ out.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp), Load(Register(8), Address(pairReg, ImmInt(0))), Store(out.getReg, Address(Register(8), ImmInt(0))), Pop(Register(8))))}
+                    case Snd(x) => {
+                        val pairAss = x.toAssembly(gen, table)
+                        val pairReg = pairAss.getReg
+                        return (Seq(Push(Register(8))) ++ rhsAssembly.instr ++ pairAss.instr ++ out.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp), Load(Register(8), Address(pairReg, ImmInt(0))), Store(out.getReg, Address(Register(8), ImmInt(4))), Pop(Register(8))))}
                     case _ => {
                         return Assign.assDec(lval, rhsAssembly, false)
                     }
