@@ -42,7 +42,7 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
 
             case _ => {
                 val assembly = rhs.toAssembly(gen).condToReg(gen.regs)
-                table.update(id, assembly.getOp)
+                table.update(id, out.getReg)
                 return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))
             } 
         }
@@ -79,10 +79,13 @@ object Assign extends ParserBridge2[LValue, RValue, Assign] // TODO refactor thi
 
 case class Read(x: LValue) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
-        Seq()
         x match {
             case id@Ident(i) => {
-                val identType = table.getType(i)
+                val identType = table.getType(i) match {
+                    case Some(x) => x
+                    case None => ???
+                }
+
                 val ass = id.toAssembly(gen)
                 identType match {
                     case IntType => {
@@ -150,7 +153,10 @@ case class Print(x: Expr) extends Stat {
         Comment("start print") +: (
         x match {
             case id@Ident(i) => {
-                val identType = table.getType(i) 
+                val identType = table.getType(i) match {
+                    case Some(x) => x
+                    case None => ???
+                }
                 val ass = id.toAssembly(gen)
                 ass.instr ++ printValue(identType, ass.getReg(), gen)
             }
