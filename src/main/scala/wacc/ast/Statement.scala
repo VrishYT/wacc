@@ -50,7 +50,14 @@ object Declare extends ParserBridge3[Type, String, RValue, Declare]
 case class Assign(x: LValue, y: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
         val rhsAssembly = y.toAssembly(gen, table).condToReg(gen.regs)
-        val lval = x.toAssembly(gen, table)
+        val lval = x match {
+            case arrElem@ArrayElem(_, _) => {
+                val arrElemAss = arrElem.toAssemblyStore(gen, table, rhsAssembly)
+                return rhsAssembly.instr ++ arrElemAss.instr
+            }
+            case _ => x.toAssembly(gen, table)
+        }
+
         y match {
             case StrLiteral(string) => {
                 val label = rhsAssembly.getOp.toString
