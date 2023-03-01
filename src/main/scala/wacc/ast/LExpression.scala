@@ -43,7 +43,7 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
         val accReg = accAss.getReg
 
         gen.postSections.addOne(ArrayBoundsCheck)
-        gen.postSections.addOne(ArrayLoadSection)
+        gen.postSections.addOne(ArrayLoadSection(reg1, reg2))
 
         val startInstrs: Seq[Instruction] = reg1Ass.instr ++ reg2Ass.instr ++ outAss.instr ++ arrAss.instr ++ firstAss.instr ++ Seq(
           Mov(reg1, firstOp),
