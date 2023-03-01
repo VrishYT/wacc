@@ -24,8 +24,12 @@ class HeapAllocator {
 
             /* Move elem into allocated address */
             instrs += Mov(Register(8), elem)
-            instrs += Store(Register(8), Address(out, ImmInt(0)))
 
+            elem match {
+                case ImmChar(_) => instrs += StoreB(Register(8), Address(out, ImmInt(0)))
+                case _ => instrs += Store(Register(8), Address(out, ImmInt(0)))
+            }
+            
             /* Push address of elem */
             instrs += Mov(Register(8), out)
             instrs += push
