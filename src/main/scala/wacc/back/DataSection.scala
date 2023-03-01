@@ -105,6 +105,26 @@ case object ReadCharSection extends DataSection {
     }
 }
 
+case object FreePairSection extends DataSection {
+    def toAssembly(): Seq[Instruction] = {
+        return Seq(
+            Label("_freepair"),
+            Push(LR),
+            Push(Register(8)),
+            Mov(Register(8), Register(0)),
+            Cmp(Register(8), ImmInt(0)),
+            LinkBranch("_errNull", EQ),
+            Load(Register(0), Address(Register(8), ImmInt(0))),
+            LinkBranch("free"),
+            Load(Register(0), Address(Register(8), ImmInt(4))),
+            LinkBranch("free"),
+            Mov(Register(0), Register(8)),
+            LinkBranch("free"),
+            Pop(PC, Register(8))
+        )
+    }
+}
+
 class TextSection extends DataSection {
 
     private val table = MapM[String, String]()
