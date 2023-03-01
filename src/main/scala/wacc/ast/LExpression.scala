@@ -22,17 +22,19 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
 
   override def toAssembly(gen: CodeGenerator, table: Table): RegAssembly = {
     return toAssemblyLoad(gen, table)
+    // val out = xs.map(_.toAssembly(gen, table))
+    // val func = Func.callFunction(id, xs)
   }
 
   def toAssemblyLoad(gen: CodeGenerator, table: Table): RegAssembly = {
     val outAss = gen.regs.allocate
     val outReg = outAss.getReg
 
-    val indexAss = gen.regs.allocate
-    val indexReg = indexAss.getReg
+    // val ptrAss = gen.regs.allocate // R3
+    val ptrReg = Register(3)//ptrAss.getReg
 
-    val ptrAss = gen.regs.allocate
-    val ptrReg = ptrAss.getReg
+    // val indexAss = gen.regs.allocate // R10
+    val indexReg = Register(10)//indexAss.getReg
 
     val arrAss = RegAssembly(gen.regs.get(id))
     val arrayOp = arrAss.getOp
@@ -47,9 +49,9 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
     val accReg = accAss.getReg
 
     gen.postSections.addOne(ArrayBoundsCheck)
-    gen.postSections.addOne(ArrayLoadSection(indexReg, ptrReg))
+    gen.postSections.addOne(ArrayLoadSection)
 
-    val startInstrs: Seq[Instruction] = indexAss.instr ++ ptrAss.instr ++ outAss.instr ++ arrAss.instr ++ firstAss.instr ++ Seq(
+    val startInstrs: Seq[Instruction] = /*indexAss.instr ++ ptrAss.instr ++*/ outAss.instr ++ arrAss.instr ++ firstAss.instr ++ Seq(
       Mov(indexReg, firstOp),
       Mov(ptrReg, arrayOp),
       LinkBranch("_arrload"), // to define
@@ -79,15 +81,21 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
   
   def toAssemblyStore(gen: CodeGenerator, table: Table, rhs: Assembly): RegAssembly = {
 
-    val ptrAss = gen.regs.allocate // R3
-    val ptrReg = ptrAss.getReg
+    // val ptrAss = gen.regs.allocate // R3
+    val ptrReg = Register(3)//ptrAss.getReg
 
-    val indexAss = gen.regs.allocate // R10
-    val indexReg = indexAss.getReg
+    // val indexAss = gen.regs.allocate // R10
+    val indexReg = Register(10)//indexAss.getReg
     
-    val valAss = gen.regs.allocate // R8
-    val valReg = valAss.getReg
+    // val valAss = gen.regs.allocate // R8
+    val valReg = Register(8)//valAss.getReg
 
+    val push = Seq(Push(Register(3), Register(8), Register(10)))
+    val pop = Seq(Pop(Register(3), Register(8), Register(10)))
+
+    // val arrOp = gen.regs.get(id)
+
+    // if (arrOp.i == 1 )
     val arrAss = RegAssembly(gen.regs.get(id))
     val arrayOp = arrAss.getOp
 
@@ -99,27 +107,28 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
     val lastOp = lastAss.getOp
 
     gen.postSections.addOne(ArrayBoundsCheck)
-    gen.postSections.addOne(ArrayLoadSection(indexReg, ptrReg))
-    gen.postSections.addOne(ArrayStoreSection(indexReg, ptrReg, valReg))
+    gen.postSections.addOne(ArrayLoadSection)
+    gen.postSections.addOne(ArrayStoreSection)
 
+    
     val _arrStore: Seq[Instruction] = Seq(
       Mov(indexReg, lastOp),
       Mov(valReg, rhs.getOp),
       Mov(ptrReg, arrayOp),
-      LinkBranch("__arrStore")
+      LinkBranch("_arrStore")
     )
     
     val initList: List[Expr] = xs.init
     if (initList.isEmpty) {
-      return RegAssembly(Register(0), lastAss.instr ++ _arrStore)
+      return RegAssembly(Register(0), push ++ lastAss.instr ++ _arrStore ++ pop)
     }
 
     val first: Expr = initList.head
     val firstAss = first.toAssembly(gen, table)
     val firstOp = firstAss.getOp
 
-    def _arrLoad(op: Operand, pop: Seq[Instruction]): Seq[Instruction] = {
-      Seq(Mov(indexReg, op)) ++ pop ++ Seq(
+    def _arrLoad(op: Operand, instr: Seq[Instruction]): Seq[Instruction] = {
+      Seq(Mov(indexReg, op)) ++ instr ++ Seq(
         Mov(ptrReg, arrayOp),
         LinkBranch("_arrLoad"),
         Mov(accReg, ptrReg),
@@ -131,8 +140,8 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
     if (middleList.isEmpty) {
       // val pop = Pop()
       return RegAssembly(Register(0),
-        firstAss.instr ++ _arrLoad(firstOp, Seq()) ++
-        lastAss.instr ++ _arrStore
+        push ++ firstAss.instr ++ _arrLoad(firstOp, Seq()) ++
+        lastAss.instr ++ _arrStore ++ pop
       )
     }
     
@@ -143,9 +152,9 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
     }).flatten
 
     return RegAssembly(Register(0),
-      firstAss.instr ++ _arrLoad(firstOp, Seq()) ++
+      push ++ firstAss.instr ++ _arrLoad(firstOp, Seq()) ++
       middleInstr ++
-      lastAss.instr ++ _arrStore
+      lastAss.instr ++ _arrStore ++ pop
     )
     
   }
