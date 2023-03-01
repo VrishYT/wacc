@@ -30,7 +30,7 @@ case class CharLiteral(x: Char)(val pos: (Int, Int)) extends Expr {
 case class StrLiteral(str: String)(val pos: (Int, Int)) extends Expr {
   override def toAssembly(gen: CodeGenerator)(implicit table: Table) : Assembly = {
     val label = gen.text.add(str)
-    Assembly(ImmLabel(label))
+    Assembly(DataLabel(label))
   }
 }
 
@@ -160,6 +160,14 @@ object StrLiteral extends ParserBridgePos1[String, StrLiteral]
 object BoolLiteral extends ParserBridgePos1[Boolean, BoolLiteral]
 
 /* case class for a pair literal, (always null) */
-case class PairLiteralNull(val pos: (Int, Int)) extends Expr with ParserBridgePos0[Expr]
+case class PairLiteralNull(val pos: (Int, Int)) extends Expr with ParserBridgePos0[Expr] {
+  override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
+    val regAss = gen.regs.allocate
+    val reg = regAss.getReg
+    val regInstr = regAss.instr
+    val instrns =  Seq(Mov(reg, ImmInt(0)))
+    return Assembly(reg, regInstr ++ instrns.toSeq)
+  }
+}
 
   

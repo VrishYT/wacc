@@ -19,9 +19,8 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
         rhs match {
             case StrLiteral(string) => {
                 val assembly = rhs.toAssembly(gen)
-                val label = DataLabel(assembly.getOp.toString)
-                table.update(id, label)
-                return (assembly.instr ++ out.instr ++ Seq(Load(out.getReg, label)))
+                table.update(id, assembly.getOp)
+                return Assign.assDec(out, assembly)
             }
                 
             case NewPair(fst, snd) => {
@@ -43,7 +42,7 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
             case _ => {
                 val assembly = rhs.toAssembly(gen).condToReg(gen.regs)
                 table.update(id, out.getReg)
-                return (assembly.instr ++ out.instr ++ Seq(Mov(out.getReg, assembly.getOp)))
+                return Assign.assDec(out, assembly)
             } 
         }
     }
@@ -58,16 +57,21 @@ case class Assign(x: LValue, y: RValue) extends Stat {
         y match {
             case StrLiteral(string) => {
                 val label = rhsAssembly.getOp.toString
-                return (rhsAssembly.instr ++ lval.instr ++ Seq(Load(lval.getReg, DataLabel(label))))}
+                return Assign.assDec(lval, rhsAssembly)
+            }
             case _ => {
                 val out = gen.regs.allocate
                 x match {
-                    case Fst(_) => {
-                        return (rhsAssembly.instr ++ lval.instr ++ out.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp), Store(out.getReg, Address(lval.getReg, ImmInt(0)))))}
-                    case Snd(_) => {
-                        return (rhsAssembly.instr ++ lval.instr ++ out.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp), Store(out.getReg, Address(lval.getReg, ImmInt(4)))))}
+                    case Fst(x) => {
+                        val pairAss = x.toAssembly(gen)
+                        val pairReg = pairAss.getReg
+                        return (Seq(Push(Register(8))) ++ rhsAssembly.instr ++ pairAss.instr ++ out.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp), Load(Register(8), Address(pairReg, ImmInt(0))), Store(out.getReg, Address(Register(8), ImmInt(0))), Pop(Register(8))))}
+                    case Snd(x) => {
+                        val pairAss = x.toAssembly(gen)
+                        val pairReg = pairAss.getReg
+                        return (Seq(Push(Register(8))) ++ rhsAssembly.instr ++ pairAss.instr ++ out.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp), Load(Register(8), Address(pairReg, ImmInt(0))), Store(out.getReg, Address(Register(8), ImmInt(4))), Pop(Register(8))))}
                     case _ => {
-                        return (rhsAssembly.instr ++ lval.instr ++ Seq(Mov(lval.getReg, rhsAssembly.getOp)))
+                        return Assign.assDec(lval, rhsAssembly)
                     }
                 }
             }
@@ -75,7 +79,10 @@ case class Assign(x: LValue, y: RValue) extends Stat {
     }
 }
 
-object Assign extends ParserBridge2[LValue, RValue, Assign] // TODO refactor this later
+
+object Assign extends ParserBridge2[LValue, RValue, Assign] {
+    def assDec(lval: RegAssembly, rval: Assembly) : Seq[Instruction] = (rval.instr ++ lval.instr) :+ Mov(lval.getReg, rval.getOp)
+}
 
 case class Read(x: LValue) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
@@ -121,7 +128,21 @@ case class Read(x: LValue) extends Stat {
 object Read extends ParserBridge1[LValue, Read]
 
 case class Free(x: Expr) extends Stat {
-    override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = Seq() 
+    override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
+        gen.postSections.addOne(NullDereference)
+        gen.postSections.addOne(PrintStringSection)
+        gen.postSections.addOne(FreePairSection)
+
+        val xAssembly = x.toAssembly(gen)
+        val xOp = xAssembly.getOp
+
+        val instrns = xAssembly.instr ++ Seq(Push(Register(8), Register(0)), Mov(Register(8), xOp), 
+                                         Mov(Register(0), Register(8)), LinkBranch("_freepair"), 
+                                         Mov(Register(0), ImmInt(0)), Pop(Register(0), Register(8)))
+        return instrns
+
+
+    }
 }
 
 
@@ -231,6 +252,16 @@ case class Print(x: Expr) extends Stat {
                     Push(Register(0), Register(1), Register(2), Register(3)),
                     Mov(Register(0), operand),
                     LinkBranch("_printb"),
+                    Pop(Register(0), Register(1), Register(2), Register(3))
+                )
+            }
+            
+            case PairType(_,_) | ArrayType(_) => {
+                gen.postSections.addOne(PrintPointerSection)
+                return Seq(
+                    Push(Register(0), Register(1), Register(2), Register(3)),
+                    Mov(Register(1), operand),
+                    LinkBranch("_printp"),
                     Pop(Register(0), Register(1), Register(2), Register(3))
                 )
             }

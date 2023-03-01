@@ -15,13 +15,13 @@ class MemoryAllocator {
 
     def grow(size: Int): Instruction = {
         this.size += size
-        Add(SP, SP, ImmInt(size))
+        Sub(SP, SP, ImmInt(size))
     }
 
     def shrink(size: Int): Instruction = {
         if (this.size < size) ???
         this.size -= size
-        Sub(SP, SP, ImmInt(size))
+        Add(SP, SP, ImmInt(size))
     }
 
     // def reset(newSize: Int): Unit = {

@@ -13,11 +13,6 @@ case class ImmChar(c: Char) extends Operand {
     override def toString(): String = arm11
 }
 
-case class ImmLabel(label: String) extends Operand {
-    def arm11: String = label
-    override def toString(): String = label
-}
-
 case class DataLabel(label: String) extends Operand {
     def arm11: String = "=" + label
     override def toString(): String = arm11
