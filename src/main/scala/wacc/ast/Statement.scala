@@ -69,7 +69,7 @@ case class Assign(x: LValue, y: RValue) extends Stat {
                         gen.postSections.addOne(NullDereference)
                         val pairAss = x.toAssembly(gen, table)
                         val pairReg = pairAss.getReg
-                        return (Seq(Push(Register(8))) ++ rhsAssembly.instr ++ pairAss.instr ++ out.instr ++ Seq(Mov(Register(8), pairReg), Cmp(Register(8), ImmInt(0)), LinkBranch("_errNull", Condition.EQ),Mov(out.getReg, rhsAssembly.getOp), Load(Register(8), Address(pairReg, ImmInt(0))), Store(out.getReg, Address(Register(8), ImmInt(4))), Pop(Register(8))))}
+                        return (Seq(Push(Register(8))) ++ rhsAssembly.instr ++ pairAss.instr ++ out.instr ++ Seq(Mov(Register(8), pairReg), Cmp(Register(8), ImmInt(0)), LinkBranch("_errNull", Condition.EQ),Mov(out.getReg, rhsAssembly.getOp), Load(Register(8), Address(pairReg, ImmInt(4))), Store(out.getReg, Address(Register(8), ImmInt(0))), Pop(Register(8))))}
                     case _ => {
                         return Assign.assDec(lval, rhsAssembly, false)
                     }

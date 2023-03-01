@@ -23,11 +23,16 @@ class HeapAllocator {
             return instrs ++ rest
         }
 
-        val instrs = Seq(push) ++ mallocPairElem(fst) ++ mallocPairElem(snd) ++ Seq(Mov(Register(0), ImmInt(elemSize * 2)), malloc, Mov(out, Register(0)),
-                                                                                    pop, Store(Register(8), Address(out, ImmInt(elemSize))),  pop, 
-                                                                                    Store(Register(8), Address(out, ImmInt(0))), pop
+        val instrs = Seq(push) ++ mallocPairElem(fst) ++ mallocPairElem(snd) ++ Seq(Mov(Register(0), 
+                                                                                    ImmInt(elemSize * 2)), 
+                                                                                    malloc,
+                                                                                     Mov(out, Register(0)),
+                                                                                    pop, 
+                                                                                    Store(Register(8), Address(out, ImmInt(elemSize))),
+                                                                                    pop, 
+                                                                                    Store(Register(8), Address(out, ImmInt(0))),
+                                                                                    pop
                                                                                     )
-
         val assembly = Assembly(out, instrs.toSeq)
         return (assembly)
     }
