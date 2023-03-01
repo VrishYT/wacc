@@ -69,7 +69,9 @@ case class Store(dest: Register, src: Operand, postAddress: Boolean = false, byt
         }
     } 
 }
-
+case class StoreB(dest: Register, src: Operand) extends Instruction {
+    override def toString(): String = s"\tstrb $dest, $src"
+}
 /* Branch Instructions */
 case class Branch(label: String, cond: Condition = AL) extends Instruction {
     override def toString(): String = s"\tb${cond.toString.toLowerCase()} $label"

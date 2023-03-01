@@ -59,10 +59,16 @@ case class Assign(x: LValue, y: RValue) extends Stat {
             case _ => {
                 val out = gen.regs.allocate
                 x match {
-                    case Fst(_) => {
-                        return (rhsAssembly.instr ++ lval.instr ++ out.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp), Store(out.getReg, Address(lval.getReg, ImmInt(0)))))}
-                    case Snd(_) => {
-                        return (rhsAssembly.instr ++ lval.instr ++ out.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp), Store(out.getReg, Address(lval.getReg, ImmInt(4)))))}
+                    case Fst(x) => {
+                        gen.postSections.addOne(NullDereference)
+                        val pairAss = x.toAssembly(gen, table)
+                        val pairReg = pairAss.getReg
+                        return (Seq(Push(Register(8))) ++ rhsAssembly.instr ++ pairAss.instr ++ out.instr ++ Seq(Mov(Register(8), pairReg), Cmp(Register(8), ImmInt(0)), LinkBranch("_errNull", Condition.EQ), Mov(out.getReg, rhsAssembly.getOp), Load(Register(8), Address(pairReg, ImmInt(0))), Store(out.getReg, Address(Register(8), ImmInt(0))), Pop(Register(8))))}
+                    case Snd(x) => {
+                        gen.postSections.addOne(NullDereference)
+                        val pairAss = x.toAssembly(gen, table)
+                        val pairReg = pairAss.getReg
+                        return (Seq(Push(Register(8))) ++ rhsAssembly.instr ++ pairAss.instr ++ out.instr ++ Seq(Mov(Register(8), pairReg), Cmp(Register(8), ImmInt(0)), LinkBranch("_errNull", Condition.EQ),Mov(out.getReg, rhsAssembly.getOp), Load(Register(8), Address(pairReg, ImmInt(4))), Store(out.getReg, Address(Register(8), ImmInt(0))), Pop(Register(8))))}
                     case _ => {
                         return Assign.assDec(lval, rhsAssembly, false)
                     }
@@ -125,7 +131,21 @@ case class Read(x: LValue) extends Stat {
 object Read extends ParserBridge1[LValue, Read]
 
 case class Free(x: Expr) extends Stat {
-    override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = Seq() 
+    override def toAssembly(gen: CodeGenerator, table: Table): Seq[Instruction] = {
+        gen.postSections.addOne(NullDereference)
+        gen.postSections.addOne(PrintStringSection)
+        gen.postSections.addOne(FreePairSection)
+
+        val xAssembly = x.toAssembly(gen, table)
+        val xOp = xAssembly.getOp
+
+        val instrns = xAssembly.instr ++ Seq(Push(Register(8)), Mov(Register(8), xOp), 
+                                         Mov(Register(0), Register(8)), LinkBranch("_freepair"), 
+                                         Mov(Register(0), ImmInt(0)), Pop( Register(8)))
+        return instrns
+
+
+    }
 }
 
 
