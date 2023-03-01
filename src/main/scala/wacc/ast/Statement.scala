@@ -196,6 +196,12 @@ case class Print(x: Expr) extends Stat {
                 val ass = binop.toAssembly(gen, table).condToReg(gen.regs)
                 return ass.instr ++ printValue(binopType, ass.getOp(), gen)
             }
+            case a@ArrayElem(id, xs) => { 
+                gen.postSections.addOne(PrintStringSection) 
+                val identType = table.getType(id) 
+                val ass = a.toAssembly(gen, table)
+                return ass.instr ++ printValue(identType, ass.getOp(), gen)
+            }
             case _ => Seq()
         }) :+ Comment("end print") 
     }
