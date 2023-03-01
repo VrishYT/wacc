@@ -1,19 +1,18 @@
 package wacc
 package back
 
-class RegisterAllocator {
+class RegisterAllocator(val mem: MemoryAllocator) {
 
     import scala.collection.mutable.Queue
     // import scala.collection.mutable.Stack
     import scala.collection.mutable.{Map => MapM}
 
+    // TODO: REMOVE
     private val table = MapM[String, Register]() 
 
     // TODO: check if still needed after re-implement
     private val regsInUse = Queue[Register]()
     // val savedRegs = Queue[Register]()
-
-    private val mem = new MemoryAllocator
 
     val freeRegs = Queue(
         Register(0),
@@ -46,14 +45,15 @@ class RegisterAllocator {
 
     def allocate: RegAssembly = {
 
-
+        // TODO: move and update symbol table with new address
         def realloc(): RegAssembly = {
             val reg = regsInUse.head
             val id = table.filter(_._2 == reg).head._1
             table.remove(id)
             val instr = mem.store(id, reg)
+            // table.update(id, instr.getOp)
             regsInUse.dequeue
-            return RegAssembly(reg, Seq(instr))
+            return RegAssembly(reg, instr.instr)
         }
 
         val reg = if (freeRegs.isEmpty) realloc else RegAssembly(freeRegs.dequeue)
@@ -61,6 +61,7 @@ class RegisterAllocator {
         return reg
     }
 
+    // TODO: REMOVE
     def get(id: String): Register = table.get(id) match {
         case Some(x) => x
         case None => {
