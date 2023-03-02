@@ -339,7 +339,17 @@ case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
 
 object If extends ParserBridge3[Expr, List[Stat], List[Stat], If] {
     def generateIf(cond: Assembly, thenLabel: String, thenBlock: Seq[Instruction], elseBlock: Seq[Instruction], endLabel: String): Seq[Instruction] = {
-        val branch = if (cond.cond == Condition.NO) Seq() else Seq(Branch(thenLabel, cond.cond))
+        var branch: Seq[Instruction] = if (cond.cond == Condition.NO) Seq() else Seq(Branch(thenLabel, cond.cond))
+        cond.op match {
+            case Some(x) => x match {
+                case x: Register => {
+                    branch = Seq(Cmp(x, ImmInt(1)), Branch(thenLabel, Condition.EQ))
+                }
+                case x => 
+            }
+            case None => 
+        }
+        
         cond.instr ++ branch ++ 
         elseBlock ++ Seq(Branch(endLabel), Label(thenLabel)) ++ 
         thenBlock :+ Label(endLabel)
