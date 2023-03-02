@@ -129,7 +129,7 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
 
     val xsFunc = ys.tail.map(x => {
       val xAss = x.toAssembly(gen)
-      val xFunc = Func.callFunction("_arrLoad", Seq(accum, xAss.getOp()), gen)
+      val xFunc = Func.callFunction(label, Seq(accum, xAss.getOp()), gen)
       xAss.instr ++ xFunc ++ accInstr
     }).flatten
 
