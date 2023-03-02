@@ -86,11 +86,13 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
         gen.postSections.addOne(PrintStringSection)
         gen.postSections.addOne(DivZeroError)
         Seq(
+          Push(Register(1)),
           Mov(Register(0), x),
           Mov(Register(1), y),
           Cmp(Register(1), ImmInt(0)),
           LinkBranch("_errDivZero", EQ),
           DivMod(),
+          Pop(Register(1)),
           Mov(out, Register(0))
         )
       }
