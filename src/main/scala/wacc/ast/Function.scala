@@ -93,7 +93,7 @@ object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Fu
             case x => Operands.opToReg(x, Register(i + 1)) 
         })
 
-        instr += LinkBranch(s"wacc_${id}")
+        instr += LinkBranch(id)
         if (!regs.isEmpty) instr += Pop(regs:_*)
 
         return instr.toSeq
