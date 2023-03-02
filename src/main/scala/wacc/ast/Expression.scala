@@ -137,12 +137,12 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
       case _ => false
     }
 
-    println(s"x: $x, \ny: $y")
+    // println(s"x: $x, \ny: $y")
     val expr1 = x.toAssembly(gen).condToReg(gen.regs)
     val expr2 = y.toAssembly(gen).condToReg(gen.regs)
 
-    println(s"--e1--\nop: ${expr1.getOp()}\ninstr: ${expr1.instr}\n\n")
-    println(s"--e2--\nop: ${expr2.getOp()}\ninstr: ${expr2.instr}\n\n")
+    // println(s"--e1--\nop: ${expr1.getOp()}\ninstr: ${expr1.instr}\n\n")
+    // println(s"--e2--\nop: ${expr2.getOp()}\ninstr: ${expr2.instr}\n\n")
 
     val reg = Operands.opToReg(expr1.getOp(), gen.regs)
     val r1 = reg.getReg()

@@ -35,18 +35,6 @@ sealed abstract class Table extends TableEntry {
 
         updateParent(id, symbol, this)
     }
-    
-    // def update(id: String, reg: Register): Unit = {
-    //     table(id) = RegSymbol(getType(id), reg)
-    // }
-
-    // def update(id: String, addr: Address): Unit = {
-    //     table(id) = MemSymbol(getType(id), addr)
-    // }
-    
-    // def update(id: String, label: String): Unit = {
-    //     table(id) = LabelSymbol(getType(id), label)
-    // }
 
     def getIDFromReg(reg: Register): String = {
         

@@ -67,6 +67,7 @@ class RegisterAllocator(val mem: MemoryAllocator) {
         regsInUse.enqueue(reg.getReg())
         // println(table)
         // println(freeRegs)
+        // println(s"alloc ${reg.getReg()}")
         return reg
     }
 
