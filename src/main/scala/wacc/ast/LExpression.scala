@@ -35,6 +35,7 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
     
     val accAss = gen.regs.allocate
     val accReg = accAss.getReg()
+    gen.regs.free(accReg)
 
     val arrayAss = Operands.opToReg(table.getOp(id), gen.regs)
 
