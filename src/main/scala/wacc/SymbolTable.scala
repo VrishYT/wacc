@@ -18,6 +18,8 @@ sealed abstract class Table extends TableEntry {
 
     private val table = MapM[String, TableEntry]()
 
+    override def toString(): String = table.filter(_._2.isInstanceOf[OpSymbol]).toString
+
     def getSize: Int = size
 
     private def update(id: String, symbol: Symbol): Unit = {
