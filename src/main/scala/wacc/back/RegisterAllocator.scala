@@ -37,8 +37,8 @@ class RegisterAllocator(val mem: MemoryAllocator) {
     }
 
     def free(reg: Register)(implicit table: Table): Unit = {
-        if (!regsInUse.contains(reg) || freeRegs.contains(reg)) ???
-        else {
+        if (regsInUse.contains(reg) && !freeRegs.contains(reg)) {
+            // println(s"freed $reg")
             regsInUse -= reg
             freeRegs += reg
         }
@@ -67,6 +67,7 @@ class RegisterAllocator(val mem: MemoryAllocator) {
         regsInUse.enqueue(reg.getReg())
         // println(table)
         // println(freeRegs)
+        // println(s"alloc ${reg.getReg()}")
         return reg
     }
 

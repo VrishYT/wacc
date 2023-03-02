@@ -26,6 +26,7 @@ sealed trait PairElem extends LValue with RValue {
         val pairAss = pair.toAssembly(gen)
         val pairReg = pairAss.getReg()
         val accumAss = gen.regs.allocate
+        gen.regs.free(accumAss.getReg)
         val accumReg = accumAss.getReg
 
         val instrs = pairAss.instr ++ Seq(
