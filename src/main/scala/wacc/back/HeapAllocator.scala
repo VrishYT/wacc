@@ -61,7 +61,6 @@ class HeapAllocator {
         }
 
         /* Store address of first element in out */
-        instrs += Mov(out, Register(8))
         instrs += pop
 
         val assembly = Assembly(out, instrs.toSeq)
