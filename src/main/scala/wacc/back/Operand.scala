@@ -42,6 +42,7 @@ object Operands {
             val reg = regs.allocate
             val instr: Instruction = x match {
                 case x: Address => Load(reg.getReg, x)
+                case x: DataLabel => Load(reg.getReg, x)
                 case _ => Mov(reg.getReg, x)
             }
             RegAssembly(reg.getReg, reg.instr :+ instr)
