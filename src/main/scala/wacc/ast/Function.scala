@@ -16,8 +16,9 @@ case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val po
         })
         
         val instr = stats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
+        val stack = 0.max(table.getSize - gen.regs.freeRegs.size)
 
-        return gen.mem.grow(table.getSize) +: Func.generateFunction(s"wacc_${fs._2}", instr) :+ gen.mem.shrink(table.getSize)
+        return gen.mem.grow(stack) +: Func.generateFunction(s"wacc_${fs._2}", instr) :+ gen.mem.shrink(stack)
     }
 
     /* define validReturn of a function, and match on the last statement : */
@@ -93,7 +94,7 @@ object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Fu
             case x => Operands.opToReg(x, Register(i + 1)) 
         })
 
-        instr += LinkBranch(s"wacc_${id}")
+        instr += LinkBranch(id)
         if (!regs.isEmpty) instr += Pop(regs:_*)
 
         return instr.toSeq

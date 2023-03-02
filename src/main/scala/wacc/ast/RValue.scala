@@ -13,12 +13,23 @@ trait RValue {
 
 /* case classes for right values */
 case class ArrayLiteral(xs: List[Expr])(val pos: (Int, Int)) extends RValue {
-    def toInstructions(gen: CodeGenerator, out: RegAssembly)(implicit table: Table): Seq[Instruction] = {
+    override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
         val assemblies = xs.map(x => x.toAssembly(gen))
         val instrs = (assemblies.map(x => x.instr)).flatten
         val ops = (assemblies.map(x => x.getOp()))
-        val arrAssembly = gen.heap.mallocArray(ops, out.getReg())
-        return (instrs ++ out.instr ++ arrAssembly.instr)
+        val accum = gen.regs.allocate
+        val charType: Boolean = !xs.isEmpty && (xs.head match {
+            case CharLiteral(_) => true
+            case _ => false
+        })
+        val arrAssembly = gen.heap.mallocArray(ops, accum.getReg, charType)
+        return Assembly(
+            accum.getReg,
+            instrs ++ accum.instr ++
+            Seq(gen.regs.save(/*Register(0),*/ Register(8))) ++
+            arrAssembly.instr ++
+            Seq(gen.regs.restore(/*Register(0),*/ Register(8)))
+        )
     }
 }
 
@@ -42,7 +53,7 @@ object NewPair extends ParserBridge2[Expr, Expr, NewPair] {
 case class Call(id: String, args: List[Expr])(val pos: (Int, Int)) extends RValue {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
         val out = args.map(_.toAssembly(gen))
-        val func = Func.callFunction(id, args = out.map(_.getOp()), gen = gen)
+        val func = Func.callFunction(s"wacc_${id}", args = out.map(_.getOp()), gen = gen)
         Assembly(Register(0), out.map(_.instr).fold(Seq())(_ ++ _) ++ func)
     }
     // {

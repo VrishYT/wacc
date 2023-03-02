@@ -17,21 +17,10 @@ case object Skip extends Stat with ParserBridge0[Stat] {
 
 case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
-        rhs match {
-            case arrLit@ArrayLiteral(_) => {
-                var out = gen.regs.allocate(id)
-                if (out.getReg().i == 0) {
-                    out = gen.regs.allocate(id) // reallocate to make sure r0 is not clobbered
-                }
-                return arrLit.toInstructions(gen, out)
-            }
-            case _ => {
-                val assembly = rhs.toAssembly(gen).condToReg(gen.regs)
-                val reg = Operands.opToReg(assembly.getOp(), gen.regs)
-                table.update(id, reg.getReg())
-                return assembly.instr ++ reg.instr 
-            } 
-        }
+        val assembly = rhs.toAssembly(gen).condToReg(gen.regs)
+        val reg = Operands.opToReg(assembly.getOp(), gen.regs)
+        table.update(id, reg.getReg())
+        return assembly.instr ++ reg.instr
     }
 }
 
@@ -41,10 +30,7 @@ case class Assign(x: LValue, y: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
         val rhsAssembly = y.toAssembly(gen).condToReg(gen.regs)
         val lval = x match {
-            case arrElem@ArrayElem(_, _) => {
-                val arrElemAss = arrElem.toAssemblyStore(gen, rhsAssembly)
-                return rhsAssembly.instr ++ arrElemAss.instr
-            }
+            case arrElem@ArrayElem(_, _) => return arrElem.toAssemblyStore(gen, rhsAssembly).instr
             case x: PairElem => {
                 val addrAssemb = x.getAddr(gen)
                 val reg = Operands.opToReg(rhsAssembly.getOp(), gen.regs)
@@ -229,6 +215,7 @@ case class Print(x: Expr) extends Stat {
             case str: StrLiteral => {
                 val ass = str.toAssembly(gen)
                 val reg = gen.regs.allocate 
+                gen.regs.free(reg.getReg)
                 ass.instr ++ reg.instr ++ (Load(reg.getReg(), ass.getOp()) +: printValue(StringType, reg.getReg(), gen))
             }
             case char: CharLiteral => {
@@ -252,7 +239,10 @@ case class Print(x: Expr) extends Stat {
             case a@ArrayElem(id, xs) => { 
                 gen.postSections.addOne(PrintStringSection) 
                 val identType = table.getType(id) match {
-                    case Some(x) => x
+                    case Some(x) => x match {
+                        case ArrayType(x) => x
+                        case  _ => ???
+                    }
                     case None => ???
                 }
                 val ass = a.toAssembly(gen)

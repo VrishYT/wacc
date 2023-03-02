@@ -12,9 +12,11 @@ class HeapAllocator {
     )
     val pop = Pop(Register(8))
     val push = Push(Register(8))
-    val elemSize = 4
+    
 
      def mallocPair(fst: Operand, snd: Operand, out: Register): Assembly = {
+
+        val elemSize = 4
 
         def mallocPairElem(elem: Operand): Seq[Instruction] = {
             val instrs = (Mov(Register(0), ImmInt(elemSize)) +: malloc) ++ Seq(Mov(out, Register(0)),  Mov(Register(8), elem))
@@ -41,33 +43,32 @@ class HeapAllocator {
         return (assembly)
     }
 
-    def mallocArray(xs: List[Operand], out: Register): Assembly = {
+    def mallocArray(xs: List[Operand], accum: Register, char: Boolean): Assembly = {
+        
         val instrs = ListBuffer[Instruction]()
         val numElems = xs.length
 
+        val elemSize = if (char) 1 else 4
+
         /* Malloc for the size of array */
-        instrs += push
         instrs += Mov(Register(0), ImmInt(elemSize * (numElems + 1)))
         instrs ++= malloc
 
-        /* Set out to malloced address + elemSize */
-        instrs += Mov(out, Register(0))
-        instrs += Add(out, out, ImmInt(elemSize))
+        /* Set accum to malloced address + elemSize */
+        instrs += Mov(accum, Register(0))
+        instrs += Add(accum, accum, ImmInt(elemSize))
 
         /* Store array length at malloced memory location */
         instrs += Mov(Register(8), ImmInt(numElems))
-        instrs += Store(Register(8), Address(out, ImmInt(-elemSize)))
+        instrs += Store(Register(8), Address(accum, ImmInt(-elemSize)))
 
         /* Store array elems in correct mem location */
         for (elem <- 1 to numElems) {
             instrs += Mov(Register(8), xs(elem - 1))
-            instrs += Store(Register(8), Address(out, ImmInt((elem - 1) * elemSize)))
+            instrs += Store(Register(8), Address(accum, ImmInt((elem - 1) * elemSize)))
         }
 
-        /* Store address of first element in out */
-        instrs += pop
-
-        val assembly = Assembly(out, instrs.toSeq)
+        val assembly = Assembly(accum, instrs.toSeq)
         return (assembly)
     }
 }
