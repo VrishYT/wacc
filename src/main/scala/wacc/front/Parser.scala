@@ -1,4 +1,5 @@
-package wacc.front
+package wacc
+package front
 
 import parsley.Parsley
 import parsley.Parsley.{attempt, empty, notFollowedBy, pure}

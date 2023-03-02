@@ -8,7 +8,7 @@ import parsley.genericbridges._
 /* right values as a sealed trait with a position attribute */
 trait RValue {
     def pos: (Int, Int)
-    def toAssembly(gen: CodeGenerator, table: Table): Assembly = TODOAssembly
+    def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = TODOAssembly
 }
 
 /* case classes for right values */
@@ -24,8 +24,8 @@ object NewPair extends ParserBridge2[Expr, Expr, NewPair] {
 }
 
 case class Call(id: String, args: List[Expr])(val pos: (Int, Int)) extends RValue {
-    override def toAssembly(gen: CodeGenerator, table: Table): Assembly = {
-        val out = args.map(_.toAssembly(gen, table))
+    override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
+        val out = args.map(_.toAssembly(gen))
         val func = Func.callFunction(id, args = out.map(_.getOp), gen = gen)
         Assembly(Register(0), out.map(_.instr).fold(Seq())(_ ++ _) ++ func)
     }
@@ -37,7 +37,7 @@ case class Call(id: String, args: List[Expr])(val pos: (Int, Int)) extends RValu
         // def paramToReg(i: Int): Seq[Instruction] = {
         //     val param = args(i)
         //     val reg = regsToSave(i)
-        //     val expr = param.toAssembly(gen, table)
+        //     val expr = param.toAssembly(gen)
         //     if (expr.getOp == reg) return expr.instr
         //     else return expr.instr :+ Mov(reg, expr.getOp)
         // }

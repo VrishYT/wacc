@@ -8,34 +8,17 @@ import scala.collection.mutable.ListBuffer
 /* function case class with position */
 case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
 
-    def toAssembly(gen: CodeGenerator, table: FuncTable): Seq[Instruction] = {
-        // TODO: function assembly
+    def toAssembly(gen: CodeGenerator)(implicit table: FuncTable): Seq[Instruction] = {
 
-        // val memorySpace = 0 // TODO: calculate memory for this function from symbol table
-        // mem.reset(memorySpace) // resets memory to be an empty space with this block
-
-        // val memorySpace = 0 // TODO: calculate memory for this function from symbol table
-        // mem.reset(memorySpace) // resets memory to be an empty space with this block
-
+        // TODO: modify to work with more args than regs
         (0 until args.length).foreach(i => {
             val param = args(i)
             gen.regs.link(param.id, Register(i + 1))
         })
         
-        val instr = stats.map(_.toAssembly(gen, table)).fold(Seq())(_ ++ _)
+        val instr = stats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
 
-        // val memorySpace = (table.varCount - 12) * 4
-
-        var stackDown: Seq[Instruction] = Seq()
-        var stackUp: Seq[Instruction] = Seq()
-
-        // if (memorySpace > 0) {
-        //     stackDown = Seq(Sub(SP, SP, ImmInt(memorySpace)))
-        //     stackUp = Seq(Add(SP, SP, ImmInt(memorySpace)))
-        // }
-
-        // return Seq(Label(s"wacc_${fs._2}"), Push(LR)) ++ instr :+ Pop(PC)
-        return Func.generateFunction(s"wacc_${fs._2}", stackDown ++ instr ++ stackUp)
+        return gen.mem.grow(table.getSize) +: Func.generateFunction(s"wacc_${fs._2}", instr) :+ gen.mem.shrink(table.getSize)
     }
 
     /* define validReturn of a function, and match on the last statement : */
@@ -107,7 +90,6 @@ object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Fu
         if (!regs.isEmpty) instr += Push(regs:_*)
 
         instr ++= range.map(i => args(i) match {
-            case ImmLabel(label) => Load(Register(i + 1), DataLabel(label))
             case x: Register => Mov(Register(i + 1), x)
             case x => Operands.opToReg(x, Register(i + 1)) 
         })

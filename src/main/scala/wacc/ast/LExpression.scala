@@ -6,19 +6,19 @@ import wacc.back._
 
 /* left expressions extending expressions and left values */
 sealed trait LExpr extends Expr with LValue {
-  def pos: (Int, Int)
-  override def toAssembly(gen: CodeGenerator, table: Table): RegAssembly = TODOAssembly
+    def pos: (Int, Int)
+    override def toAssembly(gen: CodeGenerator)(implicit table: Table): RegAssembly = TODOAssembly
 }
 
 /* expressions extending left expressions */
 case class Ident(id: String)(val pos: (Int, Int)) extends LExpr {
-  override def toAssembly(gen: CodeGenerator, table: Table): RegAssembly = RegAssembly(gen.regs.get(id))
+    override def toAssembly(gen: CodeGenerator)(implicit table: Table): RegAssembly = Operands.opToReg(table.getOp(id), gen.regs)
 }
 
 object Ident extends ParserBridgePos1[String, Ident]
 
 case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LExpr {
-  override def toAssembly(gen: CodeGenerator, table: Table): RegAssembly = {
+    override def toAssembly(gen: CodeGenerator)(implicit table: Table): RegAssembly = {
 
         val outAss = gen.regs.allocate
         val outReg = outAss.getReg
@@ -29,13 +29,13 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
         val reg2Ass = gen.regs.allocate
         val reg2 = reg2Ass.getReg
 
-        val arrAss = RegAssembly(gen.regs.get(id))
+        val arrAss = Operands.opToReg(table.getOp(id), gen.regs)
         val arrayOp = arrAss.getOp
 
         val first = xs.head
         val rest = xs.tail
 
-        val firstAss = first.toAssembly(gen, table)
+        val firstAss = first.toAssembly(gen)
         val firstOp = firstAss.getOp
 
         val accAss = gen.regs.allocate
@@ -52,7 +52,7 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
         instrns :+ Mov(accReg, reg2)
 
         rest.foreach(x => {
-          val xAss = x.toAssembly(gen, table)
+          val xAss = x.toAssembly(gen)
           val op = xAss.getOp
           instrns :+ xAss.instr
           instrns :+ Push(accReg)
@@ -77,8 +77,8 @@ case class IdentOrArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) ext
 /* identifier or array elements with parser bridge */
 object IdentOrArrayElem extends ParserBridgePos2[String, Option[List[Expr]], LExpr] {
     def apply(id: String, xs: Option[List[Expr]])(pos: (Int, Int)): LExpr = xs match {
-      case None => Ident(id)(pos)
-      case Some(xs) => ArrayElem(id, xs)(pos)
+        case None => Ident(id)(pos)
+        case Some(xs) => ArrayElem(id, xs)(pos)
     }
 }
 

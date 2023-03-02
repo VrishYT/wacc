@@ -1,4 +1,5 @@
-package wacc.front
+package wacc
+package front
 
 object SemanticChecker {
 
@@ -48,12 +49,9 @@ object SemanticChecker {
     }
 
     /* return the type of an identifier from the parent and child scope maps */
-    def getTypeFromVars(id: String, vars: Table, pos: (Int, Int)): Type = vars.getSymbol(id) match {
-      case Some(x) => x.t
-      case None => vars match {
-        case ChildTable(parent) => getTypeFromVars(id, parent, pos)
-        case _ => ErrorLogger.err("Variable " + id + " not found", pos)
-      } 
+    def getTypeFromVars(id: String, vars: Table, pos: (Int, Int)): Type = vars.getType(id) match {
+      case Some(x) => x
+      case None => ErrorLogger.err("Variable " + id + " not found", pos)
     }
 
     /* traverse a list of statements and error on semantic errors */
