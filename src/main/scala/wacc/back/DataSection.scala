@@ -4,7 +4,6 @@ package back
 import wacc.back._
 import Condition._
 import ast.Func
-
 // TODO: modify all assembly to not clobber registers when printing
 // JAMIE LEAVES CERTAIN REGISTERS EMPTY WHILE WE DONT
 
@@ -65,25 +64,35 @@ case object PrintBoolSection extends DataSection {
     }
 }
 
-case object ArrayStoreSection extends DataSection {
+sealed abstract class ArraySection(id: String, index: Register, array: Register, instr: Instruction) extends DataSection {
     def toAssembly(): Seq[Instruction] = {
-        return DataSection.arrayInstr(
-            Register(2),
-            Register(1),
-            Store(Register(3), Address(Register(1), LSL(Register(2), ImmInt(2))))
-        )
+        return Func.generateFunction(id, Seq(
+            Cmp(index, ImmInt(0)),
+            Mov(Register(1), index, Condition.LT),
+            LinkBranch("_boundsCheck", Condition.LT),
+            Load(LR, Address(array, ImmInt(-4))),
+            Cmp(index, LR),
+            Mov(Register(1), index, Condition.GE),
+            LinkBranch("_boundsCheck", Condition.GE),
+            instr,
+            Pop(PC)
+        ))
     }
 }
 
-case object ArrayLoadSection extends DataSection {
-    def toAssembly(): Seq[Instruction] = {
-        return DataSection.arrayInstr(
-            Register(2),
-            Register(1),
-            Load(Register(0), Address(Register(1), LSL(Register(2), ImmInt(2))))
-        )
-    }
-}
+case object ArrayLoadSection extends ArraySection(
+    "_arrLoad",
+    Register(2),
+    Register(1),
+    Load(Register(0), Address(Register(1), LSL(Register(2), ImmInt(2))))
+)
+
+case object ArrayStoreSection extends ArraySection(
+    "_arrStore",
+    Register(2),
+    Register(1),
+    Store(Register(3), Address(Register(1), LSL(Register(2), ImmInt(2))))
+)
 
 case object ReadIntSection extends DataSection {
     def toAssembly(): Seq[Instruction] = {
@@ -145,24 +154,5 @@ case object FreePairSection extends DataSection {
             LinkBranch("free"),
             Pop(PC, Register(8))
         )
-    }
-}
-
-
-object DataSection {
-    def arrayInstr(index: Register, array: Register, instr: Instruction): Seq[Instruction] = {
-        return Seq(
-            Section(".text")
-        ) ++ Func.generateFunction("_arrLoad", Seq(
-            Cmp(index, ImmInt(0)),
-            Mov(Register(1), index, Condition.LT),
-            LinkBranch("_boundsCheck", Condition.LT),
-            Load(LR, Address(array, ImmInt(-4))),
-            Cmp(index, LR),
-            Mov(Register(1), index, Condition.GE),
-            LinkBranch("_boundsCheck", Condition.GE),
-            instr,
-            Pop(PC)
-        ))
     }
 }
