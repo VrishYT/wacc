@@ -1,7 +1,6 @@
 package wacc
 
-import scala.collection.mutable.{Set, Map => MapM}
-import scala.collection.immutable.Map
+import scala.collection.mutable.{Map => MapM}
 import back._
 import ast._
 
@@ -11,39 +10,74 @@ sealed abstract class Table extends TableEntry {
     private var ifCount = 0
     private var whileCount = 0
     private var beginCount = 0 
-    var varCount = 0
+    private var size = 0
 
     def isInFunction: Boolean
     def getReturnType: Type
 
     private val table = MapM[String, TableEntry]()
 
-    def size(): Int = table.size
+    override def toString(): String = table.filter(_._2.isInstanceOf[OpSymbol]).toString
 
-    def getType(id: String): Type = getSymbol(id) match {
-        case Some(x) => x.t
-        case None => ???
-    }
+    def getSize: Int = size
 
     private def update(id: String, symbol: Symbol): Unit = {
-        table(id) = symbol
+
+        def updateParent(id: String, symbol: Symbol, table: Table): Unit = {
+            if (table.contains(id)) table(id) = symbol
+            else {
+                table match {
+                    case ChildTable(parent) => updateParent(id, symbol, parent)
+                    case _ => table(id) = symbol // TODO: CHECK - updating a non-existent symbol ???
+                }
+            }
+        }
+
+        updateParent(id, symbol, this)
     }
     
-    def update(id: String, reg: Register): Unit = {
-        table(id) = RegSymbol(getType(id), reg)
+    // def update(id: String, reg: Register): Unit = {
+    //     table(id) = RegSymbol(getType(id), reg)
+    // }
+
+    // def update(id: String, addr: Address): Unit = {
+    //     table(id) = MemSymbol(getType(id), addr)
+    // }
+    
+    // def update(id: String, label: String): Unit = {
+    //     table(id) = LabelSymbol(getType(id), label)
+    // }
+
+    def getIDFromReg(reg: Register): String = {
+        
+        def getFromParent(table: Table): String = {
+            val filtered = table.table.filter(_._2 match {
+                case OpSymbol(_, op) => op == reg
+                case _ => false
+            })
+            if (filtered.isEmpty) {
+                table match {
+                    case ChildTable(parent) => getFromParent(table)
+                    case _ => ???
+                }
+            } else if (filtered.size > 1) ??? 
+            else filtered.head._1
+        }
+
+        getFromParent(this)
     }
 
-    def update(id: String, addr: Int): Unit = {
-        table(id) = MemSymbol(getType(id), addr)
-    }
-    
-    def update(id: String, label: String): Unit = {
-        table(id) = LabelSymbol(getType(id), label)
+    def update(id: String, op: Operand): Unit = {
+        val t = getType(id) match {
+            case Some(x) => x
+            case None => ???
+        }
+        table(id) = OpSymbol(t, op)
     }
 
     // USED FOR FRONT-END
     def add(id: String, symbol: Symbol): Boolean = {
-        getSymbol(id) match {
+        table.get(id) match {
             case Some(x) => x match {
                 case _: ParamSymbol => 
                 case _ => return false 
@@ -51,7 +85,7 @@ sealed abstract class Table extends TableEntry {
             case None => 
         }
         table(id) = symbol
-        varCount += 1
+        size += 1
         return true
     }
 
@@ -60,30 +94,62 @@ sealed abstract class Table extends TableEntry {
     }
 
     def addIf(thenVars: ChildTable, elseVars: ChildTable) = {
-        addTable(s"if${ifCount}", thenVars)
-        addTable(s"else${ifCount}", elseVars)
+        addTable(s"_if${ifCount}", thenVars)
+        addTable(s"_else${ifCount}", elseVars)
         ifCount += 1
     }
 
     def addWhile(vars: ChildTable) = {
-        addTable(s"while${whileCount}", vars)
+        addTable(s"_while${whileCount}", vars)
         whileCount += 1
     }
 
     def addBegin(vars: ChildTable) = {
-        addTable(s"begin${beginCount}", vars)
+        addTable(s"_begin${beginCount}", vars)
         beginCount += 1
     }
 
     def contains(id: String): Boolean = table.contains(id)
 
-    def getSymbol(id: String): Option[Symbol] = table.get(id) match {
-        case x: Some[Symbol] => x
+    private def get(id: String): Option[TableEntry] = {
+
+        def getFromParent(id: String, table: Table): Option[TableEntry] = table.table.get(id) match {
+            case x: Some[_] => x
+            case None => table match {
+                case ChildTable(parent) => getFromParent(id, parent)
+                case _ => None
+            }
+        }
+
+        getFromParent(id, this)
+    }
+
+    def getType(id: String): Option[Type] = getSymbol(id) match {
+        case Some(x) => Some(x.t)
+        case _ => None
+    }
+
+    def getOp(id: String): Operand = getSymbol(id) match {
+        case Some(x) => x match {
+            case x: OpSymbol => x.op
+            case _ => ???
+        }
+        case _ => ???
+    }
+
+    private def getSymbol(id: String): Option[Symbol] = get(id) match {
+        case Some(x) => x match {
+            case x: Symbol => Some(x)
+            case _ => None 
+        }
         case None => None
     }
 
-    def getTable(id: String): Option[ChildTable] = table.get(id) match {
-        case x: Some[ChildTable] => x
+    def getTable(id: String): Option[ChildTable] = get(id) match {
+        case Some(x) => x match {
+            case x: ChildTable => Some(x)
+            case _ => None 
+        }
         case None => None
     }
 
@@ -106,9 +172,10 @@ object Symbol {
 }
 
 case class ParamSymbol(override val t: Type) extends Symbol(t)
-case class RegSymbol(override val t: Type, val reg: Register) extends Symbol(t)
-case class MemSymbol(override val t: Type, val addr: Int) extends Symbol(t)
-case class LabelSymbol(override val t: Type, val label: String) extends Symbol(t)
+case class OpSymbol(override val t: Type, val op: Operand) extends Symbol(t)
+// case class RegSymbol(override val t: Type, val reg: Register) extends Symbol(t)
+// case class MemSymbol(override val t: Type, val addr: Address) extends Symbol(t)
+// case class LabelSymbol(override val t: Type, val label: String) extends Symbol(t)
 
 class SymbolTable {
 

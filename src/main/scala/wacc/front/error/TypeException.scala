@@ -1,4 +1,5 @@
-package wacc.front.error
+package wacc
+package front.error
 
 import wacc.ast._
 import scala.collection.mutable.{Map => MapM}

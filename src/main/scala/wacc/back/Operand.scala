@@ -1,4 +1,5 @@
-package wacc.back
+package wacc
+package back
 
 trait Operand
 
@@ -12,23 +13,23 @@ case class ImmChar(c: Char) extends Operand {
     override def toString(): String = arm11
 }
 
-case class ImmLabel(label: String) extends Operand {
-    def arm11: String = label
-    override def toString(): String = label
-}
-
 case class DataLabel(label: String) extends Operand {
     def arm11: String = "=" + label
     override def toString(): String = arm11
 }
 
 case class Address(reg: Register, op: Operand) extends Operand {
-    def arm11: String = "[" + reg + "," + op + "]"
+    def arm11: String = "[" + reg.toString() + "," + op + "]"
     override def toString(): String = arm11
 }
 
 case class ASR(reg: Register, op: Operand) extends Operand {
-    def arm11: String = reg + "," + " asr " + op 
+    def arm11: String = reg.toString() + "," + " asr " + op 
+    override def toString(): String = arm11
+}
+
+case class LSL(reg: Register, op: Operand) extends Operand {
+    def arm11: String = reg.toString() + "," + " lsl " + op 
     override def toString(): String = arm11
 }
 
@@ -40,11 +41,16 @@ object Operands {
         case x => Mov(dest, x)
     }
 
-    def opToReg(op: Operand, regs: RegisterAllocator): RegAssembly = op match {
+    def opToReg(op: Operand, regs: RegisterAllocator)(implicit table: Table): RegAssembly = op match {
         case x: Register => RegAssembly(x)
         case x => {
             val reg = regs.allocate
-            RegAssembly(reg.getReg, reg.instr :+ opToReg(x, reg.getReg))
+            val instr: Instruction = x match {
+                case x: Address => Load(reg.getReg(), x)
+                case x: DataLabel => Load(reg.getReg(), x)
+                case _ => Mov(reg.getReg(), x)
+            }
+            RegAssembly(reg.getReg(), reg.instr :+ instr)
         }
     }
 

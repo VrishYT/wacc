@@ -1,9 +1,9 @@
-package wacc.back
+package wacc
+package back
+
+import scala.collection.mutable.ListBuffer
 
 class HeapAllocator {
-
-
-    import scala.collection.mutable.{Map => MapM, ListBuffer}
 
     val malloc = LinkBranch("malloc")
     val pop = Pop(Register(8))
@@ -61,7 +61,6 @@ class HeapAllocator {
         }
 
         /* Store address of first element in out */
-        instrs += Mov(out, Register(8))
         instrs += pop
 
         val assembly = Assembly(out, instrs.toSeq)
