@@ -76,10 +76,12 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
         gen.postSections.addOne(PrintStringSection)
         gen.postSections.addOne(IntegerOverflow)
         val out2 = gen.regs.allocate
-        val reg = Operands.opToReg(y, gen.regs)
+        val out3 = gen.regs.allocate
         gen.regs.free(out2.getReg)
-        reg.instr ++ Seq(
-          SMull(out, out2.getReg(), x, reg.getReg()),
+        gen.regs.free(out3.getReg)
+        out2.instr ++ out3.instr ++ Seq(
+          Mov(out3.getReg, y),
+          SMull(out, out2.getReg(), x, out3.getReg()),
           Cmp(out2.getReg(), ASR(out, ImmInt(31))),
           LinkBranch("_errOverflow", NE))}
       case ast.Div => {
@@ -129,30 +131,50 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
       case _ => ???
     }
 
+    def isOpExpr(e: Expr): Boolean = e match {
+      case _: UnaryOpExpr => true
+      case _: BinaryOpExpr => true
+      case _ => false
+    }
+
+    println(s"x: $x, \ny: $y")
     val expr1 = x.toAssembly(gen).condToReg(gen.regs)
     val expr2 = y.toAssembly(gen).condToReg(gen.regs)
 
-    val instr = ListBuffer[Instruction]()
-    instr ++= expr1.instr
+    println(s"--e1--\nop: ${expr1.getOp()}\ninstr: ${expr1.instr}\n\n")
+    println(s"--e2--\nop: ${expr2.getOp()}\ninstr: ${expr2.instr}\n\n")
+
     val reg = Operands.opToReg(expr1.getOp(), gen.regs)
     val r1 = reg.getReg()
-    instr ++= reg.instr
-    instr ++= expr2.instr
 
-    val seq = expr1.instr ++ reg.instr ++ expr2.instr
+    def evalBool(cond: Condition): Assembly = Assembly(
+      (expr1.instr ++ reg.instr ++ expr2.instr) :+ Cmp(r1, expr2.getOp()), 
+      cond
+    )
+
     return op match {
-      case ast.Greater => Assembly(seq :+ Cmp(r1, expr2.getOp()), GT)
-      case ast.GreaterEquals => Assembly(seq :+ Cmp(r1, expr2.getOp()), GE)
-      case ast.Less => Assembly(seq :+ Cmp(r1, expr2.getOp()), LT)
-      case ast.LessEquals => Assembly(seq :+ Cmp(r1, expr2.getOp()), LE)
-      case ast.Equal => Assembly(seq :+ Cmp(r1, expr2.getOp()), EQ)
-      case ast.NotEqual => Assembly(seq :+ Cmp(r1, expr2.getOp()), NE)
+      case ast.Greater => evalBool(GT)
+      case ast.GreaterEquals => evalBool(GE)
+      case ast.Less => evalBool(LT)
+      case ast.LessEquals => evalBool(LE)
+      case ast.Equal => evalBool(EQ)
+      case ast.NotEqual => evalBool(NE)
       case _ => {
         val out = x match {
           case _: Ident => gen.regs.allocate
           case _ => RegAssembly(r1)
         }
-        return Assembly(out.getReg(), (seq ++ out.instr) ++ binaryOpToAssembly(out.getReg(), r1, expr2.getOp()))
+        val op2 = expr2.getOp() match {
+          case reg: Register => {
+            y match {
+              case x: LExpr => 
+              case _ => gen.regs.free(reg)
+            }
+            reg
+          }
+          case x => x
+        }
+        return Assembly(out.getReg(), expr2.instr ++ expr1.instr ++ reg.instr ++ out.instr ++ binaryOpToAssembly(out.getReg(), r1, op2))
       }
     }
   }
