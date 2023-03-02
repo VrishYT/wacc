@@ -20,7 +20,7 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
             case StrLiteral(string) => {
                 val assembly = rhs.toAssembly(gen)
                 table.update(id, assembly.getOp)
-                return Assign.assDec(out, assembly)
+                return Assign.assDec(out, assembly, gen.regs)
             }
                 
             case NewPair(fst, snd) => {
@@ -42,7 +42,7 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
             case _ => {
                 val assembly = rhs.toAssembly(gen).condToReg(gen.regs)
                 table.update(id, out.getReg)
-                return Assign.assDec(out, assembly)
+                return Assign.assDec(out, assembly, gen.regs)
             } 
         }
     }
@@ -57,7 +57,7 @@ case class Assign(x: LValue, y: RValue) extends Stat {
         y match {
             case StrLiteral(string) => {
                 val label = rhsAssembly.getOp.toString
-                return Assign.assDec(lval, rhsAssembly)
+                return Assign.assDec(lval, rhsAssembly, gen.regs)
             }
             case _ => {
                 val out = gen.regs.allocate
@@ -71,7 +71,7 @@ case class Assign(x: LValue, y: RValue) extends Stat {
                         val pairReg = pairAss.getReg
                         return (Seq(Push(Register(8))) ++ rhsAssembly.instr ++ pairAss.instr ++ out.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp), Load(Register(8), Address(pairReg, ImmInt(0))), Store(out.getReg, Address(Register(8), ImmInt(4))), Pop(Register(8))))}
                     case _ => {
-                        return Assign.assDec(lval, rhsAssembly)
+                        return Assign.assDec(lval, rhsAssembly, gen.regs)
                     }
                 }
             }
@@ -81,7 +81,10 @@ case class Assign(x: LValue, y: RValue) extends Stat {
 
 
 object Assign extends ParserBridge2[LValue, RValue, Assign] {
-    def assDec(lval: RegAssembly, rval: Assembly) : Seq[Instruction] = (rval.instr ++ lval.instr) :+ Mov(lval.getReg, rval.getOp)
+    def assDec(lval: RegAssembly, rval: Assembly, regs: RegisterAllocator)(implicit table: Table) : Seq[Instruction] = {
+        val reg = Operands.opToReg(rval.getOp, regs)
+        return (rval.instr ++ lval.instr ++ reg.instr) :+ Mov(lval.getReg, reg.getOp)
+    }
 }
 
 case class Read(x: LValue) extends Stat {
