@@ -135,10 +135,13 @@ case class Read(x: LValue) extends Stat {
                 }
             }
             case p@Fst(x) => {
-                val ass = p.toAssembly(gen, table)
+                val ass = p.toAssembly(gen)
                 x match {
                     case id@Ident(i) => {
-                        val identType = table.getType(i)
+                        val identType = table.getType(i) match {
+                            case Some(x) => x
+                            case None => ???
+                        }
                         identType match {
                             case PairType(IntType, _) => {
                                 gen.postSections.addOne(ReadIntSection)
@@ -153,10 +156,13 @@ case class Read(x: LValue) extends Stat {
                 }
             }
             case p@Snd(x) => {
-                val ass = p.toAssembly(gen, table)
+                val ass = p.toAssembly(gen)
                 x match {
                     case id@Ident(i) => {
-                        val identType = table.getType(i)
+                        val identType = table.getType(i) match {
+                            case Some(x) => x
+                            case None => ???
+                        }
                         identType match {
                             case PairType(_, IntType) => {
                                 gen.postSections.addOne(ReadIntSection)
