@@ -62,15 +62,23 @@ case class CodeGenerator(val symbolTable: SymbolTable) {
     val elemSize = 4
 
     def toAssembly(program: Program): String = {
+        val sb = new StringBuilder
         val out = program.toAssembly(this)
-        val pre = (preSections.addOne(text)).map(_.toAssembly).map(_.mkString("\n")).fold("")(_ + "\n" + _) + "\n"
-        val main = out._1.mkString("\n")
-        val fs = out._2.map(_.mkString("\n")).fold("\n")(_ + "\n" + _)
-        val post = postSections.map(_.toAssembly).map(_.mkString("\n")).fold("\n")(_ + "\n" + _)
+        val pre = (preSections.addOne(text)).map(x => separateSections(x.toAssembly, sb))
+        
+        val main = out._1.foreach(_.arm11(sb))
+        sb.append("\n")
+        val fs = out._2.map(x => separateSections(x, sb))
+        val post = postSections.map(x => separateSections(x.toAssembly, sb))
 
         // println(out)
-        return pre + main + fs + post 
+        return sb.toString 
+        //pre + main + fs + post 
     } 
     
+    def separateSections(instr: Seq[Instruction], sb: StringBuilder){
+        instr.foreach(_.arm11(sb))
+        sb.append("\n")
+    }
 }
 
