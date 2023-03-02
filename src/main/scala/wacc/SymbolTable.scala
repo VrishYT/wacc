@@ -47,6 +47,25 @@ sealed abstract class Table extends TableEntry {
     //     table(id) = LabelSymbol(getType(id), label)
     // }
 
+    def getIDFromReg(reg: Register): String = {
+        
+        def getFromParent(table: Table): String = {
+            val filtered = table.table.filter(_._2 match {
+                case OpSymbol(_, op) => op == reg
+                case _ => false
+            })
+            if (filtered.isEmpty) {
+                table match {
+                    case ChildTable(parent) => getFromParent(table)
+                    case _ => ???
+                }
+            } else if (filtered.size > 1) ??? 
+            else filtered.head._1
+        }
+
+        getFromParent(this)
+    }
+
     def update(id: String, op: Operand): Unit = {
         val t = getType(id) match {
             case Some(x) => x
