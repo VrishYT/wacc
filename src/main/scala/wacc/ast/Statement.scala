@@ -23,13 +23,6 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
                 table.update(id, label)
                 return Assign.assDec(out, assembly, true)
             }
-                
-            case NewPair(fst, snd) => {
-                val assembly1 = fst.toAssembly(gen, table)
-                val assembly2 = snd.toAssembly(gen, table)
-                val pairAssembly = gen.heapAlloc.mallocPair(assembly1.getOp, assembly2.getOp, out.getReg)
-                return (assembly1.instr ++ assembly2.instr ++ out.instr ++ pairAssembly.instr)
-            }
             case ArrayLiteral(xs) => {
                 val assemblies = xs.map(x => x.toAssembly(gen, table))
                 val instrs = (assemblies.map(x => x.instr)).flatten
