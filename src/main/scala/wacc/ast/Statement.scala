@@ -345,6 +345,17 @@ case class Print(x: Expr) extends Stat {
                     Pop(Register(0), Register(1), Register(2), Register(3))
                 )
             }
+
+            case ArrayType(CharType) => {
+                gen.postSections.addOne(PrintStringSection) 
+                return Seq(
+                    Push(Register(0), Register(1), Register(2), Register(3)),
+                    Mov(Register(2), operand),
+                    Load(Register(1), Address(Register(2), ImmInt(-4))),
+                    LinkBranch("_prints"),
+                    Pop(Register(0), Register(1), Register(2), Register(3))
+                )
+            }
             
             case PairType(_,_) | ArrayType(_) => {
                 gen.postSections.addOne(PrintPointerSection)
