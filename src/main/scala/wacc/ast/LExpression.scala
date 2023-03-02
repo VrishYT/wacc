@@ -68,6 +68,7 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
     // else, use accumulator and include load instructions
     val accAss = gen.regs.allocate
     val accReg = accAss.getReg()
+    gen.regs.free(accAss.getReg)
     gen.postSections.addOne(ArrayLoadSection)
 
     return RegAssembly(
