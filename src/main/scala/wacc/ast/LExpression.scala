@@ -20,145 +20,84 @@ object Ident extends ParserBridgePos1[String, Ident]
 
 case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LExpr {
 
+// ARGUMENT 1: ptr, ARGUMENT 2: index, FOR _arrLoad
+// ARGUMENT 1: ptr, ARGUMENT 2: index, ARGUMENT 3: value, FOR _arrStore
   override def toAssembly(gen: CodeGenerator, table: Table): RegAssembly = {
     return toAssemblyLoad(gen, table)
-    // val out = xs.map(_.toAssembly(gen, table))
-    // val func = Func.callFunction(id, xs)
   }
 
   def toAssemblyLoad(gen: CodeGenerator, table: Table): RegAssembly = {
+    
+    gen.postSections.addOne(ArrayBoundsCheck)
+    gen.postSections.addOne(ArrayLoadSection)
+
     val outAss = gen.regs.allocate
     val outReg = outAss.getReg
-
-    // val ptrAss = gen.regs.allocate // R3
-    val ptrReg = Register(3)//ptrAss.getReg
-
-    // val indexAss = gen.regs.allocate // R10
-    val indexReg = Register(10)//indexAss.getReg
-
-    val arrAss = RegAssembly(gen.regs.get(id))
-    val arrayOp = arrAss.getOp
-
-    val first = xs.head
-    val rest = xs.tail
-
-    val firstAss = first.toAssembly(gen, table)
-    val firstOp = firstAss.getOp
-
+    
     val accAss = gen.regs.allocate
     val accReg = accAss.getReg
 
-    gen.postSections.addOne(ArrayBoundsCheck)
-    gen.postSections.addOne(ArrayLoadSection)
+    val arrayAss = RegAssembly(gen.regs.get(id))
 
-    val startInstrs: Seq[Instruction] = /*indexAss.instr ++ ptrAss.instr ++*/ outAss.instr ++ arrAss.instr ++ firstAss.instr ++ Seq(
-      Mov(indexReg, firstOp),
-      Mov(ptrReg, arrayOp),
-      LinkBranch("_arrload"), // to define
-      Mov(accReg, ptrReg)
+    val finalInstr = Seq(Mov(outReg, accReg))
+    
+    val instrs = (
+      outAss.instr ++ arrayAss.instr ++ accAss.instr ++
+      _arrLoad(accReg, arrayAss.getOp, xs, gen, table) ++ finalInstr
     )
 
-    val restInstrs: Seq[Instruction] = rest.map(x => {
-      val xAss = x.toAssembly(gen, table)
-      val op = xAss.getOp
-      xAss.instr ++ Seq(
-        Push(accReg),
-        Mov(indexReg, op),
-        Pop(accReg),
-        Mov(ptrReg, accReg),
-        LinkBranch("_arrload"), // to define
-        Mov(accReg, ptrReg)
-      )
-    }).flatten
-
-    val finalInstrs = Seq(Mov(outReg, accReg))
-
-    // val comment: String = s"START: ${startInstrs}, REST: ${restInstrs}, FINAL: ${finalInstrs}"
-
-    return RegAssembly(outReg, startInstrs ++ restInstrs ++ finalInstrs /*++ Seq(Comment(comment))*/)
+    return RegAssembly(Register(0), instrs)
   }
-  
   
   def toAssemblyStore(gen: CodeGenerator, table: Table, rhs: Assembly): RegAssembly = {
-
-    // val ptrAss = gen.regs.allocate // R3
-    val ptrReg = Register(3)//ptrAss.getReg
-
-    // val indexAss = gen.regs.allocate // R10
-    val indexReg = Register(10)//indexAss.getReg
     
-    // val valAss = gen.regs.allocate // R8
-    val valReg = Register(8)//valAss.getReg
+    gen.postSections.addOne(ArrayBoundsCheck)
+    gen.postSections.addOne(ArrayStoreSection)
+    
+    val arrayAss = RegAssembly(gen.regs.get(id))
+    val xsInit = xs.init
 
-    val push = Seq(Push(Register(3), Register(8), Register(10)))
-    val pop = Seq(Pop(Register(3), Register(8), Register(10)))
+    // if array is 1D, only store is required
+    if (xsInit.isEmpty) {
+      return RegAssembly(
+        Register(0),
+        arrayAss.instr ++ _arrStore(arrayAss.getOp, rhs.getOp, gen, table)
+      )
+    }
 
-    // val arrOp = gen.regs.get(id)
-
-    // if (arrOp.i == 1 )
-    val arrAss = RegAssembly(gen.regs.get(id))
-    val arrayOp = arrAss.getOp
-
+    // else, use accumulator and include load instructions
     val accAss = gen.regs.allocate
     val accReg = accAss.getReg
-
-    val last: Expr = xs.last
-    val lastAss = last.toAssembly(gen, table)
-    val lastOp = lastAss.getOp
-
-    gen.postSections.addOne(ArrayBoundsCheck)
     gen.postSections.addOne(ArrayLoadSection)
-    gen.postSections.addOne(ArrayStoreSection)
 
-    
-    val _arrStore: Seq[Instruction] = Seq(
-      Mov(indexReg, lastOp),
-      Mov(valReg, rhs.getOp),
-      Mov(ptrReg, arrayOp),
-      LinkBranch("_arrStore")
-    )
-    
-    val initList: List[Expr] = xs.init
-    if (initList.isEmpty) {
-      return RegAssembly(Register(0), push ++ lastAss.instr ++ _arrStore ++ pop)
-    }
-
-    val first: Expr = initList.head
-    val firstAss = first.toAssembly(gen, table)
-    val firstOp = firstAss.getOp
-
-    def _arrLoad(op: Operand, instr: Seq[Instruction]): Seq[Instruction] = {
-      Seq(Mov(indexReg, op)) ++ instr ++ Seq(
-        Mov(ptrReg, arrayOp),
-        LinkBranch("_arrLoad"),
-        Mov(accReg, ptrReg),
-        Push(accReg)
-      )
-    }
-
-    val middleList: List[Expr] = initList.tail
-    if (middleList.isEmpty) {
-      // val pop = Pop()
-      return RegAssembly(Register(0),
-        push ++ firstAss.instr ++ _arrLoad(firstOp, Seq()) ++
-        lastAss.instr ++ _arrStore ++ pop
-      )
-    }
-    
-    val middleInstr: Seq[Instruction] = initList.map(x => {
-      val xAss = x.toAssembly(gen, table)
-      val xOp = xAss.getOp
-      xAss.instr ++ _arrLoad(xOp, Seq(Pop(accReg)))
-    }).flatten
-
-    return RegAssembly(Register(0),
-      push ++ firstAss.instr ++ _arrLoad(firstOp, Seq()) ++
-      middleInstr ++
-      lastAss.instr ++ _arrStore ++ pop
+    return RegAssembly(
+      Register(0),
+      arrayAss.instr ++ accAss.instr ++
+      _arrLoad(accReg, arrayAss.getOp, xsInit, gen, table) ++ 
+      _arrStore(accReg, rhs.getOp, gen, table)
     )
     
   }
+  
+  private def _arrStore(array: Operand, value: Operand, gen: CodeGenerator, table: Table): Seq[Instruction] = {
+    val lastAss = xs.last.toAssembly(gen, table)
+    val func = Func.callFunction("_arrStore", Seq(array, lastAss.getOp, value), gen)
+    return lastAss.instr ++ func
+  }
 
+  private def _arrLoad(accum: Register, array: Operand, ys: List[Expr], gen: CodeGenerator, table: Table): Seq[Instruction] = {
+    val headAss = ys.head.toAssembly(gen, table)
+    val headFunc = Func.callFunction("_arrLoad", Seq(array, headAss.getOp), gen)
+    val accInstr = Seq(Mov(accum, Register(0)))
+
+    val xsFunc = ys.tail.map(x => {
+      val xAss = x.toAssembly(gen, table)
+      val xFunc = Func.callFunction("_arrLoad", Seq(accum, xAss.getOp), gen)
+      xAss.instr ++ xFunc ++ accInstr
+    }).flatten
+
+    return headAss.instr ++ headFunc ++ accInstr ++ xsFunc
+  }
   
 }
   

@@ -66,28 +66,23 @@ case object PrintBoolSection extends DataSection {
     }
 }
 
-case class ArrayStoreSection(reg1: Register, reg2: Register, reg3: Register) extends DataSection {
+case object ArrayStoreSection extends DataSection {
     def toAssembly(): Seq[Instruction] = {
-        return DataSection.arrayInstr(reg1, reg2, Store(reg3, Address(reg2, LSL(reg1, ImmInt(2)))))
+        return DataSection.arrayInstr(
+            Register(2),
+            Register(1),
+            Store(Register(3), Address(Register(1), LSL(Register(2), ImmInt(2))))
+        )
     }
 }
 
-case class ArrayLoadSection(reg1: Register, reg2: Register) extends DataSection {
+case object ArrayLoadSection extends DataSection {
     def toAssembly(): Seq[Instruction] = {
-        return DataSection.arrayInstr(reg1, reg2, Load(reg2, Address(reg2, LSL(reg1, ImmInt(2)))))
-        // return Seq(
-        //     Section(".text")
-        // ) ++ Func.generateFunction("_arrLoad", Seq(
-        //     Cmp(reg1, ImmInt(0)),
-        //     Mov(Register(1), reg1, Condition.LT),
-        //     LinkBranch("_boundsCheck", Condition.LT),
-        //     Load(LR, Address(reg2, ImmInt(-4))),
-        //     Cmp(reg1, LR),
-        //     Mov(Register(1), reg1, Condition.GE),
-        //     LinkBranch("_boundsCheck", Condition.GE),
-        //     Load(reg2, Address(reg2, LSL(reg1, ImmInt(2)))),
-        //     Pop(PC)
-        // ))
+        return DataSection.arrayInstr(
+            Register(2),
+            Register(1),
+            Load(Register(0), Address(Register(1), LSL(Register(2), ImmInt(2))))
+        )
     }
 }
 
@@ -169,16 +164,16 @@ class TextSection extends DataSection {
 
 
 object DataSection {
-    def arrayInstr(reg1: Register, reg2: Register, instr: Instruction): Seq[Instruction] = {
+    def arrayInstr(index: Register, array: Register, instr: Instruction): Seq[Instruction] = {
         return Seq(
             Section(".text")
         ) ++ Func.generateFunction("_arrLoad", Seq(
-            Cmp(reg1, ImmInt(0)),
-            Mov(Register(1), reg1, Condition.LT),
+            Cmp(index, ImmInt(0)),
+            Mov(Register(1), index, Condition.LT),
             LinkBranch("_boundsCheck", Condition.LT),
-            Load(LR, Address(reg2, ImmInt(-4))),
-            Cmp(reg1, LR),
-            Mov(Register(1), reg1, Condition.GE),
+            Load(LR, Address(array, ImmInt(-4))),
+            Cmp(index, LR),
+            Mov(Register(1), index, Condition.GE),
             LinkBranch("_boundsCheck", Condition.GE),
             instr,
             Pop(PC)
