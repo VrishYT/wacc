@@ -146,7 +146,10 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
       case ast.Equal => Assembly(seq :+ Cmp(r1, expr2.getOp()), EQ)
       case ast.NotEqual => Assembly(seq :+ Cmp(r1, expr2.getOp()), NE)
       case _ => {
-        val out = gen.regs.allocate
+        val out = x match {
+          case _: Ident => gen.regs.allocate
+          case _ => RegAssembly(r1)
+        }
         return Assembly(out.getReg(), (seq ++ out.instr) ++ binaryOpToAssembly(out.getReg(), r1, expr2.getOp()))
       }
     }
