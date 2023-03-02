@@ -127,31 +127,84 @@ case class Read(x: LValue) extends Stat {
                 identType match {
                     case IntType => {
                         gen.postSections.addOne(ReadIntSection)
-                        return ass.instr ++ Seq(
-                            Push(Register(12)),
-                            Push(Register(0), Register(1)),
-                            Mov(Register(0), ass.getReg()),
-                            LinkBranch("_readi"),
-                            Mov(Register(12), Register(0)),
-                            Pop(Register(0), Register(1)),
-                            Mov(ass.getReg(), Register(12)),
-                            Pop(Register(12))
-                        )} 
+                        return ass.instr ++ readInt(ass.getReg)
+                    } 
                     case CharType => 
                         gen.postSections.addOne(ReadCharSection)
-                        return ass.instr ++ Seq(
-                            Push(Register(0), Register(1)),
-                            Mov(Register(0), ass.getReg()),
-                            LinkBranch("_readc"),
-                            Mov(Register(12), Register(0)),
-                            Pop(Register(0), Register(1)),
-                            Mov(ass.getReg(), Register(12)),
-                            Pop(Register(12))
-                        )
-                    case _ => Seq()
+                        return ass.instr ++ readChar(ass.getReg)
+                    case StringType => Seq()
                 }
             }
+            case p@Fst(x) => {
+                val ass = p.toAssembly(gen)
+                x match {
+                    case id@Ident(i) => {
+                        val identType = table.getType(i) match {
+                            case Some(x) => x
+                            case None => ???
+                        }
+                        identType match {
+                            case PairType(IntType, _) => {
+                                gen.postSections.addOne(ReadIntSection)
+                                return ass.instr ++ readInt(ass.getReg)
+                            }
+                            case PairType(CharType, _) => {
+                                gen.postSections.addOne(ReadCharSection)
+                                return ass.instr ++ readChar(ass.getReg)
+                            }
+                        }
+                    }
+                }
+            }
+            case p@Snd(x) => {
+                val ass = p.toAssembly(gen)
+                x match {
+                    case id@Ident(i) => {
+                        val identType = table.getType(i) match {
+                            case Some(x) => x
+                            case None => ???
+                        }
+                        identType match {
+                            case PairType(_, IntType) => {
+                                gen.postSections.addOne(ReadIntSection)
+                                return ass.instr ++ readInt(ass.getReg)
+                            }
+                            case PairType(_, CharType) => {
+                                gen.postSections.addOne(ReadCharSection)
+                                return ass.instr ++ readChar(ass.getReg)
+                            }
+                        }
+                    }
+                }
+
+            }
         }
+    }
+
+    def readInt(reg: Register): Seq[Instruction] = {
+        Seq(
+            Push(Register(12)),
+            Push(Register(0), Register(1)),
+            Mov(Register(0), reg),
+            LinkBranch("_readi"),
+            Mov(Register(12), Register(0)),
+            Pop(Register(0), Register(1)),
+            Mov(reg, Register(12)),
+            Pop(Register(12))
+        )
+    }
+
+    def readChar(reg: Register): Seq[Instruction] = {
+        Seq(
+            Push(Register(12)),
+            Push(Register(0), Register(1)),
+            Mov(Register(0), reg),
+            LinkBranch("_readc"),
+            Mov(Register(12), Register(0)),
+            Pop(Register(0), Register(1)),
+            Mov(reg, Register(12)),
+            Pop(Register(12))
+        )
     }
 }
 
@@ -247,6 +300,16 @@ case class Print(x: Expr) extends Stat {
                 val ass = a.toAssembly(gen)
                 return ass.instr ++ printValue(identType, ass.getOp(), gen)
             }
+            case p@PairLiteralNull(_) => {
+                gen.postSections.addOne(PrintPointerSection)
+                val ass = p.toAssembly(gen)
+                return ass.instr ++ Seq(
+                    Push(Register(0), Register(1), Register(2), Register(3)),
+                    Mov(Register(1), ass.getOp),
+                    LinkBranch("_printp"),
+                    Pop(Register(0), Register(1), Register(2), Register(3))
+                )
+            }
             case _ => Seq()
         }) :+ Comment("end print") 
     }
@@ -290,6 +353,17 @@ case class Print(x: Expr) extends Stat {
                     Push(Register(0), Register(1), Register(2), Register(3)),
                     Mov(Register(0), operand),
                     LinkBranch("_printb"),
+                    Pop(Register(0), Register(1), Register(2), Register(3))
+                )
+            }
+
+            case ArrayType(CharType) => {
+                gen.postSections.addOne(PrintStringSection) 
+                return Seq(
+                    Push(Register(0), Register(1), Register(2), Register(3)),
+                    Mov(Register(2), operand),
+                    Load(Register(1), Address(Register(2), ImmInt(-4))),
+                    LinkBranch("_prints"),
                     Pop(Register(0), Register(1), Register(2), Register(3))
                 )
             }
