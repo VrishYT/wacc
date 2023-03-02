@@ -40,7 +40,11 @@ object Operands {
         case x: Register => RegAssembly(x)
         case x => {
             val reg = regs.allocate
-            RegAssembly(reg.getReg, reg.instr :+ opToReg(x, reg.getReg))
+            val instr: Instruction = x match {
+                case x: Address => Load(reg.getReg, x)
+                case _ => Mov(reg.getReg, x)
+            }
+            RegAssembly(reg.getReg, reg.instr :+ instr)
         }
     }
 
