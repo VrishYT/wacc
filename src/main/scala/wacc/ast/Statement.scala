@@ -237,12 +237,17 @@ case class Print(x: Expr) extends Stat {
                 return ass.instr ++ printValue(binopType, ass.getOp(), gen)
             }
             case a@ArrayElem(id, xs) => { 
+
+                def getType(t: Type, xs: Seq[Expr]): Type = {
+                    if (xs.isEmpty) t
+                    else t match {
+                        case ArrayType(t) => getType(t, xs.tail)
+                        case _ => ???
+                    }
+                }
                 gen.postSections.addOne(PrintStringSection) 
                 val identType = table.getType(id) match {
-                    case Some(x) => x match {
-                        case ArrayType(x) => x
-                        case  _ => ???
-                    }
+                    case Some(x) => getType(x, xs)
                     case None => ???
                 }
                 val ass = a.toAssembly(gen)
