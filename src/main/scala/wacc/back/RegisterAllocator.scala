@@ -38,8 +38,12 @@ class RegisterAllocator(val mem: MemoryAllocator) {
         regsInUse.enqueue(reg)
     }
 
-    def free(reg: Register)(implicit table: Table): Assembly = {
-        ??? // TODO
+    def free(reg: Register)(implicit table: Table): Unit = {
+        if (!regsInUse.contains(reg) || freeRegs.contains(reg)) ???
+        else {
+            regsInUse -= reg
+            freeRegs += reg
+        }
     }
 
     def allocate(id: String)(implicit table: Table): RegAssembly = {
