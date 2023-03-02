@@ -6,7 +6,7 @@ class MemoryAllocator {
     import scala.collection.mutable.{Map => MapM}
 
     // private val table = MapM[String, Operand]()
-    private var size = 0
+    // private var size = 0
     // private var count = 0
 
     // def memorySize(): Int = {
@@ -14,14 +14,14 @@ class MemoryAllocator {
     // }
 
     def grow(size: Int): Instruction = {
-        this.size += size
-        Sub(SP, SP, ImmInt(size))
+        // this.size += size
+        Sub(SP, SP, ImmInt(size * 4))
     }
 
     def shrink(size: Int): Instruction = {
-        if (this.size < size) ???
-        this.size -= size
-        Add(SP, SP, ImmInt(size))
+        // if (this.size < size) ???
+        // this.size -= size
+        Add(SP, SP, ImmInt(size * 4))
     }
 
     // def reset(newSize: Int): Unit = {
@@ -39,8 +39,9 @@ class MemoryAllocator {
     //     size = newSize
     // }
 
+    //  TODO: modify SP as u go. check if FP or SP
     def store(id: String, reg: Register): Assembly = {
-        val operand = Address(SP, ImmInt(-4))
+        val operand = Address(SP, ImmInt(4))
         // count += 1
         // insert(id, operand)
         return Assembly(operand, Seq(Store(reg, operand)))

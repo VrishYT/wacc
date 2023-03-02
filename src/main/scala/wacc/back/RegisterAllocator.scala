@@ -38,9 +38,14 @@ class RegisterAllocator(val mem: MemoryAllocator) {
         regsInUse.enqueue(reg)
     }
 
+    def free(reg: Register)(implicit table: Table): Assembly = {
+        ??? // TODO
+    }
+
     def allocate(id: String)(implicit table: Table): RegAssembly = {
         val reg = allocate
-        table.update(id, reg.getReg)
+        table.update(id, reg.getReg())
+        println(s"$id -> $reg")
         return reg
     }
 
@@ -56,8 +61,10 @@ class RegisterAllocator(val mem: MemoryAllocator) {
             return RegAssembly(reg, instr.instr)
         }
 
-        val reg = if (freeRegs.isEmpty) realloc else RegAssembly(freeRegs.dequeue)
-        regsInUse.enqueue(reg.getReg)
+        val reg = if (freeRegs.isEmpty) realloc() else RegAssembly(freeRegs.dequeue())
+        regsInUse.enqueue(reg.getReg())
+        println(table)
+        println(freeRegs)
         return reg
     }
 
