@@ -54,9 +54,9 @@ case class Assign(x: LValue, y: RValue) extends Stat {
                 return Assign.assDec(lval, rhsAssembly, gen.regs)
             }
             case _ => {
-                val out = gen.regs.allocate
                 x match {
                     case Fst(x) => {
+                        val out = gen.regs.allocate
                         gen.postSections.addOne(NullDereference)
                         val pairAss = x.toAssembly(gen)
                         val pairReg = pairAss.getReg()
@@ -77,6 +77,7 @@ case class Assign(x: LValue, y: RValue) extends Stat {
                         )
                     }
                     case Snd(x) => {
+                        val out = gen.regs.allocate
                         gen.postSections.addOne(NullDereference)
                         val pairAss = x.toAssembly(gen)
                         val pairReg = pairAss.getReg()
@@ -364,7 +365,16 @@ case class While(p: Expr, x: List[Stat]) extends Stat {
 
         val startLabel = gen.labels.generate()
         val endLabel = gen.labels.generate()
-        val branch = if (cond.cond == Condition.AL) Seq() else Seq(Branch(endLabel, Condition.invert(cond.cond)))
+        var branch: Seq[Instruction] = if (cond.cond == Condition.AL) Seq() else Seq(Branch(endLabel, Condition.invert(cond.cond)))
+        cond.op match {
+            case Some(x) => x match {
+                case x: Register => {
+                    branch = Seq(Cmp(x, ImmInt(0)), Branch(endLabel, Condition.EQ))
+                }
+                case x => 
+            }
+            case None => 
+        }
 
         return (Label(startLabel) +: cond.instr) ++ branch ++ block ++ Seq(Branch(startLabel), Label(endLabel))   
     }
