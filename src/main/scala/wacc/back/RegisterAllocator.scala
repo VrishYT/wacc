@@ -12,7 +12,7 @@ class RegisterAllocator(val mem: MemoryAllocator) {
 
     // TODO: check if still needed after re-implement
     private val regsInUse = Queue[Register]()
-    // val savedRegs = Queue[Register]()
+    // private val varRegs = Queue[Register]() // TODO: keep track of what vars are in regs and only realloc from these if possible
 
     val freeRegs = Queue(
         Register(0),
