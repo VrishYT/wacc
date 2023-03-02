@@ -16,7 +16,7 @@ case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val po
         })
         
         val instr = stats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
-        val stack = 0.min(table.getSize - gen.regs.freeRegs.size)
+        val stack = 0.max(table.getSize - gen.regs.freeRegs.size)
 
         return gen.mem.grow(stack) +: Func.generateFunction(s"wacc_${fs._2}", instr) :+ gen.mem.shrink(stack)
     }

@@ -15,7 +15,7 @@ case class Program(fs: List[Func], stats: List[Stat]) {
 
         val fsOut = fs.map(func => func.toAssembly(gen)(getFuncTable(func.fs._2)))
         val mainTable = getFuncTable("main")
-        val stack = 0.min(mainTable.getSize - gen.regs.freeRegs.size)
+        val stack = 0.max(mainTable.getSize - gen.regs.freeRegs.size)
          // TODO: add into returned instructions
         val main = gen.mem.grow(stack) +: stats.map(_.toAssembly(gen)(mainTable)).fold(Seq())(_ ++ _) :+ gen.mem.shrink(stack)
 
