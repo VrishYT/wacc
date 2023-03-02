@@ -56,6 +56,7 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
       case Negate => {
         val out = gen.regs.allocate
         val reg = gen.regs.allocate
+        gen.regs.free(reg.getReg)
         gen.postSections.addOne(PrintStringSection)
         gen.postSections.addOne(IntegerOverflow)
         Assembly(out.getReg(), (reg.instr :+ back.Mov(reg.getReg(), ImmInt(0))) ++ out.instr ++ Seq (back.Sub(out.getReg(), reg.getReg(), expr.getOp()), LinkBranch("_errOverflow", VS)) ++ expr.instr)
@@ -76,6 +77,7 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
         gen.postSections.addOne(IntegerOverflow)
         val out2 = gen.regs.allocate
         val reg = Operands.opToReg(y, gen.regs)
+        gen.regs.free(out2.getReg)
         reg.instr ++ Seq(
           SMull(out, out2.getReg(), x, reg.getReg()),
           Cmp(out2.getReg(), ASR(out, ImmInt(31))),
