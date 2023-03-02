@@ -8,7 +8,7 @@ class RegisterAllocator(val mem: MemoryAllocator) {
     import scala.collection.mutable.{Map => MapM}
 
     // TODO: REMOVE
-    private val table = MapM[String, Register]() 
+    // private val table = MapM[String, Register]() 
 
     // TODO: check if still needed after re-implement
     private val regsInUse = Queue[Register]()
@@ -31,16 +31,16 @@ class RegisterAllocator(val mem: MemoryAllocator) {
 
     def isAllocated(reg: Register): Boolean = regsInUse.contains(reg)
 
-    // REMOVE / MOVE ELSWHERE
-    def link(id: String, reg: Register): Unit = {
-        table(id) = reg
+    // REMOVE / MOVE ELSWHERE ????
+    def link(id: String, reg: Register)(implicit table: Table): Unit = {
+        table.update(id, reg)
         freeRegs.removeFirst(_.i == reg.i)
         regsInUse.enqueue(reg)
     }
 
     def allocate(id: String)(implicit table: Table): RegAssembly = {
         val reg = allocate
-        table(id) = reg.getReg
+        table.update(id, reg.getReg)
         return reg
     }
 
@@ -49,8 +49,7 @@ class RegisterAllocator(val mem: MemoryAllocator) {
         // TODO: move and update symbol table with new address
         def realloc(): RegAssembly = {
             val reg = regsInUse.head
-            val id = this.table.filter(_._2 == reg).head._1
-            this.table.remove(id)
+            val id = table.getIDFromReg(reg)
             val instr = mem.store(id, reg)
             table.update(id, instr.getOp)
             regsInUse.dequeue
@@ -60,16 +59,6 @@ class RegisterAllocator(val mem: MemoryAllocator) {
         val reg = if (freeRegs.isEmpty) realloc else RegAssembly(freeRegs.dequeue)
         regsInUse.enqueue(reg.getReg)
         return reg
-    }
-
-    // TODO: REMOVE
-    def get(id: String): Register = table.get(id) match {
-        case Some(x) => x
-        case None => {
-            println(s"Cannot find ${id}")
-            println(table)
-            ???
-        }
     }
 
     // push to stack
