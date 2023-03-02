@@ -21,14 +21,39 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
   
 // ARGUMENT 1: ptr, ARGUMENT 2: index, FOR _arrLoad
 // ARGUMENT 1: ptr, ARGUMENT 2: index, ARGUMENT 3: value, FOR _arrStore
+  def getInnerType(t: Type, xs: Seq[Expr]): Type = {
+    if (xs.isEmpty) t
+    else t match {
+      case ArrayType(t) => getInnerType(t, xs.tail)
+      case _ => ???
+    }
+  }
+
+  private def checkCharType()(implicit table: Table): Boolean = {
+    val arrayType = table.getType(id) match {
+      case Some(x) => getInnerType(x, xs)
+      case None => ???
+    }
+
+    return (arrayType == CharType)
+  }
+
   override def toAssembly(gen: CodeGenerator)(implicit table: Table): RegAssembly = {
     return toAssemblyLoad(gen)
   }
 
   def toAssemblyLoad(gen: CodeGenerator)(implicit table: Table): RegAssembly = {
-    
+
     gen.postSections.addOne(ArrayBoundsCheck)
-    gen.postSections.addOne(ArrayLoadSection)
+    gen.postSections.addOne(PrintStringSection)
+
+    val charType = checkCharType()
+    if (charType) {
+      gen.postSections.addOne(ArrayLoadBSection)
+    } else {
+      gen.postSections.addOne(ArrayLoadSection)
+    }
+    
 
     val outAss = gen.regs.allocate
     val outReg = outAss.getReg()
@@ -43,16 +68,22 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
     
     val instrs = (
       outAss.instr ++ arrayAss.instr ++ accAss.instr ++
-      _arrLoad(accReg, arrayAss.getOp(), xs, gen) ++ finalInstr
+      _arrLoad(accReg, arrayAss.getOp(), xs, gen, charType) ++ finalInstr
     )
 
-    return RegAssembly(Register(0), instrs)
+    return RegAssembly(accReg, instrs)
   }
   
   def toAssemblyStore(gen: CodeGenerator, rhs: Assembly)(implicit table: Table): RegAssembly = {
     
     gen.postSections.addOne(ArrayBoundsCheck)
-    gen.postSections.addOne(ArrayStoreSection)
+    gen.postSections.addOne(PrintStringSection)
+    val charType = checkCharType()
+    if (charType) {
+      gen.postSections.addOne(ArrayStoreBSection)
+    } else {
+      gen.postSections.addOne(ArrayStoreSection)
+    }
     
     val arrayAss = Operands.opToReg(table.getOp(id), gen.regs)
     val xsInit = xs.init
@@ -61,38 +92,44 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
     if (xsInit.isEmpty) {
       return RegAssembly(
         Register(0),
-        arrayAss.instr ++ _arrStore(arrayAss.getOp(), rhs.getOp(), gen)
+        arrayAss.instr ++ _arrStore(arrayAss.getOp(), rhs.getOp(), gen, charType)
       )
     }
 
     // else, use accumulator and include load instructions
     val accAss = gen.regs.allocate
     val accReg = accAss.getReg()
-    gen.postSections.addOne(ArrayLoadSection)
+    if (charType) {
+      gen.postSections.addOne(ArrayLoadBSection)
+    } else {
+      gen.postSections.addOne(ArrayLoadSection)
+    }
 
     return RegAssembly(
       Register(0),
       arrayAss.instr ++ accAss.instr ++
-      _arrLoad(accReg, arrayAss.getOp(), xsInit, gen) ++ 
-      _arrStore(accReg, rhs.getOp(), gen)
+      _arrLoad(accReg, arrayAss.getOp(), xsInit, gen, charType) ++ 
+      _arrStore(accReg, rhs.getOp(), gen, charType)
     )
     
   }
   
-  private def _arrStore(array: Operand, value: Operand, gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
+  private def _arrStore(array: Operand, value: Operand, gen: CodeGenerator, charType: Boolean)(implicit table: Table): Seq[Instruction] = {
     val lastAss = xs.last.toAssembly(gen)
-    val func = Func.callFunction("_arrStore", Seq(array, lastAss.getOp(), value), gen)
+    val label = if (charType) "_arrStoreB" else "_arrStore"
+    val func = Func.callFunction(label, Seq(array, lastAss.getOp(), value), gen)
     return lastAss.instr ++ func
   }
 
-  private def _arrLoad(accum: Register, array: Operand, ys: List[Expr], gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
+  private def _arrLoad(accum: Register, array: Operand, ys: List[Expr], gen: CodeGenerator, charType: Boolean)(implicit table: Table): Seq[Instruction] = {
     val headAss = ys.head.toAssembly(gen)
-    val headFunc = Func.callFunction("_arrLoad", Seq(array, headAss.getOp()), gen)
+    val label = if (charType) "_arrLoadB" else "_arrLoad"
+    val headFunc = Func.callFunction(label, Seq(array, headAss.getOp()), gen)
     val accInstr = Seq(Mov(accum, Register(0)))
 
     val xsFunc = ys.tail.map(x => {
       val xAss = x.toAssembly(gen)
-      val xFunc = Func.callFunction("_arrLoad", Seq(accum, xAss.getOp()), gen)
+      val xFunc = Func.callFunction(label, Seq(accum, xAss.getOp()), gen)
       xAss.instr ++ xFunc ++ accInstr
     }).flatten
 

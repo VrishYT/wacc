@@ -156,19 +156,48 @@ object Read extends ParserBridge1[LValue, Read]
 
 case class Free(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
+        val xAssembly = x.toAssembly(gen)
+
+        x match {
+            case Ident(id) => {
+                table.getType(id) match {
+                    case Some(x) => x match {
+                        case _: ArrayType => freeArray(xAssembly, gen)
+                        case _: PairType => freePair(xAssembly, gen)
+                        case Pair => freePair(xAssembly, gen)
+                        case _ => ???
+                    }
+                    case None => ???
+                }
+            }
+            case _: ArrayElem => freeArray(xAssembly, gen)
+            case _ => ???
+        }
+    }
+
+    def freeArray(assembly: Assembly, gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
+
+        val regAssembly = Operands.opToReg(assembly.getOp, gen.regs)
+
+        return assembly.instr ++ regAssembly.instr ++ Seq(
+            Push(Register(0)),
+            Sub(Register(0), regAssembly.getReg, ImmInt(4)),
+            LinkBranch("free"),
+            Pop(Register(0))
+        )
+    }
+
+    def freePair(assembly: Assembly, gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
         gen.postSections.addOne(NullDereference)
         gen.postSections.addOne(PrintStringSection)
         gen.postSections.addOne(FreePairSection)
 
-        val xAssembly = x.toAssembly(gen)
-        val xOp = xAssembly.getOp()
+        val xOp = assembly.getOp()
 
-        val instrns = xAssembly.instr ++ Seq(Push(Register(8)), Mov(Register(8), xOp), 
+        val instrns = assembly.instr ++ Seq(Push(Register(8)), Mov(Register(8), xOp), 
                                          Mov(Register(0), Register(8)), LinkBranch("_freepair"), 
                                          Mov(Register(0), ImmInt(0)), Pop( Register(8)))
         return instrns
-
-
     }
 }
 
@@ -352,15 +381,23 @@ object Println extends ParserBridge1[Expr, Println]
 
 case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
-        
+
         val cond = p.toAssembly(gen)
-        val thenBlock = x.map(_.toAssembly(gen)).foldLeft(Seq[Instruction]())(_ ++ _) // TODO: symbol table
-        val elseBlock = y.map(_.toAssembly(gen)).foldLeft(Seq[Instruction]())(_ ++ _) // TODO: symbol table
+        val childTable = table.getTable(s"_if${gen.ifCount}") match {
+            case Some(x) => x
+            case None => ???
+        }
+        val thenBlock = x.map(_.toAssembly(gen)(childTable)).foldLeft(Seq[Instruction]())(_ ++ _) // TODO: symbol table
+        val elseBlock = y.map(_.toAssembly(gen)(childTable)).foldLeft(Seq[Instruction]())(_ ++ _) // TODO: symbol table
 
         val thenLabel = gen.labels.generate()
         val endLabel = gen.labels.generate()
 
-        return If.generateIf(cond, thenLabel, thenBlock, elseBlock, endLabel)
+        gen.ifCount += 1
+
+        val stack = 0.max(childTable.getSize - gen.regs.freeRegs.size)
+
+        return gen.mem.grow(stack) +: If.generateIf(cond, thenLabel, thenBlock, elseBlock, endLabel) :+ gen.mem.shrink(stack)
     }
     
 }
@@ -388,7 +425,12 @@ case class While(p: Expr, x: List[Stat]) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
         
         val cond = p.toAssembly(gen)
-        val block = x.map(_.toAssembly(gen)).foldLeft(Seq[Instruction]())(_ ++ _) // TODO: symbol table
+        println(table)
+        val childTable = table.getTable(s"_while${gen.whileCount}") match {
+            case Some(x) => x
+            case None => ???
+        }
+        val block = x.map(_.toAssembly(gen)(childTable)).foldLeft(Seq[Instruction]())(_ ++ _) // TODO: symbol table
 
         val startLabel = gen.labels.generate()
         val endLabel = gen.labels.generate()
@@ -403,14 +445,29 @@ case class While(p: Expr, x: List[Stat]) extends Stat {
             case None => 
         }
 
-        return (Label(startLabel) +: cond.instr) ++ branch ++ block ++ Seq(Branch(startLabel), Label(endLabel))   
+        gen.whileCount += 1
+
+        val stack = 0.max(childTable.getSize - gen.regs.freeRegs.size)
+
+        return gen.mem.grow(stack) +: ((Label(startLabel) +: cond.instr) ++ branch ++ block ++ Seq(Branch(startLabel), Label(endLabel))) :+ gen.mem.shrink(stack)
     }
 }
 
 object While extends ParserBridge2[Expr, List[Stat], While]
 
 case class Begin(xs: List[Stat]) extends Stat {
-    override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = Seq()
+    override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
+        val childTable = table.getTable(s"_begin${gen.beginCount}") match {
+            case Some(x) => x
+            case None => ???
+        }
+        val instr = xs.map(_.toAssembly(gen)(childTable)).fold(Seq())(_ ++ _)
+        val stack = 0.max(childTable.getSize - gen.regs.freeRegs.size)
+
+        gen.beginCount += 1
+
+        return gen.mem.grow(stack) +: instr :+ gen.mem.shrink(stack)
+    }
 }
 
 object Begin extends ParserBridge1[List[Stat], Begin]

@@ -102,7 +102,10 @@ case class Store(dest: Register, src: Operand, postAddress: Boolean = false, byt
         if (byte && postAddress) {
             sb.append(s"\tstrb $dest, $src!")
             sb.append("\n")
-        }else {
+        } else if (byte) {
+            sb.append(s"\tstrb $dest, $src")
+            sb.append("\n")
+        } else {
             sb.append(s"\tstr $dest, $src")
             sb.append("\n")
         }

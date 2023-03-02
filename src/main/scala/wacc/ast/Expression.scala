@@ -43,6 +43,11 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
 
   override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
 
+    def len(expr: Assembly): Assembly = {
+      val out = Operands.opToReg(expr.getOp, gen.regs)
+      return Assembly(out.getReg, expr.instr ++ out.instr ++ Seq(Load(out.getReg, Address(out.getReg, ImmInt(-4)))))
+    }
+
     val expr = x.toAssembly(gen)
 
     return op match {
@@ -61,7 +66,21 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
         gen.postSections.addOne(IntegerOverflow)
         Assembly(out.getReg(), (reg.instr :+ back.Mov(reg.getReg(), ImmInt(0))) ++ out.instr ++ Seq (back.Sub(out.getReg(), reg.getReg(), expr.getOp()), LinkBranch("_errOverflow", VS)) ++ expr.instr)
       }
-      case Length => ??? // TODO
+      case Length => {
+        x match {
+          case Ident(id) => {
+            table.getType(id) match {
+              case Some(x) => x match {
+                case _: ArrayType => len(expr)
+                case _ => ???
+              }
+              case None => ???
+            }
+          }
+          case _: ArrayElem => len(expr)
+          case _ => ???
+        }
+      }
     }
     
   }

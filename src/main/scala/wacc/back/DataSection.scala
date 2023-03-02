@@ -94,6 +94,20 @@ case object ArrayStoreSection extends ArraySection(
     Store(Register(3), Address(Register(1), LSL(Register(2), ImmInt(2))))
 )
 
+case object ArrayLoadBSection extends ArraySection(
+    "_arrLoadB",
+    Register(2),
+    Register(1),
+    Load(Register(0), Address(Register(1), Register(2)), true)
+)
+
+case object ArrayStoreBSection extends ArraySection(
+    "_arrStoreB",
+    Register(2),
+    Register(1),
+    Store(Register(3), Address(Register(1), Register(2)), false, true)
+)
+
 case object ReadIntSection extends DataSection {
     def toAssembly(): Seq[Instruction] = {
         return Seq(

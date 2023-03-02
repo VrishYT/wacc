@@ -344,7 +344,7 @@ object SemanticChecker {
           checkStatements(xs, thenVars)
           val elseVars = ChildTable(vars)
           checkStatements(ys, elseVars)
-          if (!thenVars.isEmpty && !elseVars.isEmpty) vars.addIf(thenVars, elseVars)
+          vars.addIf(thenVars, elseVars)
         }
 
         /* check while statement */
@@ -357,14 +357,14 @@ object SemanticChecker {
           /* check semantics of loop body's statements */
           val child = ChildTable(vars)
           checkStatements(xs, child)
-          if (!child.isEmpty) vars.addWhile(child)
+          vars.addWhile(child)
         }
 
         /* check begin statement, by checking the semantics of its body's statements */
         case Begin(xs) => {
           val child = ChildTable(vars)
           checkStatements(xs, child)
-          if (!child.isEmpty) vars.addBegin(child)
+          vars.addBegin(child)
         }
 
         /* defualt case */
