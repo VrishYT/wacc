@@ -1,7 +1,7 @@
 package wacc
 package back
 
-import scala.collection.mutable.{Map => MapM, ListBuffer}
+import scala.collection.mutable.ListBuffer
 
 class HeapAllocator {
 
@@ -10,52 +10,29 @@ class HeapAllocator {
     val push = Push(Register(8))
     val elemSize = 4
 
-    def mallocPair(fst: Operand, snd: Operand, out: Register): Assembly = {
+     def mallocPair(fst: Operand, snd: Operand, out: Register): Assembly = {
 
-        def mallocPairElem(elem: Operand): ListBuffer[Instruction] = {
-            val instrs = ListBuffer[Instruction]()
+        def mallocPairElem(elem: Operand): Seq[Instruction] = {
+            val instrs = Seq(Mov(Register(0), ImmInt(elemSize)), malloc, Mov(out, Register(0)),  Mov(Register(8), elem))
 
-            /* Malloc with elemSize parameter */
-            instrs += Mov(Register(0), ImmInt(elemSize))
-            instrs += malloc
-
-            /* Move allocated mem address into out */
-            instrs += Mov(out, Register(0))
-
-            /* Move elem into allocated address */
-            instrs += Mov(Register(8), elem)
-
-            elem match {
-                case ImmChar(_) => instrs += StoreB(Register(8), Address(out, ImmInt(0)))
-                case _ => instrs += Store(Register(8), Address(out, ImmInt(0)))
+            val rest = elem match {
+                case ImmChar(_) => Seq(StoreB(Register(8), Address(out, ImmInt(0))), Mov(Register(8), out), push)
+                case _ => Seq(Store(Register(8), Address(out, ImmInt(0))),  Mov(Register(8), out), push)
             }
             
-            /* Push address of elem */
-            instrs += Mov(Register(8), out)
-            instrs += push
-            
-            return instrs
+            return instrs ++ rest
         }
 
-        val instrs = mallocPairElem(fst) ++= mallocPairElem(snd)
-        push +=: instrs
-
-        /* Malloc with pair size parameter */
-        instrs += Mov(Register(0), ImmInt(elemSize * 2))
-        instrs += malloc
-
-        /* Move allocated mem address into out */
-        instrs += Mov(out, Register(0))
-
-        /* Pop and store snd elem address in pair address + 4 */
-        instrs += pop
-        instrs += Store(Register(8), Address(out, ImmInt(elemSize)))
-
-         /* Pop and store fst elem address in pair address */
-        instrs += pop
-        instrs += Store(Register(8), Address(out, ImmInt(0)))
-        instrs += pop
-
+        val instrs = Seq(push) ++ mallocPairElem(fst) ++ mallocPairElem(snd) ++ Seq(Mov(Register(0), 
+                                                                                    ImmInt(elemSize * 2)), 
+                                                                                    malloc,
+                                                                                     Mov(out, Register(0)),
+                                                                                    pop, 
+                                                                                    Store(Register(8), Address(out, ImmInt(elemSize))),
+                                                                                    pop, 
+                                                                                    Store(Register(8), Address(out, ImmInt(0))),
+                                                                                    pop
+                                                                                    )
         val assembly = Assembly(out, instrs.toSeq)
         return (assembly)
     }
@@ -84,7 +61,6 @@ class HeapAllocator {
         }
 
         /* Store address of first element in out */
-        instrs += Mov(out, Register(8))
         instrs += pop
 
         val assembly = Assembly(out, instrs.toSeq)

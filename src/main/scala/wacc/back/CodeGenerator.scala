@@ -3,7 +3,6 @@ package back
 
 import ast._
 import Condition._
-import scala.collection.mutable.{Set => SetM}
 
 class Assembly(val op: Option[Operand], val instr: Seq[Instruction], var cond: Condition) {
     def getOp(): Operand = op match {
@@ -18,7 +17,8 @@ class Assembly(val op: Option[Operand], val instr: Seq[Instruction], var cond: C
         case Some(x) => this
         case None => {
             val reg = regs.allocate
-            Assembly(reg.getReg, this.instr ++ reg.instr ++ Seq(Mov(reg.getReg, ImmInt(0)), Mov(reg.getReg, ImmInt(1), cond)), cond)
+            val instr = if (cond == NO) Seq() else Seq(Mov(reg.getReg(), ImmInt(1), cond))
+            Assembly(reg.getReg(), this.instr ++ reg.instr ++ Seq(Mov(reg.getReg(), ImmInt(0))) ++ instr, cond)
         }
     }
 }
@@ -64,19 +64,17 @@ case class CodeGenerator(val symbolTable: SymbolTable) {
     def toAssembly(program: Program): String = {
         val sb = new StringBuilder
         val out = program.toAssembly(this)
-        val pre = (preSections.addOne(text)).map(x => separateSections(x.toAssembly, sb))
-        
-        val main = out._1.foreach(_.arm11(sb))
-        sb.append("\n")
-        val fs = out._2.map(x => separateSections(x, sb))
-        val post = postSections.map(x => separateSections(x.toAssembly, sb))
 
-        // println(out)
+        separateSections(text.toAssembly(), sb)
+        preSections.map(x => separateSections(x.toAssembly(), sb))
+        separateSections(out._1, sb)
+        out._2.map(x => separateSections(x, sb))
+        postSections.map(x => separateSections(x.toAssembly(), sb))
+
         return sb.toString 
-        //pre + main + fs + post 
     } 
     
-    def separateSections(instr: Seq[Instruction], sb: StringBuilder){
+    def separateSections(instr: Seq[Instruction], sb: StringBuilder): Unit = {
         instr.foreach(_.arm11(sb))
         sb.append("\n")
     }

@@ -9,9 +9,39 @@ compile:
     - echo "*-----Compiled-----*"
   tags: [private]
 
+test_parse:
+  stage: test
+  script:
+    - make test_parse
+    - echo "*-----Test Parser-----*"
+  tags: [private]
+  except:
+    - master
+
+test_typecheck:
+  stage: test
+  script:
+    - make test_typecheck
+    - echo "*-----Test Typechecker-----*"
+  tags: [private]
+  except:
+    - master
+
+test_compile:
+  stage: test
+  script:
+    - make test_compile
+    - echo "*-----Test Execution-----*"
+  tags: [private]
+  except:
+    - master
+
 test:
   stage: test
   script:
-    - make test
-    - echo "*-----Test-----*"
-  tags: [private]
+    - make test_compile
+    - echo "*-----Test Execution-----*"
+  only:
+    - master
+
+

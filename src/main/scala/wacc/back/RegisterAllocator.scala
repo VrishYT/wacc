@@ -4,8 +4,6 @@ package back
 class RegisterAllocator(val mem: MemoryAllocator) {
 
     import scala.collection.mutable.Queue
-    // import scala.collection.mutable.Stack
-    import scala.collection.mutable.{Map => MapM}
 
     // TODO: REMOVE
     // private val table = MapM[String, Register]() 
@@ -60,8 +58,8 @@ class RegisterAllocator(val mem: MemoryAllocator) {
             val reg = regsInUse.head
             val id = table.getIDFromReg(reg)
             val instr = mem.store(id, reg)
-            table.update(id, instr.getOp)
-            regsInUse.dequeue
+            table.update(id, instr.getOp())
+            regsInUse.dequeue()
             return RegAssembly(reg, instr.instr)
         }
 
@@ -83,11 +81,10 @@ class RegisterAllocator(val mem: MemoryAllocator) {
 
     // pop from stack
     def restore(regs: Register*): Instruction = {
-        val reverse = regs.reverse
         regs.foreach(reg => {
             regsInUse.enqueue(reg)
             freeRegs -= reg
         })
-        return Pop(regs.reverse:_*)
+        return Pop(regs:_*)
     }
 }

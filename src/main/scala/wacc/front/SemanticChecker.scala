@@ -7,7 +7,7 @@ object SemanticChecker {
   import error._
   import wacc.ast._
 
-  import scala.collection.mutable.{ArrayBuffer, Map => MapM}
+  import scala.collection.mutable.{ArrayBuffer}
 
   def typecheck(program: Program, symbolTable: SymbolTable): ArrayBuffer[TypeException] = {
 
@@ -227,9 +227,10 @@ object SemanticChecker {
 
             /* for a binary operator : */
             case BinaryOpExpr(op, exp1, exp2) => {
+              import scala.annotation.nowarn
 
               /* checks that the input expression has correct type for given binary operator's operand and returns the type */
-              def getType(exp: Expr, types: Seq[Type]): Type = {
+              @nowarn def getType(exp: Expr, types: Seq[Type]): Type = {
                 val rValType = getRValType(exp)
                 types.foreach(t => {
                   if (t == rValType) return rValType

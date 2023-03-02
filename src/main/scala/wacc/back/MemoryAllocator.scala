@@ -3,8 +3,6 @@ package back
 
 class MemoryAllocator {
 
-    import scala.collection.mutable.{Map => MapM}
-
     // private val table = MapM[String, Operand]()
     // private var size = 0
     // private var count = 0
