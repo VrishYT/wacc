@@ -17,7 +17,8 @@ class Assembly(val op: Option[Operand], val instr: Seq[Instruction], var cond: C
         case Some(x) => this
         case None => {
             val reg = regs.allocate
-            Assembly(reg.getReg(), this.instr ++ reg.instr ++ Seq(Mov(reg.getReg(), ImmInt(0)), Mov(reg.getReg(), ImmInt(1), cond)), cond)
+            val instr = if (cond == NO) Seq() else Seq(Mov(reg.getReg(), ImmInt(1), cond))
+            Assembly(reg.getReg(), this.instr ++ reg.instr ++ Seq(Mov(reg.getReg(), ImmInt(0))) ++ instr, cond)
         }
     }
 }
