@@ -12,7 +12,8 @@ trait LValue {
 
 /* pair elements as a sealed trait with a position */
 sealed trait PairElem extends LValue with RValue {
-    override def toAssembly(gen: CodeGenerator)(implicit table: Table): RegAssembly = {
+
+    def getAddr(gen: CodeGenerator)(implicit table: Table): Assembly = {
 
         gen.postSections.addOne(PrintStringSection)
         gen.postSections.addOne(NullDereference)
@@ -24,17 +25,27 @@ sealed trait PairElem extends LValue with RValue {
         
         val pairAss = pair.toAssembly(gen)
         val pairReg = pairAss.getReg()
-        val outAss = gen.regs.allocate
-        val outReg = outAss.getReg()
         val accumAss = gen.regs.allocate
-        val accumReg = accumAss.getReg()
+        val accumReg = accumAss.getReg
 
-        val instrs = outAss.instr ++ pairAss.instr ++ Seq(Push(Register(8)), Mov(Register(8), pairReg), Cmp(Register(8), ImmInt(0)), LinkBranch("_errNull", Condition.EQ), Load(Register(8), Address(pairReg, ImmInt(offset))), Load(outReg, Address(Register(8), ImmInt(0))), Pop(Register(8)))
-        instrs :+ Cmp(pairReg, ImmInt(0))
-        instrs :+ LinkBranch("_errNull") //Error function needs to be defined
-        instrs :+ Load(outReg, Address(pairReg, ImmInt(offset)))
+        val instrs = pairAss.instr ++ Seq(
+                                                          Mov(accumReg, pairReg),
+                                                          Cmp(accumReg, ImmInt(0)),
+                                                          LinkBranch("_errNull", Condition.EQ),
+                                                          Load(accumReg, Address(pairReg, ImmInt(offset)))
+                                                          )
 
-        return RegAssembly(outReg, instrs)
+        return Assembly(Address(accumReg, ImmInt(0)), instrs)
+    }
+
+    override def toAssembly(gen: CodeGenerator)(implicit table: Table): RegAssembly = {
+
+        val outAss = gen.regs.allocate
+        val outReg = outAss.getReg
+        
+        val assemb = this.getAddr(gen)
+
+        return RegAssembly(outReg, outAss.instr ++ assemb.instr ++ Seq(Load(outReg, assemb.getOp)))
     }
 }
 

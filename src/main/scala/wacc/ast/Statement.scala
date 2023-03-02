@@ -25,7 +25,6 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
                 }
                 return arrLit.toInstructions(gen, out)
             }
-
             case _ => {
                 val assembly = rhs.toAssembly(gen).condToReg(gen.regs)
                 val reg = Operands.opToReg(assembly.getOp(), gen.regs)
@@ -46,61 +45,20 @@ case class Assign(x: LValue, y: RValue) extends Stat {
                 val arrElemAss = arrElem.toAssemblyStore(gen, rhsAssembly)
                 return rhsAssembly.instr ++ arrElemAss.instr
             }
+            case x: PairElem => {
+                val addrAssemb = x.getAddr(gen)
+                val reg = Operands.opToReg(rhsAssembly.getOp(), gen.regs)
+                return (addrAssemb.instr ++ reg.instr ++ rhsAssembly.instr ++ 
+                        Seq(Store(reg.getReg, addrAssemb.getOp)))
+            }
             case _ => x.toAssembly(gen)
         }
-
         y match {
             case StrLiteral(string) => {
                 return Assign.assDec(lval, rhsAssembly, gen.regs)
             }
             case _ => {
-                x match {
-                    case Fst(x) => {
-                        val out = gen.regs.allocate
-                        gen.postSections.addOne(NullDereference)
-                        val pairAss = x.toAssembly(gen)
-                        val pairReg = pairAss.getReg()
-                        return Seq(
-                            Push(Register(8))
-                        ) ++ 
-                        rhsAssembly.instr ++ 
-                        pairAss.instr ++ 
-                        out.instr ++ 
-                        Seq(
-                            Mov(Register(8), pairReg), 
-                            Cmp(Register(8), ImmInt(0)), 
-                            LinkBranch("_errNull", Condition.EQ), 
-                            Mov(out.getReg(), rhsAssembly.getOp()), 
-                            Load(Register(8), Address(pairReg, ImmInt(0))), 
-                            Store(out.getReg(), Address(Register(8), ImmInt(0))), 
-                            Pop(Register(8))
-                        )
-                    }
-                    case Snd(x) => {
-                        val out = gen.regs.allocate
-                        gen.postSections.addOne(NullDereference)
-                        val pairAss = x.toAssembly(gen)
-                        val pairReg = pairAss.getReg()
-                        return Seq(
-                            Push(Register(8))
-                        ) ++ 
-                        rhsAssembly.instr ++ 
-                        pairAss.instr ++ 
-                        out.instr ++ 
-                        Seq(
-                            Mov(Register(8), pairReg), 
-                            Cmp(Register(8), ImmInt(0)), 
-                            LinkBranch("_errNull", Condition.EQ),
-                            Mov(out.getReg(), rhsAssembly.getOp()), 
-                            Load(Register(8), Address(pairReg, ImmInt(4))), 
-                            Store(out.getReg(), 
-                            Address(Register(8), ImmInt(0))), Pop(Register(8))
-                        )
-                    }
-                    case _ => {
-                        return Assign.assDec(lval, rhsAssembly, gen.regs)
-                    }
-                }
+                return Assign.assDec(lval, rhsAssembly, gen.regs)
             }
         }
     }
