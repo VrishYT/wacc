@@ -41,6 +41,7 @@ test:
   script:
     - make test_compile
     - echo "*-----Test Execution-----*"
+  tags: [private]
   only:
     - master
 
