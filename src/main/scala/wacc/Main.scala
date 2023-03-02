@@ -12,7 +12,7 @@ object Main {
         val compiler = Compiler(args(0))
         if (!compiler.parse()) sys.exit(100)
         if (!compiler.typecheck) sys.exit(200)
-        compiler.compile
+        compiler.compile()
     }
 
 }

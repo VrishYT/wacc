@@ -1,4 +1,5 @@
-package wacc.front
+package wacc
+package front
 
 object SemanticChecker {
 
@@ -6,7 +7,7 @@ object SemanticChecker {
   import error._
   import wacc.ast._
 
-  import scala.collection.mutable.{ArrayBuffer, Map => MapM}
+  import scala.collection.mutable.{ArrayBuffer}
 
   def typecheck(program: Program, symbolTable: SymbolTable): ArrayBuffer[TypeException] = {
 
@@ -48,12 +49,9 @@ object SemanticChecker {
     }
 
     /* return the type of an identifier from the parent and child scope maps */
-    def getTypeFromVars(id: String, vars: Table, pos: (Int, Int)): Type = vars.getSymbol(id) match {
-      case Some(x) => x.t
-      case None => vars match {
-        case ChildTable(parent) => getTypeFromVars(id, parent, pos)
-        case _ => ErrorLogger.err("Variable " + id + " not found", pos)
-      } 
+    def getTypeFromVars(id: String, vars: Table, pos: (Int, Int)): Type = vars.getType(id) match {
+      case Some(x) => x
+      case None => ErrorLogger.err("Variable " + id + " not found", pos)
     }
 
     /* traverse a list of statements and error on semantic errors */
@@ -229,9 +227,10 @@ object SemanticChecker {
 
             /* for a binary operator : */
             case BinaryOpExpr(op, exp1, exp2) => {
+              import scala.annotation.nowarn
 
               /* checks that the input expression has correct type for given binary operator's operand and returns the type */
-              def getType(exp: Expr, types: Seq[Type]): Type = {
+              @nowarn def getType(exp: Expr, types: Seq[Type]): Type = {
                 val rValType = getRValType(exp)
                 types.foreach(t => {
                   if (t == rValType) return rValType

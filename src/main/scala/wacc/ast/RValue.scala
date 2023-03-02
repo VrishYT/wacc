@@ -8,16 +8,16 @@ import parsley.genericbridges._
 /* right values as a sealed trait with a position attribute */
 trait RValue {
     def pos: (Int, Int)
-    def toAssembly(gen: CodeGenerator, table: Table): Assembly = TODOAssembly
+    def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = TODOAssembly
 }
 
 /* case classes for right values */
 case class ArrayLiteral(xs: List[Expr])(val pos: (Int, Int)) extends RValue {
-    def toInstructions(gen: CodeGenerator, table: Table, out: RegAssembly): Seq[Instruction] = {
-        val assemblies = xs.map(x => x.toAssembly(gen, table))
+    def toInstructions(gen: CodeGenerator, out: RegAssembly)(implicit table: Table): Seq[Instruction] = {
+        val assemblies = xs.map(x => x.toAssembly(gen))
         val instrs = (assemblies.map(x => x.instr)).flatten
-        val ops = (assemblies.map(x => x.getOp))
-        val arrAssembly = gen.heapAlloc.mallocArray(ops, out.getReg)
+        val ops = (assemblies.map(x => x.getOp()))
+        val arrAssembly = gen.heap.mallocArray(ops, out.getReg())
         return (instrs ++ out.instr ++ arrAssembly.instr)
     }
 }
@@ -25,16 +25,24 @@ case class ArrayLiteral(xs: List[Expr])(val pos: (Int, Int)) extends RValue {
 /* companion objects for right values */
 object ArrayLiteral extends ParserBridgePos1[List[Expr], ArrayLiteral]
 
-case class NewPair(fst: Expr, snd: Expr)(val pos: (Int, Int), val pos2: (Int, Int)) extends RValue
+case class NewPair(fst: Expr, snd: Expr)(val pos: (Int, Int), val pos2: (Int, Int)) extends RValue {
+        override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
+        val out = gen.regs.allocate
+        val assembly1 = fst.toAssembly(gen)
+        val assembly2 = snd.toAssembly(gen)
+        val pairAssembly = gen.heap.mallocPair(assembly1.getOp(), assembly2.getOp(), out.getReg())
+        return Assembly(out.getReg(), assembly1.instr ++ assembly2.instr ++ out.instr ++ pairAssembly.instr)
+    }
+}
 
 object NewPair extends ParserBridge2[Expr, Expr, NewPair] {
     def apply(fst: Expr, snd: Expr) = new NewPair(fst, snd)(fst.pos, snd.pos)
 }
 
 case class Call(id: String, args: List[Expr])(val pos: (Int, Int)) extends RValue {
-    override def toAssembly(gen: CodeGenerator, table: Table): Assembly = {
-        val out = args.map(_.toAssembly(gen, table))
-        val func = Func.callFunction(id, args = out.map(_.getOp), gen = gen)
+    override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
+        val out = args.map(_.toAssembly(gen))
+        val func = Func.callFunction(id, args = out.map(_.getOp()), gen = gen)
         Assembly(Register(0), out.map(_.instr).fold(Seq())(_ ++ _) ++ func)
     }
     // {
@@ -45,7 +53,7 @@ case class Call(id: String, args: List[Expr])(val pos: (Int, Int)) extends RValu
         // def paramToReg(i: Int): Seq[Instruction] = {
         //     val param = args(i)
         //     val reg = regsToSave(i)
-        //     val expr = param.toAssembly(gen, table)
+        //     val expr = param.toAssembly(gen)
         //     if (expr.getOp == reg) return expr.instr
         //     else return expr.instr :+ Mov(reg, expr.getOp)
         // }

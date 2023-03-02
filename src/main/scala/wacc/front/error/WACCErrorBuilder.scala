@@ -1,4 +1,5 @@
-package wacc.front.error
+package wacc
+package front.error
 
 import parsley.errors._
 

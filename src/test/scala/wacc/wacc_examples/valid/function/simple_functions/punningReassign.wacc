@@ -2,8 +2,11 @@
 # variable can be reassigned without affecting the function
 
 # Output:
-# 0
+# hello
+# 6
+# bye
 #
+# Program:
 
 begin
     int inc(int x) is

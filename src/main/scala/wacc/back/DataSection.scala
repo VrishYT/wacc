@@ -66,21 +66,23 @@ case object PrintBoolSection extends DataSection {
     }
 }
 
-case class ArrayLoadSection(reg1: Register, reg2: Register) extends DataSection {
+case object ArrayStoreSection extends DataSection {
     def toAssembly(): Seq[Instruction] = {
-        return Seq(
-            Section(".text")
-        ) ++ Func.generateFunction("_arrLoad", Seq(
-            Cmp(reg1, ImmInt(0)),
-            Mov(Register(1), reg1, Condition.LT),
-            LinkBranch("_boundsCheck", Condition.LT),
-            Load(LR, Address(reg2, ImmInt(-4))),
-            Cmp(reg1, LR),
-            Mov(Register(1), reg1, Condition.GE),
-            LinkBranch("_boundsCheck", Condition.GE),
-            Load(reg2, Address(reg2, LSL(reg1, ImmInt(2)))),
-            Pop(PC)
-        ))
+        return DataSection.arrayInstr(
+            Register(2),
+            Register(1),
+            Store(Register(3), Address(Register(1), LSL(Register(2), ImmInt(2))))
+        )
+    }
+}
+
+case object ArrayLoadSection extends DataSection {
+    def toAssembly(): Seq[Instruction] = {
+        return DataSection.arrayInstr(
+            Register(2),
+            Register(1),
+            Load(Register(0), Address(Register(1), LSL(Register(2), ImmInt(2))))
+        )
     }
 }
 
@@ -93,14 +95,15 @@ case object ReadIntSection extends DataSection {
             Directive(".asciz \"%d\""),
             Section(".text")
         ) ++ Func.generateFunction("_readi", Seq(
-            Push(Register(0)),
+            Push(Register(0), Register(1)),
             Mov(Register(1), SP),
             Load(Register(0), DataLabel(".L._readi_str0")),
             LinkBranch("scanf"),
             Load(Register(0), Address(SP, ImmInt(0))),
             Add(SP, SP, ImmInt(4)),
+            Pop(Register(1)),
             Pop(PC)
-        ), Register(1))
+        ))
     }
 }
 
@@ -113,14 +116,16 @@ case object ReadCharSection extends DataSection {
             Directive(".asciz \" %c\""),
             Section(".text")
         ) ++ Func.generateFunction("_readc", Seq(
+            Push(Register(1)),
             Store(Register(0), Address(SP, ImmInt(-1)), true, true),
             Mov(Register(1), SP),
             Load(Register(0), DataLabel(".L._readc_str0")),
             LinkBranch("scanf"),
             Load(Register(0), Address(SP, ImmInt(0)), true),
             Add(SP, SP, ImmInt(1)),
+            Pop(Register(1)),
             Pop(PC)
-        ), Register(1))
+        ))
     }
 }
 
@@ -177,5 +182,24 @@ class TextSection extends DataSection {
 
         return Section(".data") +: table.map(entryToAssembly).fold(Seq())(_ ++ _) :+ Section(".text")
 
+    }
+}
+
+
+object DataSection {
+    def arrayInstr(index: Register, array: Register, instr: Instruction): Seq[Instruction] = {
+        return Seq(
+            Section(".text")
+        ) ++ Func.generateFunction("_arrLoad", Seq(
+            Cmp(index, ImmInt(0)),
+            Mov(Register(1), index, Condition.LT),
+            LinkBranch("_boundsCheck", Condition.LT),
+            Load(LR, Address(array, ImmInt(-4))),
+            Cmp(index, LR),
+            Mov(Register(1), index, Condition.GE),
+            LinkBranch("_boundsCheck", Condition.GE),
+            instr,
+            Pop(PC)
+        ))
     }
 }

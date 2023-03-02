@@ -1,9 +1,8 @@
-package wacc.back
+package wacc
+package back
 
-import wacc.ast._
-import wacc.SymbolTable
+import ast._
 import Condition._
-import scala.collection.mutable.{Set => SetM}
 
 class Assembly(val op: Option[Operand], val instr: Seq[Instruction], var cond: Condition) {
     def getOp(): Operand = op match {
@@ -14,11 +13,12 @@ class Assembly(val op: Option[Operand], val instr: Seq[Instruction], var cond: C
         cond = Condition.invert(cond)
         this
     }
-    def condToReg(regs: RegisterAllocator): Assembly = op match {
+    def condToReg(regs: RegisterAllocator)(implicit table: Table): Assembly = op match {
         case Some(x) => this
         case None => {
             val reg = regs.allocate
-            Assembly(reg.getReg, this.instr ++ reg.instr ++ Seq(Mov(reg.getReg, ImmInt(0)), Mov(reg.getReg, ImmInt(1), cond)), cond)
+            val instr = if (cond == NO) Seq() else Seq(Mov(reg.getReg(), ImmInt(1), cond))
+            Assembly(reg.getReg(), this.instr ++ reg.instr ++ Seq(Mov(reg.getReg(), ImmInt(0))) ++ instr, cond)
         }
     }
 }
@@ -55,21 +55,28 @@ case class CodeGenerator(val symbolTable: SymbolTable) {
     val postSections = scala.collection.mutable.Set[DataSection]()
 
     val labels = new LabelGenerator
-    val regs = new RegisterAllocator
-    val heapAlloc = new HeapAllocator
+    val heap = new HeapAllocator
+    val mem = new MemoryAllocator
+    val regs = new RegisterAllocator(mem)
 
     val elemSize = 4
 
     def toAssembly(program: Program): String = {
+        val sb = new StringBuilder
         val out = program.toAssembly(this)
-        val pre = (preSections.addOne(text)).map(_.toAssembly).map(_.mkString("\n")).fold("")(_ + "\n" + _) + "\n"
-        val main = out._1.mkString("\n")
-        val fs = out._2.map(_.mkString("\n")).fold("\n")(_ + "\n" + _)
-        val post = postSections.map(_.toAssembly).map(_.mkString("\n")).fold("\n")(_ + "\n" + _)
 
-        // println(out)
-        return pre + main + fs + post 
+        separateSections(text.toAssembly(), sb)
+        preSections.map(x => separateSections(x.toAssembly(), sb))
+        separateSections(out._1, sb)
+        out._2.map(x => separateSections(x, sb))
+        postSections.map(x => separateSections(x.toAssembly(), sb))
+
+        return sb.toString 
     } 
     
+    def separateSections(instr: Seq[Instruction], sb: StringBuilder): Unit = {
+        instr.foreach(_.arm11(sb))
+        sb.append("\n")
+    }
 }
 

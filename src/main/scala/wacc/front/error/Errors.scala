@@ -1,4 +1,5 @@
-package wacc.front.error
+package wacc
+package front.error
 
 /* Holds constants used for error message generation */
 package object error {

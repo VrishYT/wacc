@@ -4,6 +4,7 @@
 # Output:
 # 0
 #
+# Program:
 
 begin
     int inc(int x) is
