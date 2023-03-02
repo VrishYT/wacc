@@ -68,7 +68,7 @@ class Compiler(private val file: File) {
 
     }
 
-    def compile: Unit = program match {
+    def compile(): Unit = program match {
         case Some(x) => {
 
             // TODO: check if function needed or inline

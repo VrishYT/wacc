@@ -15,9 +15,9 @@ case class IntLiteral(x: Int)(val pos: (Int, Int)) extends Expr {
     if (x < 0 || x > 256) {
       val out = gen.regs.allocate
       val instr: Seq[Instruction] = Seq(
-        Load(out.getReg, DataLabel(x + ""))
+        Load(out.getReg(), DataLabel(x.toString()))
       )
-      RegAssembly(out.getReg, instr)
+      RegAssembly(out.getReg(), instr)
     } else Assembly(ImmInt(x))
 
   } 
@@ -47,7 +47,7 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
 
     return op match {
       case Not => {
-        expr.getOp match {
+        expr.getOp() match {
           case x: Register => Assembly(x, expr.instr ++ Seq(Xor(x, x, ImmInt(1))), expr.cond)
           case _ => expr.not()
         }
@@ -58,7 +58,7 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
         val reg = gen.regs.allocate
         gen.postSections.addOne(PrintStringSection)
         gen.postSections.addOne(IntegerOverflow)
-        Assembly(out.getReg, (reg.instr :+ back.Mov(reg.getReg, ImmInt(0))) ++ out.instr ++ Seq (back.Sub(out.getReg, reg.getReg, expr.getOp), LinkBranch("_errOverflow", VS)) ++ expr.instr)
+        Assembly(out.getReg(), (reg.instr :+ back.Mov(reg.getReg(), ImmInt(0))) ++ out.instr ++ Seq (back.Sub(out.getReg(), reg.getReg(), expr.getOp()), LinkBranch("_errOverflow", VS)) ++ expr.instr)
       }
       case Length => ??? // TODO
     }
@@ -77,8 +77,8 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
         val out2 = gen.regs.allocate
         val reg = Operands.opToReg(y, gen.regs)
         reg.instr ++ Seq(
-          SMull(out, out2.getReg, x, reg.getReg),
-          Cmp(out2.getReg, ASR(out, ImmInt(31))),
+          SMull(out, out2.getReg(), x, reg.getReg()),
+          Cmp(out2.getReg(), ASR(out, ImmInt(31))),
           LinkBranch("_errOverflow", NE))}
       case ast.Div => {
         gen.postSections.addOne(PrintStringSection)
@@ -122,6 +122,7 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
       }
       case ast.And => Seq(And(out, x, y))
       case ast.Or => Seq(Or(out, x, y))
+      case _ => ???
     }
 
     val expr1 = x.toAssembly(gen).condToReg(gen.regs)
@@ -129,22 +130,22 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
 
     val instr = ListBuffer[Instruction]()
     instr ++= expr1.instr
-    val reg = Operands.opToReg(expr1.getOp, gen.regs)
-    val r1 = reg.getReg
+    val reg = Operands.opToReg(expr1.getOp(), gen.regs)
+    val r1 = reg.getReg()
     instr ++= reg.instr
     instr ++= expr2.instr
 
     val seq = expr1.instr ++ reg.instr ++ expr2.instr
     return op match {
-      case ast.Greater => Assembly(seq :+ Cmp(r1, expr2.getOp), GT)
-      case ast.GreaterEquals => Assembly(seq :+ Cmp(r1, expr2.getOp), GE)
-      case ast.Less => Assembly(seq :+ Cmp(r1, expr2.getOp), LT)
-      case ast.LessEquals => Assembly(seq :+ Cmp(r1, expr2.getOp), LE)
-      case ast.Equal => Assembly(seq :+ Cmp(r1, expr2.getOp), EQ)
-      case ast.NotEqual => Assembly(seq :+ Cmp(r1, expr2.getOp), NE)
+      case ast.Greater => Assembly(seq :+ Cmp(r1, expr2.getOp()), GT)
+      case ast.GreaterEquals => Assembly(seq :+ Cmp(r1, expr2.getOp()), GE)
+      case ast.Less => Assembly(seq :+ Cmp(r1, expr2.getOp()), LT)
+      case ast.LessEquals => Assembly(seq :+ Cmp(r1, expr2.getOp()), LE)
+      case ast.Equal => Assembly(seq :+ Cmp(r1, expr2.getOp()), EQ)
+      case ast.NotEqual => Assembly(seq :+ Cmp(r1, expr2.getOp()), NE)
       case _ => {
         val out = gen.regs.allocate
-        return Assembly(out.getReg, (seq ++ out.instr) ++ binaryOpToAssembly(out.getReg, r1, expr2.getOp))
+        return Assembly(out.getReg(), (seq ++ out.instr) ++ binaryOpToAssembly(out.getReg(), r1, expr2.getOp()))
       }
     }
   }
@@ -163,7 +164,7 @@ object BoolLiteral extends ParserBridgePos1[Boolean, BoolLiteral]
 case class PairLiteralNull(val pos: (Int, Int)) extends Expr with ParserBridgePos0[Expr] {
   override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
     val regAss = gen.regs.allocate
-    val reg = regAss.getReg
+    val reg = regAss.getReg()
     val regInstr = regAss.instr
     val instrns =  Seq(Mov(reg, ImmInt(0)))
     return Assembly(reg, regInstr ++ instrns.toSeq)

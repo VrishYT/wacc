@@ -1,7 +1,7 @@
 package wacc
 package back
 
-import scala.collection.mutable.{Map => MapM, ListBuffer}
+import scala.collection.mutable.ListBuffer
 
 class HeapAllocator {
 

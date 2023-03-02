@@ -3,7 +3,6 @@ package ast
 
 import wacc.front.ParserBridge._
 import wacc.back._
-import scala.collection.mutable.ListBuffer
 
 /* function case class with position */
 case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {

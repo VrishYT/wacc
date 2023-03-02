@@ -1,7 +1,6 @@
 package wacc
 
-import scala.collection.mutable.{Set, Map => MapM}
-import scala.collection.immutable.Map
+import scala.collection.mutable.{Map => MapM}
 import back._
 import ast._
 
@@ -139,12 +138,18 @@ sealed abstract class Table extends TableEntry {
     }
 
     private def getSymbol(id: String): Option[Symbol] = get(id) match {
-        case x: Some[Symbol] => x
+        case Some(x) => x match {
+            case x: Symbol => Some(x)
+            case _ => None 
+        }
         case None => None
     }
 
     def getTable(id: String): Option[ChildTable] = get(id) match {
-        case x: Some[ChildTable] => x
+        case Some(x) => x match {
+            case x: ChildTable => Some(x)
+            case _ => None 
+        }
         case None => None
     }
 

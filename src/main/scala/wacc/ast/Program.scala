@@ -1,7 +1,6 @@
 package wacc
 package ast
 
-import scala.collection.mutable.{ListBuffer}
 import parsley.genericbridges._
 import wacc.back._
 

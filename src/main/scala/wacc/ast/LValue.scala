@@ -23,11 +23,11 @@ sealed trait PairElem extends LValue with RValue {
         }   
         
         val pairAss = pair.toAssembly(gen)
-        val pairReg = pairAss.getReg
+        val pairReg = pairAss.getReg()
         val outAss = gen.regs.allocate
-        val outReg = outAss.getReg
+        val outReg = outAss.getReg()
         val accumAss = gen.regs.allocate
-        val accumReg = accumAss.getReg
+        val accumReg = accumAss.getReg()
 
         val instrs = outAss.instr ++ pairAss.instr ++ accumAss.instr ++ Seq(Mov(accumReg, pairReg), Cmp(accumReg, ImmInt(0)), LinkBranch("_errNull", Condition.EQ), Load(outReg, Address(pairReg, ImmInt(offset))))
         // instrs :+ Cmp(pairReg, ImmInt(0))

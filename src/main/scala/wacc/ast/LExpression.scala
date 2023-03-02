@@ -3,7 +3,6 @@ package ast
 
 import wacc.front.ParserBridge._
 import wacc.back._
-import scala.collection.mutable.ListBuffer
 
 /* left expressions extending expressions and left values */
 sealed trait LExpr extends Expr with LValue {
@@ -32,10 +31,10 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
     gen.postSections.addOne(ArrayLoadSection)
 
     val outAss = gen.regs.allocate
-    val outReg = outAss.getReg
+    val outReg = outAss.getReg()
     
     val accAss = gen.regs.allocate
-    val accReg = accAss.getReg
+    val accReg = accAss.getReg()
 
     val arrayAss = Operands.opToReg(table.getOp(id), gen.regs)
 
@@ -43,7 +42,7 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
     
     val instrs = (
       outAss.instr ++ arrayAss.instr ++ accAss.instr ++
-      _arrLoad(accReg, arrayAss.getOp, xs, gen) ++ finalInstr
+      _arrLoad(accReg, arrayAss.getOp(), xs, gen) ++ finalInstr
     )
 
     return RegAssembly(Register(0), instrs)
@@ -61,38 +60,38 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
     if (xsInit.isEmpty) {
       return RegAssembly(
         Register(0),
-        arrayAss.instr ++ _arrStore(arrayAss.getOp, rhs.getOp, gen)
+        arrayAss.instr ++ _arrStore(arrayAss.getOp(), rhs.getOp(), gen)
       )
     }
 
     // else, use accumulator and include load instructions
     val accAss = gen.regs.allocate
-    val accReg = accAss.getReg
+    val accReg = accAss.getReg()
     gen.postSections.addOne(ArrayLoadSection)
 
     return RegAssembly(
       Register(0),
       arrayAss.instr ++ accAss.instr ++
-      _arrLoad(accReg, arrayAss.getOp, xsInit, gen) ++ 
-      _arrStore(accReg, rhs.getOp, gen)
+      _arrLoad(accReg, arrayAss.getOp(), xsInit, gen) ++ 
+      _arrStore(accReg, rhs.getOp(), gen)
     )
     
   }
   
   private def _arrStore(array: Operand, value: Operand, gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
     val lastAss = xs.last.toAssembly(gen)
-    val func = Func.callFunction("_arrStore", Seq(array, lastAss.getOp, value), gen)
+    val func = Func.callFunction("_arrStore", Seq(array, lastAss.getOp(), value), gen)
     return lastAss.instr ++ func
   }
 
   private def _arrLoad(accum: Register, array: Operand, ys: List[Expr], gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
     val headAss = ys.head.toAssembly(gen)
-    val headFunc = Func.callFunction("_arrLoad", Seq(array, headAss.getOp), gen)
+    val headFunc = Func.callFunction("_arrLoad", Seq(array, headAss.getOp()), gen)
     val accInstr = Seq(Mov(accum, Register(0)))
 
     val xsFunc = ys.tail.map(x => {
       val xAss = x.toAssembly(gen)
-      val xFunc = Func.callFunction("_arrLoad", Seq(accum, xAss.getOp), gen)
+      val xFunc = Func.callFunction("_arrLoad", Seq(accum, xAss.getOp()), gen)
       xAss.instr ++ xFunc ++ accInstr
     }).flatten
 
