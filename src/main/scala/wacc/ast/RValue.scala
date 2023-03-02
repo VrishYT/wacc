@@ -17,7 +17,15 @@ case class ArrayLiteral(xs: List[Expr])(val pos: (Int, Int)) extends RValue
 /* companion objects for right values */
 object ArrayLiteral extends ParserBridgePos1[List[Expr], ArrayLiteral]
 
-case class NewPair(fst: Expr, snd: Expr)(val pos: (Int, Int), val pos2: (Int, Int)) extends RValue
+case class NewPair(fst: Expr, snd: Expr)(val pos: (Int, Int), val pos2: (Int, Int)) extends RValue {
+        override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
+        val out = gen.regs.allocate
+        val assembly1 = fst.toAssembly(gen)
+        val assembly2 = snd.toAssembly(gen)
+        val pairAssembly = gen.heap.mallocPair(assembly1.getOp, assembly2.getOp, out.getReg)
+        return Assembly(out.getReg, assembly1.instr ++ assembly2.instr ++ out.instr ++ pairAssembly.instr)
+    }
+}
 
 object NewPair extends ParserBridge2[Expr, Expr, NewPair] {
     def apply(fst: Expr, snd: Expr) = new NewPair(fst, snd)(fst.pos, snd.pos)
