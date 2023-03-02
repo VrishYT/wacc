@@ -156,19 +156,48 @@ object Read extends ParserBridge1[LValue, Read]
 
 case class Free(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
+        val xAssembly = x.toAssembly(gen)
+
+        x match {
+            case Ident(id) => {
+                table.getType(id) match {
+                    case Some(x) => x match {
+                        case _: ArrayType => freeArray(xAssembly, gen)
+                        case _: PairType => freePair(xAssembly, gen)
+                        case Pair => freePair(xAssembly, gen)
+                        case _ => ???
+                    }
+                    case None => ???
+                }
+            }
+            case _: ArrayElem => freeArray(xAssembly, gen)
+            case _ => ???
+        }
+    }
+
+    def freeArray(assembly: Assembly, gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
+
+        val regAssembly = Operands.opToReg(assembly.getOp, gen.regs)
+
+        return assembly.instr ++ regAssembly.instr ++ Seq(
+            Push(Register(0)),
+            Sub(Register(0), regAssembly.getReg, ImmInt(4)),
+            LinkBranch("free"),
+            Pop(Register(0))
+        )
+    }
+
+    def freePair(assembly: Assembly, gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
         gen.postSections.addOne(NullDereference)
         gen.postSections.addOne(PrintStringSection)
         gen.postSections.addOne(FreePairSection)
 
-        val xAssembly = x.toAssembly(gen)
-        val xOp = xAssembly.getOp()
+        val xOp = assembly.getOp()
 
-        val instrns = xAssembly.instr ++ Seq(Push(Register(8)), Mov(Register(8), xOp), 
+        val instrns = assembly.instr ++ Seq(Push(Register(8)), Mov(Register(8), xOp), 
                                          Mov(Register(0), Register(8)), LinkBranch("_freepair"), 
                                          Mov(Register(0), ImmInt(0)), Pop( Register(8)))
         return instrns
-
-
     }
 }
 
