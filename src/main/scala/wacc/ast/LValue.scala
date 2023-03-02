@@ -28,9 +28,9 @@ sealed trait PairElem extends LValue with RValue {
         val outReg = outAss.getReg
 
         val instrs = outAss.instr ++ pairAss.instr ++ Seq(Push(Register(8)), Mov(Register(8), pairReg), Cmp(Register(8), ImmInt(0)), LinkBranch("_errNull", Condition.EQ), Load(Register(8), Address(pairReg, ImmInt(offset))), Load(outReg, Address(Register(8), ImmInt(0))), Pop(Register(8)))
-        // instrs :+ Cmp(pairReg, ImmInt(0))
-        // instrs :+ LinkBranch("_errNull") //Error function needs to be defined
-        // instrs :+ Load(outReg, Address(pairReg, ImmInt(offset)))
+        instrs :+ Cmp(pairReg, ImmInt(0))
+        instrs :+ LinkBranch("_errNull") //Error function needs to be defined
+        instrs :+ Load(outReg, Address(pairReg, ImmInt(offset)))
 
         return RegAssembly(outReg, instrs)
     }
