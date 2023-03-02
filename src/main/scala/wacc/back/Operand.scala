@@ -43,7 +43,7 @@ object Operands {
     }
 
     def opToReg(op: Operand, regs: RegisterAllocator)(implicit table: Table): RegAssembly = op match {
-        case x: Register => RegAssembly(x)
+        case x: Register if (x.i != 0) => RegAssembly(x)
         case x => {
             // println(s"opToReg $op")
             val reg = regs.allocate
