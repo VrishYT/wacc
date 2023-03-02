@@ -15,15 +15,15 @@ case object Skip extends Stat with ParserBridge0[Stat]
 
 case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
-        val out = gen.regs.allocate(id)
         rhs match {
-            case StrLiteral(string) => {
-                val assembly = rhs.toAssembly(gen)
-                table.update(id, assembly.getOp)
-                return Assign.assDec(out, assembly, gen.regs)
-            }
+            // case StrLiteral(string) => {
+            //     val assembly = rhs.toAssembly(gen)
+            //     table.update(id, assembly.getOp)
+            //     return Assign.assDec(out, assembly, gen.regs)
+            // }
                 
             case NewPair(fst, snd) => {
+                val out = gen.regs.allocate
                 val assembly1 = fst.toAssembly(gen)
                 val assembly2 = snd.toAssembly(gen)
                 val pairAssembly = gen.heap.mallocPair(assembly1.getOp, assembly2.getOp, out.getReg)
@@ -31,6 +31,7 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
                 return (assembly1.instr ++ assembly2.instr ++ out.instr ++ pairAssembly.instr)
             }
             case ArrayLiteral(xs) => {
+                val out = gen.regs.allocate
                 val assemblies = xs.map(x => x.toAssembly(gen))
                 val instrs = (assemblies.map(x => x.instr)).flatten
                 val ops = (assemblies.map(x => x.getOp))
@@ -41,8 +42,9 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
 
             case _ => {
                 val assembly = rhs.toAssembly(gen).condToReg(gen.regs)
-                table.update(id, out.getReg)
-                return Assign.assDec(out, assembly, gen.regs)
+                val reg = Operands.opToReg(assembly.getOp, gen.regs)
+                table.update(id, reg.getReg)
+                return assembly.instr ++ reg.instr 
             } 
         }
     }
