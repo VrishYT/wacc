@@ -299,6 +299,16 @@ case class Print(x: Expr) extends Stat {
                 val ass = a.toAssembly(gen)
                 return ass.instr ++ printValue(identType, ass.getOp(), gen)
             }
+            case p@PairLiteralNull(_) => {
+                gen.postSections.addOne(PrintPointerSection)
+                val ass = p.toAssembly(gen)
+                return ass.instr ++ Seq(
+                    Push(Register(0), Register(1), Register(2), Register(3)),
+                    Mov(Register(1), ass.getOp),
+                    LinkBranch("_printp"),
+                    Pop(Register(0), Register(1), Register(2), Register(3))
+                )
+            }
             case _ => Seq()
         }) :+ Comment("end print") 
     }
