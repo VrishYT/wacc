@@ -51,7 +51,7 @@ sealed abstract class Table extends TableEntry {
             })
             if (filtered.isEmpty) {
                 table match {
-                    case ChildTable(parent) => getFromParent(table)
+                    case ChildTable(parent) => getFromParent(parent)
                     case _ => ???
                 }
             } else if (filtered.size > 1) ??? 
