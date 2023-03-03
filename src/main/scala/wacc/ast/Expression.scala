@@ -106,13 +106,13 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
         gen.postSections.addOne(PrintStringSection)
         gen.postSections.addOne(DivZeroError)
         Seq(
-          Push(Register(1)),
+          Push(Register(1), Register(2), Register(3)),
           Mov(Register(0), x),
           Mov(Register(1), y),
           Cmp(Register(1), ImmInt(0)),
           LinkBranch("_errDivZero", EQ),
           DivMod,
-          Pop(Register(1)),
+          Pop(Register(1), Register(2), Register(3)),
           Mov(out, Register(0))
         )
       }
@@ -136,11 +136,15 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
         gen.postSections.addOne(PrintStringSection)
         gen.postSections.addOne(DivZeroError)
         Seq(
+          Push(Register(1), Register(2), Register(3)),
           Mov(Register(0), x),
           Mov(Register(1), y),
           Cmp(Register(1), ImmInt(0)),
           LinkBranch("_errDivZero", EQ),
           DivMod,
+          Mov(Register(0), Register(1)),
+          Pop(Register(1), Register(2), Register(3)),
+          Mov(out, Register(0))
         )
       }
       case ast.And => Seq(And(out, x, y))
