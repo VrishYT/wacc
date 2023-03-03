@@ -13,7 +13,7 @@ compile:
 test:
   stage: test
   script:
-    - make test_compile
+    - make test
     - echo "*-----Test-----*"
   tags: [private]
 
