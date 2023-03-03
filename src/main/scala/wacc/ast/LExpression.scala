@@ -54,24 +54,19 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
       gen.postSections.addOne(ArrayLoadSection)
     }
     
-
-    val outAss = gen.regs.allocate
-    val outReg = outAss.getReg()
-    
-    val accAss = gen.regs.allocate
-    val accReg = accAss.getReg()
-    gen.regs.free(accReg)
+    val outReg = Register(0)
+    val accReg = Register(8)
 
     val arrayAss = Operands.opToReg(table.getOp(id), gen.regs)
 
     val finalInstr = Seq(Mov(outReg, accReg))
     
     val instrs = (
-      outAss.instr ++ arrayAss.instr ++ accAss.instr ++
-      _arrLoad(accReg, arrayAss.getOp(), xs, gen, charType) ++ finalInstr
+      arrayAss.instr ++ Seq(Push(Register(8))) ++
+      _arrLoad(accReg, arrayAss.getOp(), xs, gen, charType) ++ finalInstr ++ Seq(Pop(Register(8)))
     )
 
-    return RegAssembly(accReg, instrs)
+    return RegAssembly(outReg, instrs)
   }
   
   def toAssemblyStore(gen: CodeGenerator, rhs: Assembly)(implicit table: Table): RegAssembly = {
@@ -97,22 +92,25 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
     }
 
     // else, use accumulator and include load instructions
-    val accAss = gen.regs.allocate
-    val accReg = accAss.getReg()
-    gen.regs.free(accAss.getReg())
+    val accReg = Register(8)
     if (charType) {
       gen.postSections.addOne(ArrayLoadBSection)
     } else {
       gen.postSections.addOne(ArrayLoadSection)
     }
 
-    return RegAssembly(
+    val helpAss = gen.regs.allocate
+    
+    val reg = RegAssembly(
       Register(0),
-      arrayAss.instr ++ accAss.instr ++
+      arrayAss.instr ++ helpAss.instr ++ Seq(Push(Register(8)), Mov(helpAss.getReg, rhs.getOp)) ++
       _arrLoad(accReg, arrayAss.getOp(), xsInit, gen, charType) ++ 
-      _arrStore(accReg, rhs.getOp(), gen, charType)
+      _arrStore(accReg, helpAss.getReg, gen, charType) ++ Seq(Pop(Register(8)))
     )
     
+    gen.regs.free(helpAss.getReg)
+
+    return reg
   }
   
   private def _arrStore(array: Operand, value: Operand, gen: CodeGenerator, charType: Boolean)(implicit table: Table): Seq[Instruction] = {

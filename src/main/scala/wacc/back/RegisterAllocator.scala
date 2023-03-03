@@ -23,8 +23,8 @@ class RegisterAllocator(val mem: MemoryAllocator) {
         Register(7), 
         Register(8), 
         Register(9), 
-        Register(10), 
-        Register(12)
+        Register(10)/*, 
+        Register(12)*/
     )
 
     def reset(): Unit = {
@@ -69,12 +69,18 @@ class RegisterAllocator(val mem: MemoryAllocator) {
 
         // TODO: move and update symbol table with new address
         def realloc(): RegAssembly = {
-            val reg = regsInUse.head
-            val id = table.getIDFromReg(reg)
-            val instr = mem.store(id, reg)
-            table.update(id, instr.getOp())
-            regsInUse.dequeue()
-            return RegAssembly(reg, instr.instr)
+            val reg = regsInUse.dequeue()
+            table.getIDFromReg(reg) match {
+                case Some(x) => {
+                    val instr = mem.store(x, reg)
+                    table.update(x, instr.getOp())
+                    return RegAssembly(reg, instr.instr)
+                }
+                case None => {
+                    regsInUse.enqueue(reg)
+                    realloc()
+                }
+            }
         }
 
         val reg = if (freeRegs.isEmpty) realloc() else RegAssembly(freeRegs.dequeue())

@@ -18,9 +18,27 @@ case object Skip extends Stat with ParserBridge0[Stat] {
 case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
         val assembly = rhs.toAssembly(gen).condToReg(gen.regs)
-        val reg = Operands.opToReg(assembly.getOp(), gen.regs)
-        table.update(id, reg.getReg())
-        return assembly.instr ++ reg.instr
+        val instr = rhs match {
+            case x: Ident => {
+                val reg = gen.regs.allocate(id)
+                reg.instr :+ Mov(reg.getReg(), assembly.getOp())
+            }
+            case _ => {
+                val reg = rhs match {
+                    case _: ArrayElem => {
+                        val out = gen.regs.allocate
+                        RegAssembly(
+                            out.getReg,
+                            out.instr ++ Seq(Mov(out.getReg, assembly.getOp))
+                        )
+                    }
+                    case _ => Operands.opToReg(assembly.getOp(), gen.regs)
+                    }
+                table.update(id, reg.getReg())
+                reg.instr
+            }
+        }
+        return Comment(s"declare $id") +: (assembly.instr ++ instr)
     }
 }
 
@@ -30,7 +48,16 @@ case class Assign(x: LValue, y: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
         val rhsAssembly = y.toAssembly(gen).condToReg(gen.regs)
         val lval = x match {
-            case arrElem@ArrayElem(_, _) => return arrElem.toAssemblyStore(gen, rhsAssembly).instr
+            case arrElem@ArrayElem(_, _) => {
+                val reg = y match {
+                    case _: ArrayElem => {
+                        val out = gen.regs.allocate
+                        Assembly(out.getReg, rhsAssembly.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp)))
+                    }
+                    case _ => rhsAssembly
+                }
+                return reg.instr ++ arrElem.toAssemblyStore(gen, reg).instr
+            }
             case x: PairElem => {
                 val addrAssemb = x.getAddr(gen)
                 val reg = Operands.opToReg(rhsAssembly.getOp(), gen.regs)
@@ -40,6 +67,14 @@ case class Assign(x: LValue, y: RValue) extends Stat {
             case _ => x.toAssembly(gen)
         }
         y match {
+            case _: ArrayElem => {
+                val out = gen.regs.allocate
+                val reg = Assembly(
+                    out.getReg,
+                    out.instr ++ rhsAssembly.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp))
+                )
+                return Assign.assDec(lval, reg, gen.regs)
+            }
             case StrLiteral(string) => {
                 return Assign.assDec(lval, rhsAssembly, gen.regs)
             }
@@ -218,7 +253,7 @@ object Free extends ParserBridge1[Expr, Free]
 
 case class Return(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
-        val expr = x.toAssembly(gen)
+        val expr = x.toAssembly(gen).condToReg(gen.regs)
         if (expr.getOp() == Register(0)) return expr.instr 
         else return expr.instr ++ Seq(Mov(Register(0), expr.getOp()), Pop(PC))
     }

@@ -43,12 +43,13 @@ class HeapAllocator {
         return (assembly)
     }
 
-    def mallocArray(xs: List[Operand], accum: Register, char: Boolean): Assembly = {
+    def mallocArray(xs: List[Operand], accum: Register, byte: Boolean): Assembly = {
         
         val instrs = ListBuffer[Instruction]()
         val numElems = xs.length
 
-        val elemSize = if (char) 1 else 4
+        val elemSize = if (byte) 1 else 4
+        val temp = Register(0)
 
         /* Malloc for the size of array */
         instrs += Mov(Register(0), ImmInt(elemSize * (numElems + 1)))
@@ -59,13 +60,14 @@ class HeapAllocator {
         instrs += Add(accum, accum, ImmInt(elemSize))
 
         /* Store array length at malloced memory location */
-        instrs += Mov(Register(8), ImmInt(numElems))
-        instrs += Store(Register(8), Address(accum, ImmInt(-elemSize)))
+        instrs += Mov(temp, ImmInt(numElems))
+        instrs += Store(temp, Address(accum, ImmInt(-elemSize)))
 
         /* Store array elems in correct mem location */
         for (elem <- 1 to numElems) {
-            instrs += Mov(Register(8), xs(elem - 1))
-            instrs += Store(Register(8), Address(accum, ImmInt((elem - 1) * elemSize)))
+            val index = elem - 1
+            instrs += Operands.opToReg(xs(index), temp)
+            instrs += Store(temp, Address(accum, ImmInt(index * elemSize)))
         }
 
         val assembly = Assembly(accum, instrs.toSeq)

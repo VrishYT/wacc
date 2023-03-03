@@ -17,19 +17,24 @@ case class ArrayLiteral(xs: List[Expr])(val pos: (Int, Int)) extends RValue {
         val assemblies = xs.map(x => x.toAssembly(gen))
         val instrs = (assemblies.map(x => x.instr)).flatten
         val ops = (assemblies.map(x => x.getOp()))
+
         val accum = gen.regs.allocate
         gen.regs.free(accum.getReg())
-        val charType: Boolean = !xs.isEmpty && (xs.head match {
-            case CharLiteral(_) => true
+
+        val byteType: Boolean = !xs.isEmpty && (xs.head match {
+            case _: CharLiteral => true
+            case _: BoolLiteral => true
             case _ => false
         })
-        val arrAssembly = gen.heap.mallocArray(ops, accum.getReg(), charType)
+
+        val arrAssembly = gen.heap.mallocArray(ops, accum.getReg(), byteType)
+        
         return Assembly(
             accum.getReg(),
             instrs ++ accum.instr ++
-            Seq(gen.regs.save(/*Register(0),*/ Register(8))) ++
+            Seq(gen.regs.save(/*Register(0),*/ Register(0))) ++
             arrAssembly.instr ++
-            Seq(gen.regs.restore(/*Register(0),*/ Register(8)))
+            Seq(gen.regs.restore(/*Register(0),*/ Register(0)))
         )
     }
 }
