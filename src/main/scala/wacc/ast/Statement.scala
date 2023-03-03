@@ -18,9 +18,18 @@ case object Skip extends Stat with ParserBridge0[Stat] {
 case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
         val assembly = rhs.toAssembly(gen).condToReg(gen.regs)
-        val reg = Operands.opToReg(assembly.getOp(), gen.regs)
-        table.update(id, reg.getReg())
-        return assembly.instr ++ reg.instr
+        val instr = rhs match {
+            case x: Ident => {
+                val reg = gen.regs.allocate(id)
+                reg.instr :+ Mov(reg.getReg(), assembly.getOp())
+            }
+            case _ => {
+                val reg = Operands.opToReg(assembly.getOp(), gen.regs)
+                table.update(id, reg.getReg())
+                reg.instr
+            }
+        }
+        return Comment(s"declare $id") +: (assembly.instr ++ instr)
     }
 }
 
