@@ -23,8 +23,8 @@ class RegisterAllocator(val mem: MemoryAllocator) {
         Register(7), 
         Register(8), 
         Register(9), 
-        Register(10), 
-        Register(12)
+        Register(10)/*, 
+        Register(12)*/
     )
 
     def reset(): Unit = {
