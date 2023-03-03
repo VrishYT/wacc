@@ -7,9 +7,9 @@ import ast._
 sealed trait TableEntry 
 sealed abstract class Table extends TableEntry {
 
-    private var ifCount = 0
-    private var whileCount = 0
-    private var beginCount = 0 
+    var ifCount = 0
+    var whileCount = 0
+    var beginCount = 0 
     private var size = 0
 
     def isInFunction: Boolean
@@ -20,6 +20,12 @@ sealed abstract class Table extends TableEntry {
     override def toString(): String = table.filter(_._2.isInstanceOf[OpSymbol]).toString
 
     def getSize: Int = size
+
+    def resetCounts(): Unit = {
+        ifCount = 0
+        whileCount = 0
+        beginCount = 0
+    }
 
     private def update(id: String, symbol: Symbol): Unit = {
 
