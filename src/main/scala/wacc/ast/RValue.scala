@@ -19,7 +19,7 @@ case class ArrayLiteral(xs: List[Expr])(val pos: (Int, Int)) extends RValue {
         val ops = (assemblies.map(x => x.getOp()))
 
         val accum = gen.regs.allocate
-        gen.regs.free(accum.getReg())
+        // gen.regs.free(accum.getReg())
 
         val byteType: Boolean = !xs.isEmpty && (xs.head match {
             case _: CharLiteral => true
@@ -32,9 +32,9 @@ case class ArrayLiteral(xs: List[Expr])(val pos: (Int, Int)) extends RValue {
         return Assembly(
             accum.getReg(),
             instrs ++ accum.instr ++
-            Seq(gen.regs.save(/*Register(0),*/ Register(0))) ++
-            arrAssembly.instr ++
-            Seq(gen.regs.restore(/*Register(0),*/ Register(0)))
+            (Push(Register(0)) +:
+            arrAssembly.instr :+
+            Pop(Register(0)))
         )
     }
 }
