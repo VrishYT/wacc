@@ -27,6 +27,18 @@ class RegisterAllocator(val mem: MemoryAllocator) {
         Register(12)
     )
 
+    def reset(): Unit = {
+        // println(s"inUse: $regsInUse")
+        // regsInUse.foreach(r => {
+        //     println(r)
+        //     free(r)
+        // })
+        while (!regsInUse.isEmpty) {
+            val reg = regsInUse.dequeue
+            freeRegs.enqueue(reg)
+        }
+    }
+
     def isAllocated(reg: Register): Boolean = regsInUse.contains(reg)
 
     // REMOVE / MOVE ELSWHERE ????
@@ -38,9 +50,11 @@ class RegisterAllocator(val mem: MemoryAllocator) {
 
     def free(reg: Register): Unit = {
         if (regsInUse.contains(reg) && !freeRegs.contains(reg)) {
-            // println(s"freed $reg")
+            println(s"free: $freeRegs")
+            println(s"inUse: $regsInUse")
             regsInUse -= reg
             freeRegs += reg
+            println(s"freed $reg")
         }
     }
 
