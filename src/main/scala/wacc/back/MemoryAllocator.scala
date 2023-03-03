@@ -15,4 +15,8 @@ class MemoryAllocator {
         return Assembly(operand, Seq(Store(reg, operand)))
     }
 
+    def getCount(): Int = {
+        return count
+    }
+
 }
