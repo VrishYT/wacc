@@ -52,9 +52,17 @@ case class Assign(x: LValue, y: RValue) extends Stat {
 
 
 object Assign extends ParserBridge2[LValue, RValue, Assign] {
-    def assDec(lval: RegAssembly, rval: Assembly, regs: RegisterAllocator)(implicit table: Table) : Seq[Instruction] = {
+    def assDec(lval: Assembly, rval: Assembly, regs: RegisterAllocator)(implicit table: Table) : Seq[Instruction] = {
         val reg = Operands.opToReg(rval.getOp(), regs)
-        return (rval.instr ++ lval.instr ++ reg.instr) :+ Mov(lval.getReg(), reg.getOp())
+        val save = lval.getOp() match {
+            case x: Register => Seq(Mov(x, reg.getOp()))
+            case x: Address => {
+                val temp = Operands.opToReg(reg.getOp(), regs)
+                regs.free(temp.getReg())
+                temp.instr :+ Store(temp.getReg(), x)
+            }
+        }
+        return (rval.instr ++ lval.instr ++ reg.instr) ++ save
     }
 }
 
@@ -71,11 +79,13 @@ case class Read(x: LValue) extends Stat {
                 identType match {
                     case IntType => {
                         gen.postSections.addOne(ReadIntSection)
-                        return ass.instr ++ readInt(ass.getReg())
+                        val reg = Operands.opToReg(ass.getOp(), gen.regs)
+                        return ass.instr ++ reg.instr ++ readInt(reg.getReg())
                     } 
                     case CharType => 
                         gen.postSections.addOne(ReadCharSection)
-                        return ass.instr ++ readChar(ass.getReg())
+                        val reg = Operands.opToReg(ass.getOp(), gen.regs)
+                        return ass.instr ++ reg.instr ++ readChar(reg.getReg())
                     case _ => Seq()
                 }
             }
@@ -237,7 +247,8 @@ case class Print(x: Expr) extends Stat {
                     case None => ???
                 }
                 val ass = id.toAssembly(gen)
-                ass.instr ++ printValue(identType, ass.getReg(), gen)
+                val reg = Operands.opToReg(ass.getOp(), gen.regs)
+                ass.instr ++ reg.instr ++ printValue(identType, reg.getReg(), gen)
             }
             case int: IntLiteral => {
                 val ass = int.toAssembly(gen)

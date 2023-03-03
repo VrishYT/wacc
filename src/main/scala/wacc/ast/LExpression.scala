@@ -7,12 +7,12 @@ import wacc.back._
 /* left expressions extending expressions and left values */
 sealed trait LExpr extends Expr with LValue {
     def pos: (Int, Int)
-    override def toAssembly(gen: CodeGenerator)(implicit table: Table): RegAssembly = TODOAssembly
+    override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = TODOAssembly
 }
 
 /* expressions extending left expressions */
 case class Ident(id: String)(val pos: (Int, Int)) extends LExpr {
-    override def toAssembly(gen: CodeGenerator)(implicit table: Table): RegAssembly = Operands.opToReg(table.getOp(id), gen.regs)
+    override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = Assembly(table.getOp(id))
 }
 
 object Ident extends ParserBridgePos1[String, Ident]
