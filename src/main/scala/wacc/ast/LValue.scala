@@ -26,8 +26,8 @@ sealed trait PairElem extends LValue with RValue {
         val pairAss = pair.toAssembly(gen)
         val pairReg = pairAss.getReg()
         val accumAss = gen.regs.allocate
-        gen.regs.free(accumAss.getReg)
-        val accumReg = accumAss.getReg
+        val accumReg = accumAss.getReg()
+        gen.regs.free(accumReg)
 
         val instrs = pairAss.instr ++ Seq(
                                                           Mov(accumReg, pairReg),
@@ -42,11 +42,11 @@ sealed trait PairElem extends LValue with RValue {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): RegAssembly = {
 
         val outAss = gen.regs.allocate
-        val outReg = outAss.getReg
+        val outReg = outAss.getReg()
         
         val assemb = this.getAddr(gen)
 
-        return RegAssembly(outReg, outAss.instr ++ assemb.instr ++ Seq(Load(outReg, assemb.getOp)))
+        return RegAssembly(outReg, outAss.instr ++ assemb.instr ++ Seq(Load(outReg, assemb.getOp())))
     }
 }
 

@@ -35,7 +35,7 @@ case class Assign(x: LValue, y: RValue) extends Stat {
                 val addrAssemb = x.getAddr(gen)
                 val reg = Operands.opToReg(rhsAssembly.getOp(), gen.regs)
                 return (addrAssemb.instr ++ reg.instr ++ rhsAssembly.instr ++ 
-                        Seq(Store(reg.getReg, addrAssemb.getOp)))
+                        Seq(Store(reg.getReg(), addrAssemb.getOp())))
             }
             case _ => x.toAssembly(gen)
         }
@@ -71,12 +71,12 @@ case class Read(x: LValue) extends Stat {
                 identType match {
                     case IntType => {
                         gen.postSections.addOne(ReadIntSection)
-                        return ass.instr ++ readInt(ass.getReg)
+                        return ass.instr ++ readInt(ass.getReg())
                     } 
                     case CharType => 
                         gen.postSections.addOne(ReadCharSection)
-                        return ass.instr ++ readChar(ass.getReg)
-                    case StringType => Seq()
+                        return ass.instr ++ readChar(ass.getReg())
+                    case _ => Seq()
                 }
             }
             case p@Fst(x) => {
@@ -90,12 +90,13 @@ case class Read(x: LValue) extends Stat {
                         identType match {
                             case PairType(IntType, _) => {
                                 gen.postSections.addOne(ReadIntSection)
-                                return ass.instr ++ readInt(ass.getReg)
+                                return ass.instr ++ readInt(ass.getReg())
                             }
                             case PairType(CharType, _) => {
                                 gen.postSections.addOne(ReadCharSection)
-                                return ass.instr ++ readChar(ass.getReg)
+                                return ass.instr ++ readChar(ass.getReg())
                             }
+                            case _ => ???
                         }
                     }
                 }
@@ -111,12 +112,13 @@ case class Read(x: LValue) extends Stat {
                         identType match {
                             case PairType(_, IntType) => {
                                 gen.postSections.addOne(ReadIntSection)
-                                return ass.instr ++ readInt(ass.getReg)
+                                return ass.instr ++ readInt(ass.getReg())
                             }
                             case PairType(_, CharType) => {
                                 gen.postSections.addOne(ReadCharSection)
-                                return ass.instr ++ readChar(ass.getReg)
+                                return ass.instr ++ readChar(ass.getReg())
                             }
+                            case _ => ???
                         }
                     }
                 }
@@ -177,11 +179,11 @@ case class Free(x: Expr) extends Stat {
 
     def freeArray(assembly: Assembly, gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
 
-        val regAssembly = Operands.opToReg(assembly.getOp, gen.regs)
+        val regAssembly = Operands.opToReg(assembly.getOp(), gen.regs)
 
         return assembly.instr ++ regAssembly.instr ++ Seq(
             Push(Register(0)),
-            Sub(Register(0), regAssembly.getReg, ImmInt(4)),
+            Sub(Register(0), regAssembly.getReg(), ImmInt(4)),
             LinkBranch("free"),
             Pop(Register(0))
         )
@@ -244,7 +246,7 @@ case class Print(x: Expr) extends Stat {
             case str: StrLiteral => {
                 val ass = str.toAssembly(gen)
                 val reg = gen.regs.allocate 
-                gen.regs.free(reg.getReg)
+                gen.regs.free(reg.getReg())
                 ass.instr ++ reg.instr ++ (Load(reg.getReg(), ass.getOp()) +: printValue(StringType, reg.getReg(), gen))
             }
             case char: CharLiteral => {
@@ -287,7 +289,7 @@ case class Print(x: Expr) extends Stat {
                 val ass = p.toAssembly(gen)
                 return ass.instr ++ Seq(
                     Push(Register(0), Register(1), Register(2), Register(3)),
-                    Mov(Register(1), ass.getOp),
+                    Mov(Register(1), ass.getOp()),
                     LinkBranch("_printp"),
                     Pop(Register(0), Register(1), Register(2), Register(3))
                 )

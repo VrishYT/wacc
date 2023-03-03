@@ -1,7 +1,6 @@
 package wacc
 package ast
 
-import scala.collection.mutable.{ListBuffer}
 import wacc.back._
 import wacc.back.Condition._
 import wacc.front.ParserBridge._
@@ -44,8 +43,8 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
   override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
 
     def len(expr: Assembly): Assembly = {
-      val out = Operands.opToReg(expr.getOp, gen.regs)
-      return Assembly(out.getReg, expr.instr ++ out.instr ++ Seq(Load(out.getReg, Address(out.getReg, ImmInt(-4)))))
+      val out = Operands.opToReg(expr.getOp(), gen.regs)
+      return Assembly(out.getReg(), expr.instr ++ out.instr ++ Seq(Load(out.getReg(), Address(out.getReg(), ImmInt(-4)))))
     }
 
     val expr = x.toAssembly(gen)
@@ -61,7 +60,7 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
       case Negate => {
         val out = gen.regs.allocate
         val reg = gen.regs.allocate
-        gen.regs.free(reg.getReg)
+        gen.regs.free(reg.getReg())
         gen.postSections.addOne(PrintStringSection)
         gen.postSections.addOne(IntegerOverflow)
         Assembly(out.getReg(), (reg.instr :+ back.Mov(reg.getReg(), ImmInt(0))) ++ out.instr ++ Seq (back.Sub(out.getReg(), reg.getReg(), expr.getOp()), LinkBranch("_errOverflow", VS)) ++ expr.instr)
@@ -96,10 +95,10 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
         gen.postSections.addOne(IntegerOverflow)
         val out2 = gen.regs.allocate
         val out3 = gen.regs.allocate
-        gen.regs.free(out2.getReg)
-        gen.regs.free(out3.getReg)
+        gen.regs.free(out2.getReg())
+        gen.regs.free(out3.getReg())
         out2.instr ++ out3.instr ++ Seq(
-          Mov(out3.getReg, y),
+          Mov(out3.getReg(), y),
           SMull(out, out2.getReg(), x, out3.getReg()),
           Cmp(out2.getReg(), ASR(out, ImmInt(31))),
           LinkBranch("_errOverflow", NE))}
@@ -148,12 +147,6 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
       case ast.And => Seq(And(out, x, y))
       case ast.Or => Seq(Or(out, x, y))
       case _ => ???
-    }
-
-    def isOpExpr(e: Expr): Boolean = e match {
-      case _: UnaryOpExpr => true
-      case _: BinaryOpExpr => true
-      case _ => false
     }
 
     // println(s"x: $x, \ny: $y")

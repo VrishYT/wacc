@@ -50,7 +50,7 @@ object Operands {
         case x => {
             // println(s"opToReg $op")
             val reg = regs.allocate
-            RegAssembly(reg.getReg(), reg.instr :+ opToReg(op, reg.getReg))
+            RegAssembly(reg.getReg(), reg.instr :+ opToReg(op, reg.getReg()))
         }
     }
 
