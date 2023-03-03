@@ -227,7 +227,7 @@ object Free extends ParserBridge1[Expr, Free]
 
 case class Return(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
-        val expr = x.toAssembly(gen)
+        val expr = x.toAssembly(gen).condToReg(gen.regs)
         if (expr.getOp() == Register(0)) return expr.instr 
         else return expr.instr ++ Seq(Mov(Register(0), expr.getOp()), Pop(PC))
     }
