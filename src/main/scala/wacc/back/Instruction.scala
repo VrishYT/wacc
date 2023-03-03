@@ -37,7 +37,7 @@ case class SMull(dstHi: Register, dstLow: Register, reg1: Register, reg2: Regist
     }
 }
 
-case class DivMod() extends Instruction{
+case object DivMod extends Instruction{
     override def arm11(implicit sb : StringBuilder) : Unit = {
         sb.append("\tbl __aeabi_idivmod")
         sb.append("\n")

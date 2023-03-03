@@ -111,7 +111,7 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
           Mov(Register(1), y),
           Cmp(Register(1), ImmInt(0)),
           LinkBranch("_errDivZero", EQ),
-          DivMod(),
+          DivMod,
           Pop(Register(1)),
           Mov(out, Register(0))
         )
@@ -140,8 +140,7 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
           Mov(Register(1), y),
           Cmp(Register(1), ImmInt(0)),
           LinkBranch("_errDivZero", EQ),
-          DivMod(),
-          Mov(out, Register(1))
+          DivMod,
         )
       }
       case ast.And => Seq(And(out, x, y))
