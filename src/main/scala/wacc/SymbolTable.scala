@@ -27,14 +27,14 @@ sealed abstract class Table extends TableEntry {
         beginCount = 0
     }
 
-    private def update(id: String, symbol: Symbol): Unit = {
+    private def updateRecursive(id: String, symbol: Symbol): Unit = {
 
         def updateParent(id: String, symbol: Symbol, table: Table): Unit = {
-            if (table.contains(id)) table(id) = symbol
+            if (table.contains(id)) table.table(id) = symbol
             else {
                 table match {
                     case ChildTable(parent) => updateParent(id, symbol, parent)
-                    case _ => table(id) = symbol // TODO: CHECK - updating a non-existent symbol ???
+                    case _ => ??? // table(id) = symbol // TODO: CHECK - updating a non-existent symbol ???
                 }
             }
         }
@@ -66,7 +66,7 @@ sealed abstract class Table extends TableEntry {
             case Some(x) => x
             case None => ???
         }
-        table(id) = OpSymbol(t, op)
+        updateRecursive(id, OpSymbol(t, op))
     }
 
     // USED FOR FRONT-END
