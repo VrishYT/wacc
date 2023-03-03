@@ -9,4 +9,4 @@ test:
 clean:
 	sbt clean && rm -rf wacc-11-compiler.jar
 
-.PHONY: all clean test
+.PHONY: all clean compiler test
