@@ -28,8 +28,8 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
                     case _: ArrayElem => {
                         val out = gen.regs.allocate
                         RegAssembly(
-                            out.getReg,
-                            out.instr ++ Seq(Mov(out.getReg, assembly.getOp))
+                            out.getReg(),
+                            out.instr ++ Seq(Mov(out.getReg(), assembly.getOp()))
                         )
                     }
                     case _ => Operands.opToReg(assembly.getOp(), gen.regs)
@@ -52,7 +52,7 @@ case class Assign(x: LValue, y: RValue) extends Stat {
                 val reg = y match {
                     case _: ArrayElem => {
                         val out = gen.regs.allocate
-                        Assembly(out.getReg, rhsAssembly.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp)))
+                        Assembly(out.getReg(), rhsAssembly.instr ++ Seq(Mov(out.getReg(), rhsAssembly.getOp())))
                     }
                     case _ => rhsAssembly
                 }
@@ -70,8 +70,8 @@ case class Assign(x: LValue, y: RValue) extends Stat {
             case _: ArrayElem => {
                 val out = gen.regs.allocate
                 val reg = Assembly(
-                    out.getReg,
-                    out.instr ++ rhsAssembly.instr ++ Seq(Mov(out.getReg, rhsAssembly.getOp))
+                    out.getReg(),
+                    out.instr ++ rhsAssembly.instr ++ Seq(Mov(out.getReg(), rhsAssembly.getOp()))
                 )
                 return Assign.assDec(lval, reg, gen.regs)
             }
