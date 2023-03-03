@@ -1,6 +1,7 @@
 stages:
   - compile
   - test
+  - cleanup
 
 compile:
   stage: compile
@@ -16,4 +17,9 @@ test:
     - echo "*-----Test-----*"
   tags: [private]
 
+cleanup:
+  stage: cleanup
+  script:
+    - make clean
+  when: always
 
