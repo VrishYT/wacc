@@ -120,7 +120,10 @@ sealed abstract class Table extends TableEntry {
     def getOp(id: String): Operand = getSymbol(id) match {
         case Some(x) => x match {
             case x: OpSymbol => x.op
+            case _ => this match {
+                case ChildTable(parent) => parent.getOp(id)
             case _ => ???
+            }
         }
         case _ => ???
     }
