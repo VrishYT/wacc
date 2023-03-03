@@ -17,7 +17,7 @@ sealed abstract class Table extends TableEntry {
 
     private val table = MapM[String, TableEntry]()
 
-    override def toString(): String = table.filter(_._2.isInstanceOf[OpSymbol]).toString
+    override def toString(): String = "\n" + table.filter(x => x._2.isInstanceOf[OpSymbol] || x._2.isInstanceOf[Table]).mkString("\n") + "\n ----"
 
     def getSize: Int = size
 
@@ -67,6 +67,36 @@ sealed abstract class Table extends TableEntry {
             case None => ???
         }
         updateRecursive(id, OpSymbol(t, op))
+    }
+
+    def updateEntry(id: String, reg: Register, op: Operand): Unit = {
+
+        def update(table: Table): Unit = {
+            println(s"$id, $reg in $table")
+            val filtered = table.table.filter(entry => {
+                val isReg: Boolean = entry._2 match {
+                    case OpSymbol(_, op) => op match {
+                        case x: Register => reg.i == x.i
+                        case _ => false
+                    }
+                    case _ => false
+                }
+                (entry._1 == id) && isReg
+            })
+            if (filtered.isEmpty) {
+                table match {
+                    case ChildTable(parent) => update(parent)
+                    case _ => ???
+                }
+            } else if (filtered.size > 1) ???
+            else {
+                table.update(id, op)
+                println(s"$id, $reg\nupdated $table")
+            }
+        }
+
+        update(this)
+
     }
 
     // USED FOR FRONT-END
@@ -177,6 +207,8 @@ case class OpSymbol(override val t: Type, val op: Operand) extends Symbol(t)
 class SymbolTable {
 
     private val table = MapM[String, FuncTable]()
+
+    override def toString(): String = table.mkString("\n")
 
     def declare(id: String): FuncTable = declare(id, Seq(), AnyType)
     def declare(id: String, params: Seq[Param], returnType: Type): FuncTable = {
