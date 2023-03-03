@@ -17,13 +17,17 @@ case class ArrayLiteral(xs: List[Expr])(val pos: (Int, Int)) extends RValue {
         val assemblies = xs.map(x => x.toAssembly(gen))
         val instrs = (assemblies.map(x => x.instr)).flatten
         val ops = (assemblies.map(x => x.getOp()))
+
         val accum = gen.regs.allocate
         gen.regs.free(accum.getReg())
+
         val charType: Boolean = !xs.isEmpty && (xs.head match {
             case CharLiteral(_) => true
             case _ => false
         })
+
         val arrAssembly = gen.heap.mallocArray(ops, accum.getReg(), charType)
+        
         return Assembly(
             accum.getReg(),
             instrs ++ accum.instr ++
