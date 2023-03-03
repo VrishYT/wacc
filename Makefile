@@ -18,4 +18,4 @@ test:
 clean:
 	sbt clean && rm -rf wacc-11-compiler.jar
 
-.PHONY: all clean compiler test test_parse test_typecheck test_compile
+.PHONY: all clean test test_parse test_typecheck test_compile
