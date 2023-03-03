@@ -30,10 +30,10 @@ sealed trait PairElem extends LValue with RValue {
         gen.regs.free(accumReg)
 
         val instrs = pairAss.instr ++ pairReg.instr ++ Seq(
-                                                          Mov(accumReg, pairReg.getReg),
+                                                          Mov(accumReg, pairReg.getReg()),
                                                           Cmp(accumReg, ImmInt(0)),
                                                           LinkBranch("_errNull", Condition.EQ),
-                                                          Load(accumReg, Address(pairReg.getReg, ImmInt(offset)))
+                                                          Load(accumReg, Address(pairReg.getReg(), ImmInt(offset)))
                                                           )
 
         return Assembly(Address(accumReg, ImmInt(0)), instrs)
