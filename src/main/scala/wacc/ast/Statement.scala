@@ -446,7 +446,7 @@ case class While(p: Expr, x: List[Stat]) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
         
         val cond = p.toAssembly(gen)
-        println(table)
+        // println(table)
         val childTable = table.getTable(s"_while${table.whileCount}") match {
             case Some(x) => x
             case None => ???
