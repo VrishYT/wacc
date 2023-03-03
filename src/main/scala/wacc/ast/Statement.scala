@@ -398,23 +398,25 @@ case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
         def stack(table: Table): Int = 0.max(table.getSize - gen.regs.freeRegs.size)
 
         val cond = p.toAssembly(gen)
-        val thenTable = table.getTable(s"_if${gen.ifCount}") match {
+        val thenTable = table.getTable(s"_if${table.ifCount}") match {
             case Some(x) => x
             case None => ???
         }
+        thenTable.resetCounts()
         val thenStack = stack(thenTable)
         val thenBlock = gen.mem.grow(thenStack) +: x.map(_.toAssembly(gen)(thenTable)).foldLeft(Seq[Instruction]())(_ ++ _) :+ gen.mem.shrink(thenStack)
-        val elseTable = table.getTable(s"_else${gen.ifCount}") match {
+        val elseTable = table.getTable(s"_else${table.ifCount}") match {
             case Some(x) => x
             case None => ???
         }
+        elseTable.resetCounts()
         val elseStack = stack(elseTable)
         val elseBlock = gen.mem.grow(elseStack) +: y.map(_.toAssembly(gen)(elseTable)).foldLeft(Seq[Instruction]())(_ ++ _) :+ gen.mem.shrink(elseStack)
 
         val thenLabel = gen.labels.generate()
         val endLabel = gen.labels.generate()
 
-        gen.ifCount += 1
+        table.ifCount += 1
 
         return If.generateIf(cond, thenLabel, thenBlock, elseBlock, endLabel)
     }
@@ -445,11 +447,12 @@ case class While(p: Expr, x: List[Stat]) extends Stat {
         
         val cond = p.toAssembly(gen)
         println(table)
-        val childTable = table.getTable(s"_while${gen.whileCount}") match {
+        val childTable = table.getTable(s"_while${table.whileCount}") match {
             case Some(x) => x
             case None => ???
         }
-        val block = x.map(_.toAssembly(gen)(childTable)).foldLeft(Seq[Instruction]())(_ ++ _) // TODO: symbol table
+        childTable.resetCounts()
+        val block = x.map(_.toAssembly(gen)(childTable)).foldLeft(Seq[Instruction]())(_ ++ _)
 
         val startLabel = gen.labels.generate()
         val endLabel = gen.labels.generate()
@@ -464,7 +467,7 @@ case class While(p: Expr, x: List[Stat]) extends Stat {
             case None => 
         }
 
-        gen.whileCount += 1
+        table.whileCount += 1
 
         val stack = 0.max(childTable.getSize - gen.regs.freeRegs.size)
 
@@ -476,14 +479,15 @@ object While extends ParserBridge2[Expr, List[Stat], While]
 
 case class Begin(xs: List[Stat]) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
-        val childTable = table.getTable(s"_begin${gen.beginCount}") match {
+        val childTable = table.getTable(s"_begin${table.beginCount}") match {
             case Some(x) => x
             case None => ???
         }
+        childTable.resetCounts()
         val instr = xs.map(_.toAssembly(gen)(childTable)).fold(Seq())(_ ++ _)
         val stack = 0.max(childTable.getSize - gen.regs.freeRegs.size)
 
-        gen.beginCount += 1
+        table.beginCount += 1
 
         return gen.mem.grow(stack) +: instr :+ gen.mem.shrink(stack)
     }

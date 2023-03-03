@@ -59,10 +59,6 @@ case class CodeGenerator(val symbolTable: SymbolTable) {
     val mem = new MemoryAllocator
     val regs = new RegisterAllocator(mem)
 
-    var ifCount = 0
-    var whileCount = 0
-    var beginCount = 0
-
     val elemSize = 4
 
     def toAssembly(program: Program): String = {
