@@ -103,12 +103,12 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
     
     val reg = RegAssembly(
       Register(0),
-      arrayAss.instr ++ helpAss.instr ++ Seq(Push(Register(8)), Mov(helpAss.getReg, rhs.getOp)) ++
+      arrayAss.instr ++ helpAss.instr ++ Seq(Push(Register(8)), Mov(helpAss.getReg(), rhs.getOp())) ++
       _arrLoad(accReg, arrayAss.getOp(), xsInit, gen, charType) ++ 
-      _arrStore(accReg, helpAss.getReg, gen, charType) ++ Seq(Pop(Register(8)))
+      _arrStore(accReg, helpAss.getReg(), gen, charType) ++ Seq(Pop(Register(8)))
     )
     
-    gen.regs.free(helpAss.getReg)
+    gen.regs.free(helpAss.getReg())
 
     return reg
   }
