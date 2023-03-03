@@ -36,9 +36,7 @@ case class LSL(reg: Register, op: Operand) extends Operand {
 object Operands {
 
     def opToReg(op: Operand, dest: Register): Instruction = {
-        // println(s"$op -> $dest")
         op match {
-            // TODO: modify for new operands (ASR, Address)
             case x: Address => Load(dest, x)
             case x: DataLabel => Load(dest, x)
             case x => Mov(dest, x)
@@ -48,7 +46,6 @@ object Operands {
     def opToReg(op: Operand, regs: RegisterAllocator)(implicit table: Table): RegAssembly = op match {
         case x: Register if (x.i != 0) => RegAssembly(x)
         case x => {
-            // println(s"opToReg $op")
             val reg = regs.allocate
             RegAssembly(reg.getReg(), reg.instr :+ opToReg(op, reg.getReg()))
         }

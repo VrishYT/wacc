@@ -4,8 +4,6 @@ package ast
 import wacc.back._
 import parsley.genericbridges._ 
 
-// TODO: modify AST to take CodeGenerator instances
-
 /* statements as objects extending the sealed trait Stat */
 sealed trait Stat {
     def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction]
@@ -481,7 +479,6 @@ case class While(p: Expr, x: List[Stat]) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
         
         val cond = p.toAssembly(gen)
-        // println(table)
         val childTable = table.getTable(s"_while${table.whileCount}") match {
             case Some(x) => x
             case None => ???

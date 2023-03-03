@@ -19,7 +19,6 @@ case class ArrayLiteral(xs: List[Expr])(val pos: (Int, Int)) extends RValue {
         val ops = (assemblies.map(x => x.getOp()))
 
         val accum = gen.regs.allocate
-        // gen.regs.free(accum.getReg())
 
         val byteType: Boolean = !xs.isEmpty && (xs.head match {
             case _: CharLiteral => true

@@ -4,8 +4,6 @@ package back
 import wacc.back._
 import Condition._
 import ast.Func
-// TODO: modify all assembly to not clobber registers when printing
-// JAMIE LEAVES CERTAIN REGISTERS EMPTY WHILE WE DONT
 
 abstract class DataSection {
     def toAssembly(): Seq[Instruction]
