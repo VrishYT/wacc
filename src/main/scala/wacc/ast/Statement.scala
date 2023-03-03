@@ -104,6 +104,8 @@ object Assign extends ParserBridge2[LValue, RValue, Assign] {
 case class Read(x: LValue) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
         x match {
+            /* reading in identifiers requires finding the type of the variable 
+            and then executing specific instructions for it */
             case id@Ident(i) => {
                 val identType = table.getType(i) match {
                     case Some(x) => x
@@ -124,6 +126,8 @@ case class Read(x: LValue) extends Stat {
                     case _ => Seq()
                 }
             }
+            /*reading in pairs requires figuring out the type of the first or second values and 
+            executing the appropriate code */
             case p@Fst(x) => {
                 val ass = p.toAssembly(gen)
                 x match {
@@ -205,6 +209,7 @@ case class Free(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
         val xAssembly = x.toAssembly(gen)
 
+        /*freeing only for arrays and pairs*/
         x match {
             case Ident(id) => {
                 table.getType(id) match {
@@ -225,7 +230,7 @@ case class Free(x: Expr) extends Stat {
     def freeArray(assembly: Assembly, gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
 
         val regAssembly = Operands.opToReg(assembly.getOp(), gen.regs)
-
+        /*register 0 is used by the C function free therefore we need to save it */
         return assembly.instr ++ regAssembly.instr ++ Seq(
             Push(Register(0)),
             Sub(Register(0), regAssembly.getReg(), ImmInt(4)),
@@ -240,7 +245,8 @@ case class Free(x: Expr) extends Stat {
         gen.postSections.addOne(FreePairSection)
 
         val xOp = assembly.getOp()
-
+        /*register 8 is clobbered as we load in the pair's value 
+        into it therefore we need to push it*/
         val instrns = assembly.instr ++ Seq(Push(Register(8)), Mov(Register(8), xOp), 
                                          Mov(Register(0), Register(8)), LinkBranch("_freepair"), 
                                          Mov(Register(0), ImmInt(0)), Pop( Register(8)))
@@ -253,6 +259,8 @@ object Free extends ParserBridge1[Expr, Free]
 
 case class Return(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
+        /*we use the register 0 as the return register, and remove it off 
+        the register list so that it is not used for storing other values*/
         val expr = x.toAssembly(gen).condToReg(gen.regs)
         if (expr.getOp() == Register(0)) return expr.instr 
         else return expr.instr ++ Seq(Mov(Register(0), expr.getOp()), Pop(PC))
@@ -263,6 +271,7 @@ object Return extends ParserBridge1[Expr, Return]
 
 case class Exit(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
+        /*register 0 is used by C function exit*/
         val ass = x.toAssembly(gen)
         ass.instr ++ Seq(
                 Mov(Register(0), ass.getOp()),
@@ -274,8 +283,12 @@ object Exit extends ParserBridge1[Expr, Exit]
 
 case class Print(x: Expr) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
+        /*we need to case match on the expression so that we can execute appropriate code for 
+        printing different types such as ints, strings, characters, booleans. */
         Comment("start print") +: (
         x match {
+            /*need to case match on identifier to check what is the type of the value 
+            assigned to identifier and print accordingly*/
             case id@Ident(i) => {
                 val identType = table.getType(i) match {
                     case Some(x) => x
@@ -303,16 +316,21 @@ case class Print(x: Expr) extends Stat {
                 val ass = bool.toAssembly(gen)
                 ass.instr ++ printValue(BoolType, ass.getOp(), gen)
             }
+            /*need to case match on unary operators to check what is the type of the evaluated 
+            expression*/
             case unop@UnaryOpExpr(op, _) => {
                 val unopType = op.output 
                 val ass = unop.toAssembly(gen).condToReg(gen.regs)
                 return ass.instr ++ printValue(unopType, ass.getOp(), gen)
             }
+            /*need to case match on binary operators to check what is the type of 
+            the evaluated expression*/
             case binop@BinaryOpExpr(op, _, _) => {
                 val binopType = op.output 
                 val ass = binop.toAssembly(gen).condToReg(gen.regs)
                 return ass.instr ++ printValue(binopType, ass.getOp(), gen)
             }
+            /*need to case match on array elems to check the type and print accordingly*/
             case a@ArrayElem(id, xs) => { 
 
                 def getType(t: Type, xs: Seq[Expr]): Type = {
@@ -330,6 +348,7 @@ case class Print(x: Expr) extends Stat {
                 val ass = a.toAssembly(gen)
                 return ass.instr ++ printValue(identType, ass.getOp(), gen)
             }
+            /*need to case match to print pair nulls accordingly*/
             case p@PairLiteralNull(_) => {
                 gen.postSections.addOne(PrintPointerSection)
                 val ass = p.toAssembly(gen)
@@ -348,6 +367,7 @@ case class Print(x: Expr) extends Stat {
 
     def printValue(baseType: Type, operand: Operand, gen: CodeGenerator) : Seq[Instruction] = {
         baseType match {
+            /*we push register 0,1,2,3 before prints to avoid clobbering*/
             case StringType => {
                 gen.postSections.addOne(PrintStringSection) 
                 return Seq(
@@ -431,6 +451,8 @@ case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
 
         def stack(table: Table): Int = 0.max(table.getSize - gen.regs.freeRegs.size)
+        
+        /*each block is a scope in itself and therefore needs the stack to grow for that block and shrink once execute */
 
         val cond = p.toAssembly(gen)
         val thenTable = table.getTable(s"_if${table.ifCount}") match {
@@ -459,6 +481,7 @@ case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
 }
 
 object If extends ParserBridge3[Expr, List[Stat], List[Stat], If] {
+    /*method for generating assembly for if statements, which is also used to generate assembly for methods such as printing booleans*/
     def generateIf(cond: Assembly, thenLabel: String, thenBlock: Seq[Instruction], elseBlock: Seq[Instruction], endLabel: String): Seq[Instruction] = {
         var branch: Seq[Instruction] = if (cond.cond == Condition.NO) Seq() else Seq(Branch(thenLabel, cond.cond))
         cond.op match {

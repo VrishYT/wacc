@@ -4,7 +4,7 @@ package back
 import ast.Func
 
 sealed abstract class RuntimeErrors(val label: String, val msg: String) extends DataSection {
-
+/*general functions for creating runtime errors */
     def generateData: Seq[Instruction] = Seq(
         Section(".data"),
         Directive(s".word ${msg.length}"),

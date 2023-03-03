@@ -26,6 +26,7 @@ class RegisterAllocator(val mem: MemoryAllocator) {
         Register(10)/*, 
         Register(12)*/
     )
+    /*register 0 is used for outputs and register 12 is used as a scratch register*/
 
     def reset(): Unit = {
         // println(s"inUse: $regsInUse")

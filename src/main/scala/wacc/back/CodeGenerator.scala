@@ -23,6 +23,8 @@ class Assembly(val op: Option[Operand], val instr: Seq[Instruction], var cond: C
     }
 }
 
+/*objects that each ast Node can return with the operand that represents its latest state, 
+as well as the instructions, and the latest condition*/
 object Assembly {
     def apply(op: Operand, instr: Seq[Instruction], cond: Condition): Assembly = new Assembly(Some(op), instr, cond)
     def apply(op: Operand, instr: Seq[Instruction]): Assembly = apply(op, instr, AL)
@@ -31,6 +33,8 @@ object Assembly {
     def apply(instr: Seq[Instruction], cond: Condition): Assembly = new Assembly(None, instr, cond)
 }
 
+/*objects that each ast Node can return with the register that represents its latest state, 
+as well as the instructions, and the latest condition*/
 class RegAssembly(val reg: Option[Register], instr: Seq[Instruction], cond: Condition) extends Assembly(reg, instr, cond) {
     def getReg(): Register = reg match {
         case Some(x) => x
@@ -50,6 +54,8 @@ object TODOAssembly extends RegAssembly(None, Seq[Instruction](), AL)
 
 case class CodeGenerator(val symbolTable: SymbolTable) {
     
+    /*presections and post sections are sets that we can add different methods (DataSections) 
+    into that will generate all code for printing variables, loading into arrays and reading*/
     val text = new TextSection
     val preSections = scala.collection.mutable.Set[DataSection]()
     val postSections = scala.collection.mutable.Set[DataSection]()
@@ -60,7 +66,8 @@ case class CodeGenerator(val symbolTable: SymbolTable) {
     val regs = new RegisterAllocator(mem)
 
     val elemSize = 4
-
+    
+    /*returns the entire assembly (DataSection & Main) */
     def toAssembly(program: Program): String = {
         val sb = new StringBuilder
         val out = program.toAssembly(this)

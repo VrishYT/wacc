@@ -13,6 +13,7 @@ case class Program(fs: List[Func], stats: List[Stat]) {
             case None => ???
         }
 
+        //maps functions into assembly
         val fsOut = fs.map(func => {
             val table = getFuncTable(func.fs._2)
             table.resetCounts()

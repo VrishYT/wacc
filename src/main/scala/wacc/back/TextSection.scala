@@ -4,7 +4,7 @@ package back
 import scala.collection.mutable.{Map => MapM}
 
 class TextSection extends DataSection {
-
+    /*text section for storing strings*/
     private val table = MapM[String, String]()
     private var counter = 0
 
