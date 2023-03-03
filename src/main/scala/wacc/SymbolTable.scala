@@ -42,9 +42,9 @@ sealed abstract class Table extends TableEntry {
         updateParent(id, symbol, this)
     }
 
-    def getIDFromReg(reg: Register): String = {
+    def getIDFromReg(reg: Register): Option[String] = {
         
-        def getFromParent(table: Table): String = {
+        def getFromParent(table: Table): Option[String] = {
             val filtered = table.table.filter(_._2 match {
                 case OpSymbol(_, op) => op == reg
                 case _ => false
@@ -52,10 +52,10 @@ sealed abstract class Table extends TableEntry {
             if (filtered.isEmpty) {
                 table match {
                     case ChildTable(parent) => getFromParent(parent)
-                    case _ => ???
+                    case _ => None
                 }
-            } else if (filtered.size > 1) ??? 
-            else filtered.head._1
+            } else if (filtered.size > 1) None
+            else Some(filtered.head._1)
         }
 
         getFromParent(this)
