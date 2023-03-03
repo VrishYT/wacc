@@ -3,7 +3,6 @@ package back
 
 import org.scalatest._
 
-//@Ignore
 class MemoryAllocatorTests extends flatspec.AnyFlatSpec with GivenWhenThen {
 
   "A new memory allocator" should "have no variables" in {
