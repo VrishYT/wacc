@@ -384,22 +384,28 @@ object Println extends ParserBridge1[Expr, Println]
 case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
 
+        def stack(table: Table): Int = 0.max(table.getSize - gen.regs.freeRegs.size)
+
         val cond = p.toAssembly(gen)
-        val childTable = table.getTable(s"_if${gen.ifCount}") match {
+        val thenTable = table.getTable(s"_if${gen.ifCount}") match {
             case Some(x) => x
             case None => ???
         }
-        val thenBlock = x.map(_.toAssembly(gen)(childTable)).foldLeft(Seq[Instruction]())(_ ++ _) // TODO: symbol table
-        val elseBlock = y.map(_.toAssembly(gen)(childTable)).foldLeft(Seq[Instruction]())(_ ++ _) // TODO: symbol table
+        val thenStack = stack(thenTable)
+        val thenBlock = gen.mem.grow(thenStack) +: x.map(_.toAssembly(gen)(thenTable)).foldLeft(Seq[Instruction]())(_ ++ _) :+ gen.mem.shrink(thenStack)
+        val elseTable = table.getTable(s"_else${gen.ifCount}") match {
+            case Some(x) => x
+            case None => ???
+        }
+        val elseStack = stack(elseTable)
+        val elseBlock = gen.mem.grow(elseStack) +: y.map(_.toAssembly(gen)(elseTable)).foldLeft(Seq[Instruction]())(_ ++ _) :+ gen.mem.shrink(elseStack)
 
         val thenLabel = gen.labels.generate()
         val endLabel = gen.labels.generate()
 
         gen.ifCount += 1
 
-        val stack = 0.max(childTable.getSize - gen.regs.freeRegs.size)
-
-        return gen.mem.grow(stack) +: If.generateIf(cond, thenLabel, thenBlock, elseBlock, endLabel) :+ gen.mem.shrink(stack)
+        return If.generateIf(cond, thenLabel, thenBlock, elseBlock, endLabel)
     }
     
 }
