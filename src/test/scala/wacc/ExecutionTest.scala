@@ -80,7 +80,6 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
                 err ++= Source.fromInputStream(_).getLines
             ))
 
-            // UNUSED - LIMITS EMULATION TO 5 SECS 
             try {
                 Await.result(Future(blocking(p.exitValue)), duration.Duration(5, "sec"))
             } catch {

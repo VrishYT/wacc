@@ -24,7 +24,6 @@ case class Program(fs: List[Func], stats: List[Stat]) {
         val mainTable = getFuncTable("main")
         mainTable.resetCounts()
         val stack = 0.max(mainTable.getSize - gen.regs.freeRegs.size)
-         // TODO: add into returned instructions
         val main = gen.mem.grow(stack) +: stats.map(_.toAssembly(gen)(mainTable)).fold(Seq())(_ ++ _) :+ gen.mem.shrink(stack)
 
         return (Seq(Section(".global main"), Label("main"), Push(FP, LR), Mov(FP, SP)) ++ main ++ Seq(Mov(Register(0), ImmInt(0)), Pop(FP, PC)), fsOut)

@@ -5,7 +5,6 @@ import wacc.back._
 import Condition._
 import ast.Func
 
-
 abstract class DataSection {
     def toAssembly(): Seq[Instruction]
 }

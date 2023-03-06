@@ -34,7 +34,7 @@ sealed abstract class Table extends TableEntry {
             else {
                 table match {
                     case ChildTable(parent) => updateParent(id, symbol, parent)
-                    case _ => ??? // table(id) = symbol // TODO: CHECK - updating a non-existent symbol ???
+                    case _ => ??? 
                 }
             }
         }
@@ -99,7 +99,6 @@ sealed abstract class Table extends TableEntry {
 
     }
 
-    // USED FOR FRONT-END
     def add(id: String, symbol: Symbol): Boolean = {
         table.get(id) match {
             case Some(x) => x match {
@@ -200,9 +199,6 @@ object Symbol {
 
 case class ParamSymbol(override val t: Type) extends Symbol(t)
 case class OpSymbol(override val t: Type, val op: Operand) extends Symbol(t)
-// case class RegSymbol(override val t: Type, val reg: Register) extends Symbol(t)
-// case class MemSymbol(override val t: Type, val addr: Address) extends Symbol(t)
-// case class LabelSymbol(override val t: Type, val label: String) extends Symbol(t)
 
 class SymbolTable {
 

@@ -9,7 +9,6 @@ case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val po
 
     def toAssembly(gen: CodeGenerator)(implicit table: FuncTable): Seq[Instruction] = {
 
-        // TODO: modify to work with more args than regs
         (0 until args.length).foreach(i => {
             val param = args(i)
             gen.regs.link(param.id, Register(i + 1))
