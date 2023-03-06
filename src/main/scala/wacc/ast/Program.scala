@@ -23,8 +23,8 @@ case class Program(fs: List[Func], stats: List[Stat]) {
         })
         val mainTable = getFuncTable("main")
         mainTable.resetCounts()
-        val stack = 0.max(mainTable.getSize - gen.regs.freeRegs.size)
-        val main = gen.mem.grow(stack) +: stats.map(_.toAssembly(gen)(mainTable)).fold(Seq())(_ ++ _) :+ gen.mem.shrink(stack)
+        gen.mem.size = 0.max(mainTable.getSize - gen.regs.freeRegs.size)
+        val main = gen.mem.grow() +: stats.map(_.toAssembly(gen)(mainTable)).fold(Seq())(_ ++ _) :+ gen.mem.shrink()
 
         return (Seq(Section(".global main"), Label("main"), Push(FP, LR), Mov(FP, SP)) ++ main ++ Seq(Mov(Register(0), ImmInt(0)), Pop(FP, PC)), fsOut)
     }

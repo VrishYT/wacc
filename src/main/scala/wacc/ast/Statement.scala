@@ -261,7 +261,12 @@ case class Return(x: Expr) extends Stat {
         the register list so that it is not used for storing other values*/
         val expr = x.toAssembly(gen).condToReg(gen.regs)
         if (expr.getOp() == Register(0)) return expr.instr 
-        else return expr.instr ++ Seq(Mov(Register(0), expr.getOp()), Pop(PC))
+        else return expr.instr ++ 
+            Seq(
+                Mov(Register(0), expr.getOp()), 
+                gen.mem.shrink(), 
+                Pop((Func.FuncRegs :+ PC):_*)
+            )
     }
 }
 
@@ -458,15 +463,15 @@ case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
             case None => ???
         }
         thenTable.resetCounts()
-        val thenStack = stack(thenTable)
-        val thenBlock = gen.mem.grow(thenStack) +: x.map(_.toAssembly(gen)(thenTable)).foldLeft(Seq[Instruction]())(_ ++ _) :+ gen.mem.shrink(thenStack)
+        gen.mem.size = stack(thenTable)
+        val thenBlock = gen.mem.grow() +: x.map(_.toAssembly(gen)(thenTable)).foldLeft(Seq[Instruction]())(_ ++ _) :+ gen.mem.shrink()
         val elseTable = table.getTable(s"_else${table.ifCount}") match {
             case Some(x) => x
             case None => ???
         }
         elseTable.resetCounts()
-        val elseStack = stack(elseTable)
-        val elseBlock = gen.mem.grow(elseStack) +: y.map(_.toAssembly(gen)(elseTable)).foldLeft(Seq[Instruction]())(_ ++ _) :+ gen.mem.shrink(elseStack)
+        gen.mem.size  = stack(elseTable)
+        val elseBlock = gen.mem.grow() +: y.map(_.toAssembly(gen)(elseTable)).foldLeft(Seq[Instruction]())(_ ++ _) :+ gen.mem.shrink()
 
         val thenLabel = gen.labels.generate()
         val endLabel = gen.labels.generate()
@@ -506,6 +511,7 @@ case class While(p: Expr, x: List[Stat]) extends Stat {
             case Some(x) => x
             case None => ???
         }
+        gen.mem.size = 0.max(childTable.getSize - gen.regs.freeRegs.size)
         childTable.resetCounts()
         val block = x.map(_.toAssembly(gen)(childTable)).foldLeft(Seq[Instruction]())(_ ++ _)
 
@@ -524,9 +530,7 @@ case class While(p: Expr, x: List[Stat]) extends Stat {
 
         table.whileCount += 1
 
-        val stack = 0.max(childTable.getSize - gen.regs.freeRegs.size)
-
-        return gen.mem.grow(stack) +: ((Label(startLabel) +: cond.instr) ++ branch ++ block ++ Seq(Branch(startLabel), Label(endLabel))) :+ gen.mem.shrink(stack)
+        return gen.mem.grow() +: ((Label(startLabel) +: cond.instr) ++ branch ++ block ++ Seq(Branch(startLabel), Label(endLabel))) :+ gen.mem.shrink()
     }
 }
 
@@ -534,17 +538,17 @@ object While extends ParserBridge2[Expr, List[Stat], While]
 
 case class Begin(xs: List[Stat]) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
+
         val childTable = table.getTable(s"_begin${table.beginCount}") match {
             case Some(x) => x
             case None => ???
         }
+        gen.mem.size = 0.max(childTable.getSize - gen.regs.freeRegs.size)
         childTable.resetCounts()
         val instr = xs.map(_.toAssembly(gen)(childTable)).fold(Seq())(_ ++ _)
-        val stack = 0.max(childTable.getSize - gen.regs.freeRegs.size)
-
         table.beginCount += 1
 
-        return gen.mem.grow(stack) +: instr :+ gen.mem.shrink(stack)
+        return gen.mem.grow() +: instr :+ gen.mem.shrink()
     }
 }
 

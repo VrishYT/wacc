@@ -52,7 +52,12 @@ object Operands {
 
     /*finds a register to allocate our operand to*/
     def opToReg(op: Operand, regs: RegisterAllocator)(implicit table: Table): RegAssembly = op match {
-        case x: Register if (x.i != 0) => RegAssembly(x)
+        case x: Register if (regs.isAllocated(x)) => RegAssembly(x)
+        case x: Register if (x.i != 0) => {
+            println(s"use $x")
+            regs.use(x)
+            RegAssembly(x)
+        }
         case x => {
             val reg = regs.allocate
             RegAssembly(reg.getReg(), reg.instr :+ opToReg(op, reg.getReg()))

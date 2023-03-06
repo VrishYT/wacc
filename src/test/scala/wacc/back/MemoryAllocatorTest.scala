@@ -16,7 +16,8 @@ class MemoryAllocatorTests extends flatspec.AnyFlatSpec with GivenWhenThen {
   "A grow instruction" should "return a valid Instruction object for a stack grow instruction" in {
 
     val memory = new MemoryAllocator
-    val instr = memory.grow(7)
+    memory.size = 7
+    val instr = memory.grow()
     assert(instr == Sub(SP, SP, ImmInt(28)))
 
   }
@@ -24,7 +25,8 @@ class MemoryAllocatorTests extends flatspec.AnyFlatSpec with GivenWhenThen {
   "A shrink instruction" should "return a valid Instruction object for a stack shrink instruction" in {
 
     val memory = new MemoryAllocator
-    val instr = memory.shrink(4)
+    memory.size = 4
+    val instr = memory.shrink()
     assert(instr == Add(SP, SP, ImmInt(16)))
 
   }
@@ -34,7 +36,8 @@ class MemoryAllocatorTests extends flatspec.AnyFlatSpec with GivenWhenThen {
 
     val memory = new MemoryAllocator
     val sb = new StringBuilder
-    val instr = memory.grow(2).arm11(sb)
+    memory.size = 2
+    val instr = memory.grow().arm11(sb)
 
     assert(sb.toString == "\tsubs sp, sp, #8\n")
 
@@ -44,7 +47,8 @@ class MemoryAllocatorTests extends flatspec.AnyFlatSpec with GivenWhenThen {
 
     val memory = new MemoryAllocator
     val sb = new StringBuilder
-    val instr = memory.shrink(3).arm11(sb)
+    memory.size = 3
+    val instr = memory.shrink().arm11(sb)
 
     assert(sb.toString == "\tadds sp, sp, #12\n")
 
