@@ -47,7 +47,7 @@ object Parser {
   val BASE_TYPE = base_type_desc("int") #> IntType <|>
     base_type_desc("string") #> StringType <|>
     base_type_desc("bool") #> BoolType <|>
-    base_type_desc("char") #> CharType
+    base_type_desc("char") #> CharType 
 
 
   /*labels method allows us to print the expected values when we throw an unexpected error*/
@@ -65,6 +65,8 @@ object Parser {
   val IDENT_OR_ARRAY_ELEM = IdentOrArrayElem(IDENT.label("identifier"), invalid_call *> option(
     "[".label("index (like \'xs[idx]\')") *> sepBy(expr, "][") <* "]"))
 
+  lazy val STRUCT_ELEM = StructElem(IDENT <~ ".", IDENT)
+
   /*base elements of any expression, as the expression type is recursive*/
   private lazy val atom: Parsley[Expr] = "(".label("open parenthesis") *> expr <* ")" <|>
     IDENT_OR_ARRAY_ELEM <|>
@@ -73,7 +75,8 @@ object Parser {
     CharLiteral(CHR_LIT) <|>
     StrLiteral(STR_LIT) <|>
     BoolLiteral(BOOL_LIT) <|>
-    PAIR_LIT
+    PAIR_LIT <|>
+    STRUCT_ELEM
 
   /*operators in expression are given a precedence from tightest binding to loosest*/
   val operators: Parsley[Expr] = precedence[Expr](atom)(
@@ -107,21 +110,24 @@ object Parser {
 
   val ARRAY_TYPE: Parsley[Type] = chain.postfix(atom2, ArrayType <# array_type_desc("[]"))
 
-  lazy val types: Parsley[Type] = ARRAY_TYPE <|> BASE_TYPE <|> PAIR_TYPE
+  lazy val types: Parsley[Type] = ARRAY_TYPE <|> BASE_TYPE <|> PAIR_TYPE <|> STRUCT_TYPE
 
   val ARG_LIST = sepEndBy(expr, ",")
 
   lazy val PAIR_ELEM = Fst(pair_op("fst") *> lvalue) <|> Snd(pair_op("snd") *> lvalue)
+
+  val STRUCT_TYPE: Parsley[Type] = StructType("struct" *> IDENT)
 
   /*defined parsing for r-values*/
   lazy val rvalue: Parsley[RValue] = Call("call".label("function call") *> IDENT, "(" *> ARG_LIST <~ ")") <|>
     expr <|>
     ARRAY_LITER <|>
     NewPair("newpair" *> "(" *> expr <~ ",", expr <~ ")") <|>
-    PAIR_ELEM
+    NewStruct("newstruct" *> "{" *> sepBy(rvalue, ",") <~ ")") <|>
+    PAIR_ELEM 
 
   /*defined parsing for l-values*/
-  lazy val lvalue: Parsley[LValue] = IDENT_OR_ARRAY_ELEM <|> PAIR_ELEM
+  lazy val lvalue: Parsley[LValue] = STRUCT_ELEM <|> IDENT_OR_ARRAY_ELEM <|> PAIR_ELEM
 
   /*created a parsing rule to avoid function declarations in the middle of a block*/
   val _invalid_declaration = amend(attempt((types *> IDENT <~ "(").hide) *> unexpected(
@@ -169,9 +175,15 @@ object Parser {
     "opening parenthesis")).label(
     "function declaration"), paramList <~ ")", "is" *> stats <* "end")
 
+  /*rule to parse on structs */
+  val member = Member(types, IDENT)
+  val memberList = sepBy(member, ",")
+  val struct = Struct("struct" *> IDENT <~ "{", memberList <~ "}")
+ 
+
   /*rule to parse on programs, we check that at the end of the function body
     we have a return or an exit on all exit paths using the method valid return*/
-  val program_ = Program("begin" *> sepEndBy(func.guardAgainst {
+  val program_ = Program("begin" *> sepEndBy(struct, pure("")), sepEndBy(func.guardAgainst {
     case func if !func.validReturn => Seq("function is missing a return/exit on all exit paths")
   }, pure("")), stats <* "end")
 

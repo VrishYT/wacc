@@ -46,6 +46,10 @@ object ArrayType extends ParserBridge1[Type, ArrayType]
 
 object PairType extends ParserBridge2[Type, Type, PairType]
 
+case class StructType(struct_id: String) extends Type
+
+object StructType extends ParserBridge1[String, StructType]
+
 /* base types extending type */
 sealed trait BaseType extends Type
 

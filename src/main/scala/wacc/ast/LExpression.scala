@@ -149,5 +149,8 @@ object IdentOrArrayElem extends ParserBridgePos2[String, Option[List[Expr]], LEx
     }
 }
 
+case class StructElem(id: String, elem_id: String)(val pos: (Int, Int)) extends LExpr
+
+object StructElem extends ParserBridgePos2[String, String, StructElem] 
 
 
