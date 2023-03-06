@@ -15,16 +15,16 @@ case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val po
         (0 until args.length).foreach(i => {
             val param = args(i)
             gen.regs.link(param.id, Register(i + 1))
-            println(s"link ${param.id} => r${i+1}")
-            println(s"inUse: ${gen.regs.regsInUse}")
-            println(s"free: ${gen.regs.freeRegs}")
+            // println(s"link ${param.id} => r${i+1}")
+            // println(s"inUse: ${gen.regs.regsInUse}")
+            // println(s"free: ${gen.regs.freeRegs}")
         })
         
         val instr = stats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
 
-        println(s"table = ${table.getSize}\nfreeRegs = ${gen.regs.freeRegs.size}")
-        println(s"inUse: ${gen.regs.regsInUse}")
-        println(s"free: ${gen.regs.freeRegs}")
+        // println(s"table = ${table.getSize}\nfreeRegs = ${gen.regs.freeRegs.size}")
+        // println(s"inUse: ${gen.regs.regsInUse}")
+        // println(s"free: ${gen.regs.freeRegs}")
 
         // println(s"stacksize = $stack")
 

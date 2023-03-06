@@ -72,7 +72,7 @@ sealed abstract class Table extends TableEntry {
     def updateEntry(id: String, reg: Register, op: Operand): Unit = {
 
         def update(table: Table): Unit = {
-            println(s"$id, $reg in $table")
+            // println(s"$id, $reg in $table")
             val filtered = table.table.filter(entry => {
                 val isReg: Boolean = entry._2 match {
                     case OpSymbol(_, op) => op match {
@@ -91,7 +91,7 @@ sealed abstract class Table extends TableEntry {
             } else if (filtered.size > 1) ???
             else {
                 table.update(id, op)
-                println(s"$id, $reg\nupdated $table")
+                // println(s"$id, $reg\nupdated $table")
             }
         }
 

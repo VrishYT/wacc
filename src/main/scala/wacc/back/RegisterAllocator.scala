@@ -43,9 +43,9 @@ class RegisterAllocator(val mem: MemoryAllocator) {
     }
 
     def free(reg: Register): Unit = {
-        println(s"use: $regsInUse")
-        println(s"free: $freeRegs")
-        println(s"freeReg: $reg")
+        // println(s"use: $regsInUse")
+        // println(s"free: $freeRegs")
+        // println(s"freeReg: $reg")
         if (regsInUse.contains(reg) && !freeRegs.contains(reg)) {
             regsInUse -= reg
             freeRegs += reg
@@ -77,7 +77,7 @@ class RegisterAllocator(val mem: MemoryAllocator) {
 
         val reg = if (freeRegs.isEmpty) realloc() else RegAssembly(freeRegs.dequeue())
         regsInUse.enqueue(reg.getReg())
-        println(s"allocated ${reg.getReg()}")
+        // println(s"allocated ${reg.getReg()}")
         return reg
     }
 

@@ -59,7 +59,7 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
       case Ord | Chr => x match {
         case _: Ident => {
           val reg = gen.regs.allocate
-          println(s"allocated ${reg.getReg()} for ident")
+          // println(s"allocated ${reg.getReg()} for ident")
           gen.regs.free(reg.getReg())
           RegAssembly(reg.getReg(), expr.instr ++ reg.instr :+ Mov(reg.getReg(), expr.getOp()))
         }
@@ -179,11 +179,11 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
         val out = x match {
           case _: Ident => {
             val reg = gen.regs.allocate
-            println(s"allocated ${reg.getReg()} for ident")
+            // println(s"allocated ${reg.getReg()} for ident")
             reg
           }
           case x => {
-            println(x)
+            // println(x)
             RegAssembly(r1)
           }
         }
@@ -197,10 +197,10 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
           }
           case x => x
         }
-        println(s"regOut = ${out.getReg()}")
+        // println(s"regOut = ${out.getReg()}")
         val assembly = Assembly(out.getReg(), expr2.instr ++ expr1.instr ++ reg.instr ++ out.instr ++ binaryOpToAssembly(out.getReg(), r1, op2))
         gen.regs.free(out.getReg())
-        println("---")
+        // println("---")
         assembly
       }
     }
