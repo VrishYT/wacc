@@ -159,15 +159,22 @@ object Parser {
   val param = Param(types, _invalid_pointer <|> IDENT)
 
   val paramList = sepBy(param, ",")
+  
+  val flag = "@" *> Flag(IDENT)
+
+  val flagList = sepBy(flag, pure(""))
 
   /*rule to pick on invalid function declarations with a missing type*/
   val _invalid_function = amend((attempt(IDENT <~ "(").hide).verifiedFail(
     "function declaration missing type"))
 
   /*rule to parse on functions*/
-  val func = _invalid_function <|> Func(attempt(types <~> IDENT <~ "(".label(
-    "opening parenthesis")).label(
-    "function declaration"), paramList <~ ")", "is" *> stats <* "end")
+  val func = _invalid_function <|> Func(
+    flagList, 
+    attempt(types <~> IDENT <~ "(".label("opening parenthesis")).label("function declaration")
+    , paramList <~ ")", 
+    "is" *> stats <* "end"
+  )
 
   /*rule to parse on programs, we check that at the end of the function body
     we have a return or an exit on all exit paths using the method valid return*/
