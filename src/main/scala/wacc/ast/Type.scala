@@ -49,6 +49,10 @@ object PairType extends ParserBridge2[Type, Type, PairType]
 /* base types extending type */
 sealed trait BaseType extends Type
 
+case object NoType extends BaseType with ParserBridge0[BaseType] {
+  def apply() = NoType
+}
+
 case object IntType extends BaseType with ParserBridge0[BaseType] {
   def apply() = IntType
 }

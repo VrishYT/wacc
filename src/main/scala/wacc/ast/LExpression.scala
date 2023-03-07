@@ -116,19 +116,19 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
   private def _arrStore(array: Operand, value: Operand, gen: CodeGenerator, charType: Boolean)(implicit table: Table): Seq[Instruction] = {
     val lastAss = xs.last.toAssembly(gen)
     val label = if (charType) "_arrStoreB" else "_arrStore"
-    val func = Func.callFunction(label, Seq(array, lastAss.getOp(), value), gen)
+    val func = TypedFunc.callFunction(label, Seq(array, lastAss.getOp(), value), gen)
     return lastAss.instr ++ func
   }
 
   private def _arrLoad(accum: Register, array: Operand, ys: List[Expr], gen: CodeGenerator, charType: Boolean)(implicit table: Table): Seq[Instruction] = {
     val headAss = ys.head.toAssembly(gen)
     val label = if (charType) "_arrLoadB" else "_arrLoad"
-    val headFunc = Func.callFunction(label, Seq(array, headAss.getOp()), gen)
+    val headFunc = TypedFunc.callFunction(label, Seq(array, headAss.getOp()), gen)
     val accInstr = Seq(Mov(accum, Register(0)))
 
     val xsFunc = ys.tail.map(x => {
       val xAss = x.toAssembly(gen)
-      val xFunc = Func.callFunction(label, Seq(accum, xAss.getOp()), gen)
+      val xFunc = TypedFunc.callFunction(label, Seq(accum, xAss.getOp()), gen)
       xAss.instr ++ xFunc ++ accInstr
     }).flatten
 

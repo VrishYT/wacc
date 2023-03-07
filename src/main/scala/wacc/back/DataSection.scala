@@ -3,7 +3,7 @@ package back
 
 import wacc.back._
 import Condition._
-import ast.Func
+import ast.TypedFunc
 
 abstract class DataSection {
     def toAssembly(): Seq[Instruction]
@@ -19,7 +19,7 @@ sealed abstract class PrintSection(val short: String, val format: String, val na
             Label(label),
             Directive(s".asciz \"${format}\""),
             Section(".text")
-        ) ++ Func.generateFunction(s"_print${short}", Seq(
+        ) ++ TypedFunc.generateFunction(s"_print${short}", Seq(
             Load(Register(0), DataLabel(label)),
             LinkBranch("printf"),
             Mov(Register(0), ImmInt(0)),
@@ -46,7 +46,7 @@ case object PrintBoolSection extends DataSection {
             Label(".L.printb_t"),
             Directive(".asciz \"true\""),
             Section(".text")
-        ) ++ Func.generateFunction("_printb", 
+        ) ++ TypedFunc.generateFunction("_printb", 
             wacc.ast.If.generateIf(
                 Assembly(Seq(Cmp(Register(0), ImmInt(0))), NE), 
                 ".L_printb_true",
@@ -64,7 +64,7 @@ case object PrintBoolSection extends DataSection {
 
 sealed abstract class ArraySection(id: String, index: Register, array: Register, instr: Instruction) extends DataSection {
     def toAssembly(): Seq[Instruction] = {
-        return Func.generateFunction(id, Seq(
+        return TypedFunc.generateFunction(id, Seq(
             Cmp(index, ImmInt(0)),
             Mov(Register(1), index, Condition.LT),
             LinkBranch("_boundsCheck", Condition.LT),
@@ -114,7 +114,7 @@ case object ReadIntSection extends DataSection {
             Label(".L._readi_str0"),
             Directive(".asciz \"%d\""),
             Section(".text")
-        ) ++ Func.generateFunction("_readi", Seq(
+        ) ++ TypedFunc.generateFunction("_readi", Seq(
             Push(Register(0), Register(1)),
             Mov(Register(1), SP),
             Load(Register(0), DataLabel(".L._readi_str0")),
@@ -135,7 +135,7 @@ case object ReadCharSection extends DataSection {
             Label(".L._readc_str0"),
             Directive(".asciz \" %c\""),
             Section(".text")
-        ) ++ Func.generateFunction("_readc", Seq(
+        ) ++ TypedFunc.generateFunction("_readc", Seq(
             Push(Register(1)),
             Store(Register(0), Address(SP, ImmInt(-1)), true, true),
             Mov(Register(1), SP),

@@ -58,7 +58,7 @@ object NewPair extends ParserBridge2[Expr, Expr, NewPair] {
 case class Call(id: String, args: List[Expr])(val pos: (Int, Int)) extends RValue {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
         val out = args.map(_.toAssembly(gen))
-        val func = Func.callFunction(s"wacc_${id}", args = out.map(_.getOp()), gen = gen)
+        val func = TypedFunc.callFunction(s"wacc_${id}", args = out.map(_.getOp()), gen = gen)
         Assembly(Register(0), out.map(_.instr).fold(Seq())(_ ++ _) ++ func)
     }
 }

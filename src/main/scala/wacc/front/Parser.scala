@@ -166,7 +166,10 @@ object Parser {
   val _invalid_function = amend((attempt(IDENT <~ "(").hide).verifiedFail(
     "function declaration missing type"))
 
-  val valid_func = Func(attempt(types <~> IDENT <~ "(".label(
+  val valid_func = TypedFunc(attempt(types <~> IDENT <~ "(".label(
+    "opening parenthesis")).label(
+    "function declaration"), paramList <~ ")", "is" *> stats <* "end") <|>
+    TypelessFunc(attempt(IDENT <~ "(".label(
     "opening parenthesis")).label(
     "function declaration"), paramList <~ ")", "is" *> stats <* "end")
 
