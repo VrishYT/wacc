@@ -52,4 +52,13 @@ object ParserBridge {
 
     override final def con(pos: (Int, Int)): (A, B, C) => D = this.apply(_, _, _)(pos)
   }
+
+  trait ParserBridgePos4[-A, -B, -C, -D, +E] extends ParserSingletonBridge[(A, B, C, D) => E] {
+    def apply(w: A, x: B, y: C, z: D)(pos: (Int, Int)): E
+
+    def apply(w: Parsley[A], x: Parsley[B], y: Parsley[C], z: Parsley[D]): Parsley[E] =
+      pos <**> (w, x, y, z).zipped(this.apply(_, _, _, _) _)
+
+    override final def con(pos: (Int, Int)): (A, B, C, D) => E = this.apply(_, _, _, _)(pos)
+  }
 }
