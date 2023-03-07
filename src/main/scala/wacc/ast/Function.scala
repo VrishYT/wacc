@@ -5,7 +5,7 @@ import wacc.front.ParserBridge._
 import wacc.back._
 
 /* function case class with position */
-case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
+case class Func(flags: List[Flag], fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
 
     def toAssembly(gen: CodeGenerator)(implicit table: FuncTable): Seq[Instruction] = {
 
@@ -62,7 +62,7 @@ case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val po
 }
 
 /* function and parameter companion objects with parser bridges */
-object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Func] {
+object Func extends ParserBridgePos4[List[Flag], (Type, String), List[Param], List[Stat], Func] {
 
     import scala.collection.mutable.{ListBuffer}
 
