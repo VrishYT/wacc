@@ -40,35 +40,7 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
     }
 }
 
-case class TypelessDeclare(id: String, rhs: RValue) extends Stat {
-    override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
-        val assembly = rhs.toAssembly(gen).condToReg(gen.regs)
-        val instr = rhs match {
-            case x: Ident => {
-                val reg = gen.regs.allocate(id)
-                reg.instr :+ Mov(reg.getReg(), assembly.getOp())
-            }
-            case _ => {
-                val reg = rhs match {
-                    case _: ArrayElem => {
-                        val out = gen.regs.allocate
-                        RegAssembly(
-                            out.getReg(),
-                            out.instr ++ Seq(Mov(out.getReg(), assembly.getOp()))
-                        )
-                    }
-                    case _ => Operands.opToReg(assembly.getOp(), gen.regs)
-                    }
-                table.update(id, reg.getReg())
-                reg.instr
-            }
-        }
-        return Comment(s"declare $id") +: (assembly.instr ++ instr)
-    }
-}
-
 object Declare extends ParserBridge3[Type, String, RValue, Declare]
-object TypelessDeclare extends ParserBridge2[String, RValue, TypelessDeclare]
 
 case class Assign(x: LValue, y: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
@@ -92,6 +64,20 @@ case class Assign(x: LValue, y: RValue) extends Stat {
             }
             case _ => x.toAssembly(gen)
         }
+
+        
+        lval.getOp() match {
+            case NoOperand(id) => {
+                val opt = table.getType(id)
+                val t = opt match {
+                    case Some(x) => x
+                    case None => ???
+                }
+                return Declare(t, id, y).toAssembly(gen)
+            }
+            case _ =>
+        }
+
         y match {
             case _: ArrayElem => {
                 val out = gen.regs.allocate
@@ -110,7 +96,6 @@ case class Assign(x: LValue, y: RValue) extends Stat {
         }
     }
 }
-
 
 object Assign extends ParserBridge2[LValue, RValue, Assign] {
     def assDec(lval: Assembly, rval: Assembly, regs: RegisterAllocator)(implicit table: Table) : Seq[Instruction] = {

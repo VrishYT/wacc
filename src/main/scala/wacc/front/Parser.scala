@@ -128,7 +128,7 @@ object Parser {
     "function declaration")).explain(
     "all functions must be declared at the top of main block")
   
-  val declare = Declare(types, IDENT, "=" *> rvalue) <|> TypelessDeclare(IDENT, "=" *> rvalue)
+  val declare = Declare(types, IDENT, "=" *> rvalue) 
 
   /*defined parsing for statements*/
   val stat: Parsley[Stat] = _invalid_declaration <|>
@@ -166,16 +166,16 @@ object Parser {
   val _invalid_function = amend((attempt(IDENT <~ "(").hide).verifiedFail(
     "function declaration missing type"))
 
-  val valid_func = TypedFunc(attempt(types <~> IDENT <~ "(".label(
+  val valid_func = attempt(TypedFunc(attempt(types <~> IDENT <~ "(".label(
     "opening parenthesis")).label(
-    "function declaration"), paramList <~ ")", "is" *> stats <* "end") <|>
+    "function declaration"), paramList <~ ")", "is" *> stats <* "end")) <|>
     TypelessFunc(attempt(IDENT <~ "(".label(
     "opening parenthesis")).label(
     "function declaration"), paramList <~ ")", "is" *> stats <* "end")
 
 
   /*rule to parse on functions*/
-  val func = _invalid_function <|> valid_func
+  val func =  valid_func
 
   /*rule to parse on programs, we check that at the end of the function body
     we have a return or an exit on all exit paths using the method valid return*/
