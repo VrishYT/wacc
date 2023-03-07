@@ -4,7 +4,7 @@ begin
         if x == 5
         then return x
         else
-            int y = call sumToFive(x + 1)
+            int y = call sumToFive(x + 1) ;
             return y 
         fi
     end
