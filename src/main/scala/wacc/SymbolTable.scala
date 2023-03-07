@@ -15,7 +15,7 @@ sealed abstract class Table extends TableEntry {
     def isInFunction: Boolean
     def getReturnType: Type
 
-    private val table = MapM[String, TableEntry]()
+    val table = MapM[String, TableEntry]()
 
     override def toString(): String = "\n" + table.filter(x => x._2.isInstanceOf[OpSymbol] || x._2.isInstanceOf[Table]).mkString("\n") + "\n ----"
 

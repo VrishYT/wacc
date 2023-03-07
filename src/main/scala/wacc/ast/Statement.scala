@@ -298,7 +298,7 @@ case class Print(x: Expr) extends Stat {
                     case None => ???
                 }
                 val ass = id.toAssembly(gen)
-                val reg = Operands.opToReg(ass.getOp(), gen.regs)
+                val reg = Operands.opToScratch(ass.getOp())
                 ass.instr ++ reg.instr ++ printValue(identType, reg.getReg(), gen)
             }
             case int: IntLiteral => {
@@ -324,14 +324,14 @@ case class Print(x: Expr) extends Stat {
             case unop@UnaryOpExpr(op, _) => {
                 val unopType = op.output 
                 val ass = unop.toAssembly(gen).condToReg(gen.regs)
-                return ass.instr ++ printValue(unopType, ass.getOp(), gen)
+                ass.instr ++ printValue(unopType, ass.getOp(), gen)
             }
             /*need to case match on binary operators to check what is the type of 
             the evaluated expression*/
             case binop@BinaryOpExpr(op, _, _) => {
                 val binopType = op.output 
                 val ass = binop.toAssembly(gen).condToReg(gen.regs)
-                return ass.instr ++ printValue(binopType, ass.getOp(), gen)
+                ass.instr ++ printValue(binopType, ass.getOp(), gen)
             }
             /*need to case match on array elems to check the type and print accordingly*/
             case a@ArrayElem(id, xs) => { 
@@ -349,13 +349,13 @@ case class Print(x: Expr) extends Stat {
                     case None => ???
                 }
                 val ass = a.toAssembly(gen)
-                return ass.instr ++ printValue(identType, ass.getOp(), gen)
+                ass.instr ++ printValue(identType, ass.getOp(), gen)
             }
             /*need to case match to print pair nulls accordingly*/
             case p@PairLiteralNull(_) => {
                 gen.postSections.addOne(PrintPointerSection)
                 val ass = p.toAssembly(gen)
-                return ass.instr ++ Seq(
+                ass.instr ++ Seq(
                     Push(Register(0), Register(1), Register(2), Register(3)),
                     Mov(Register(1), ass.getOp()),
                     LinkBranch("_printp"),
@@ -548,6 +548,13 @@ case class Begin(xs: List[Stat]) extends Stat {
         val instr = xs.map(_.toAssembly(gen)(childTable)).fold(Seq())(_ ++ _)
         table.beginCount += 1
 
+        childTable.table.toSeq.foreach(entry => entry._2 match {
+            case OpSymbol(t, op) => op match {
+                case r: Register => gen.regs.free(r)
+                case _ => 
+            }
+            case _ =>  
+        })
         return gen.mem.grow() +: instr :+ gen.mem.shrink()
     }
 }

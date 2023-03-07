@@ -10,7 +10,11 @@ class MemoryAllocator {
     def grow(): Instruction = Sub(SP, SP, ImmInt(size * 4))
 
     /*shrinks stack space to store data*/
-    def shrink(): Instruction = Add(SP, SP, ImmInt(size * 4))
+    def shrink(): Instruction = {
+        val instr = Add(SP, SP, ImmInt(size * 4))
+        size = 0
+        instr
+    }
 
     /*when register is reallocated, ensures that the data is stored in memory*/
     def store(id: String, reg: Register): Assembly = {

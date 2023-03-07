@@ -51,6 +51,11 @@ object Operands {
         }
     }
 
+    def opToScratch(op: Operand): RegAssembly = op match {
+        case x: Register if (x.i == 12) => RegAssembly(x) 
+        case _ => RegAssembly(Register(12), Seq(opToReg(op, Register(12))))
+    }
+
     /*finds a register to allocate our operand to*/
     def opToReg(op: Operand, regs: RegisterAllocator)(implicit table: Table): RegAssembly = op match {
         case x: Register if (regs.isAllocated(x)) => RegAssembly(x)
@@ -59,6 +64,7 @@ object Operands {
             regs.use(x)
             RegAssembly(x)
         }
+        case x: Address if (x.reg == FP) => opToScratch(op)
         case x => {
             val reg = regs.allocate
             RegAssembly(reg.getReg(), reg.instr :+ opToReg(op, reg.getReg()))

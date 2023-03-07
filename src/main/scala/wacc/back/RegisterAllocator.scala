@@ -65,7 +65,7 @@ class RegisterAllocator(val mem: MemoryAllocator) {
             table.getIDFromReg(reg) match {
                 case Some(x) => {
                     val instr = mem.store(x, reg)
-                    table.update(x, instr.getOp())
+                    table.updateEntry(x, reg, instr.getOp())
                     return RegAssembly(reg, instr.instr)
                 }
                 case None => {
