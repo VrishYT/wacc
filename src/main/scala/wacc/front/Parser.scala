@@ -160,9 +160,9 @@ object Parser {
 
   val paramList = sepBy(param, ",")
   
-  val flag = "@" *> Flag(IDENT)
-
-  val flagList = sepBy(flag, pure(""))
+  val annotation = "@" *> Annotation(IDENT)
+  
+  val annotationList = sepBy(annotation, pure(""))
 
   /*rule to pick on invalid function declarations with a missing type*/
   val _invalid_function = amend((attempt(IDENT <~ "(").hide).verifiedFail(
@@ -170,7 +170,7 @@ object Parser {
 
   /*rule to parse on functions*/
   val func = _invalid_function <|> Func(
-    flagList, 
+    annotationList, 
     attempt(types <~> IDENT <~ "(".label("opening parenthesis")).label("function declaration")
     , paramList <~ ")", 
     "is" *> stats <* "end"
