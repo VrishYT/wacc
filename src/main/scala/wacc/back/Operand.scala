@@ -43,6 +43,7 @@ case class LSL(reg: Register, op: Operand) extends Operand {
 object Operands {
     /*assigns a specific register to our operand*/
     def opToReg(op: Operand, dest: Register): Instruction = {
+        // println(s"op $op => $dest")
         op match {
             case x: Address => Load(dest, x)
             case x: DataLabel => Load(dest, x)

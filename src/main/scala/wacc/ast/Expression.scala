@@ -97,16 +97,28 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
 
   override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
 
+    // println(s"*--x $op y--*\n")
+    // println(x + "\n")
+    // println(y + "\n")
+
     def binaryOpToAssembly(out: Register, x: Register, y: Operand): Seq[Instruction] = op match {
       case ast.Mul => {
         gen.postSections.addOne(PrintStringSection)
         gen.postSections.addOne(IntegerOverflow)
         val temp = Register(12)
+        // println("optoreg")
         val op = Operands.opToReg(y, gen.regs)
+        y match {
+          case _: LExpr => 
+          case _ => gen.regs.free(op.getReg())
+        }
+        // println("after optoreg")
         op.instr ++ Seq(
           SMull(out, temp, x, op.getReg()),
           Cmp(temp, ASR(out, ImmInt(31))),
-          LinkBranch("_errOverflow", NE))}
+          LinkBranch("_errOverflow", NE)
+        )
+      }
       case ast.Div => {
         gen.postSections.addOne(PrintStringSection)
         gen.postSections.addOne(DivZeroError)
