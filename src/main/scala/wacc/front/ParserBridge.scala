@@ -5,6 +5,7 @@ import parsley.Parsley
 import parsley.position.pos
 import parsley.implicits.zipped.Zipped2
 import parsley.implicits.zipped.Zipped3
+import parsley.implicits.zipped.Zipped4
 
 
 object ParserBridge {
