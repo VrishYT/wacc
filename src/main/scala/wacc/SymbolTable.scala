@@ -14,6 +14,7 @@ sealed abstract class Table extends TableEntry {
 
     def isInFunction: Boolean
     def getReturnType: Type
+    def setReturnType(t: Type): Unit
 
     private val table = MapM[String, TableEntry]()
 
@@ -157,10 +158,10 @@ sealed abstract class Table extends TableEntry {
             case x: OpSymbol => x.op
             case _ => this match {
                 case ChildTable(parent) => parent.getOp(id)
-            case _ => ???
+            case _ => NoOperand(id)
             }
         }
-        case _ => ???
+        case _ => NoOperand(id)
     }
 
     private def getSymbol(id: String): Option[Symbol] = get(id) match {
@@ -183,13 +184,19 @@ sealed abstract class Table extends TableEntry {
 
 }
 
-case class FuncTable(val id: String, val paramTypes: Seq[Type], val returnType: Type) extends Table {
+case class FuncTable(val id: String, val paramTypes: Seq[Type], var returnType: Type) extends Table {
     override def isInFunction = id != "main"
     override def getReturnType = returnType
+    override def setReturnType(t: Type): Unit = {
+        returnType = t
+    }
 }
 case class ChildTable(val parent: Table) extends Table {
     override def isInFunction = parent.isInFunction
     override def getReturnType = parent.getReturnType
+    override def setReturnType(t: Type): Unit = {
+        
+    }
 }
 
 sealed class Symbol(val t: Type) extends TableEntry

@@ -100,6 +100,19 @@ object SemanticChecker {
         }
       }
 
+      /* returns the type of an lvalue */
+      def isInferredTypeDefinition(lVal: LValue): Boolean = {
+        lVal match {
+
+          /* if its an identifier then get it's type from the parent and child scope maps */
+          case (x@Ident(id)) =>  vars.getType(id) match {
+                                      case Some(x) => false
+                                      case None => true
+                               }
+          case _ => false
+        }
+      }
+
       /* return the type of an rvalue. */
       def getRValType(rval: RValue): Type = {
 
@@ -267,17 +280,22 @@ object SemanticChecker {
         }
 
         /* check assign statement */
-        case Assign(x, y) => {
+        case Assign(x, y) => {/* get type of left and right hand sides of the assign */
+
+          val rType = getRValType(y)
+          var lType = rType
 
           /* error if the identifier being reassigned is a function. */
           x match {
-            case (ident@Ident(id)) if (symbolTable.contains(id) && !vars.contains(id)) => ErrorLogger.err("Cannot re-assign value for a function: " + id, ident.pos)
-            case _ =>
+            case (ident@Ident(id)) => {
+              if (symbolTable.contains(id) && !vars.contains(id)) {
+                ErrorLogger.err("Cannot re-assign value for a function: " + id, ident.pos)
+              } else if (isInferredTypeDefinition(x)) {
+                declareVar(id, rType, vars, y.pos)
+              }
+            }
+            case _ => lType = getLValType(x)
           }
-
-          /* get type of left and right hand sides of the assign */
-          val lType = getLValType(x)
-          val rType = getRValType(y)
 
           /* error when attempting to assign an unknown type to another unknown type */
           if (lType == AnyType && rType == AnyType) ErrorLogger.err("invalid type for assign\n  cannot assign when both types are unknown", x.pos, y.pos)
@@ -314,7 +332,13 @@ object SemanticChecker {
           if (!vars.isInFunction) ErrorLogger.err("invalid return call\n  cannot return outside a function body", x.pos)
 
           /* error if return type does not match return type of the current function being checked */
-          val funcType = vars.getReturnType
+          var funcType = vars.getReturnType
+
+          if (funcType == NoType) {
+            funcType = rType
+            vars.setReturnType(rType)
+          }
+
           if (rType != funcType) ErrorLogger.err("invalid type for return", rType, funcType, x.pos)
         }
 
