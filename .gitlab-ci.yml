@@ -1,3 +1,7 @@
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+
 stages:
   - compile
   - test
@@ -16,6 +20,46 @@ test:
     - make test
     - echo "*-----Test-----*"
   tags: [private]
+  only: 
+    - master
+
+test_unit:
+  stage: test
+  script:
+    - make test_unit
+    - echo "*-----Test-----*"
+  tags: [private]
+  except:
+    - master
+
+test_parse:
+  stage: test
+  script:
+    - make test_parse
+    - echo "*-----Test-----*"
+  tags: [private]
+  except:
+    - master
+
+test_typecheck:
+  stage: test
+  script:
+    - make test_typecheck
+    - echo "*-----Test-----*"
+  tags: [private]
+  except:
+    - master
+
+test_compile:
+  stage: test
+  script:
+    - make test_execution
+    - echo "*-----Test-----*"
+  tags: [private]
+  except:
+    - master
+  when: manual
+
 
 cleanup:
   stage: cleanup
