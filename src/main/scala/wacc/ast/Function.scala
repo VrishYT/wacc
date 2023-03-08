@@ -5,7 +5,7 @@ import wacc.front.ParserBridge._
 import wacc.back._
 
 /* function case class with position */
-case class Func(flags: List[Annotation], fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
+case class Func(annotations: List[Annotation], fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
 
     def toAssembly(gen: CodeGenerator)(implicit table: FuncTable): Seq[Instruction] = {
 
