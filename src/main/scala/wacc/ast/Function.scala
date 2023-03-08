@@ -236,3 +236,7 @@ case class Param(t: Type, id: String)(val pos: (Int, Int))
 
 object Param extends ParserBridgePos2[Type, String, Param]
 
+/* typeless parameter case class with position */
+case class TypelessParam(id: String)(val pos: (Int, Int))
+
+object TypelessParam extends ParserBridgePos1[String, TypelessParam]

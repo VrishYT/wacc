@@ -250,7 +250,7 @@ object SemanticChecker {
                 })
                 ErrorLogger.err("invalid binary op type", rValType, types, exp.pos)
               }
-
+              
               /* check both operands are of correct type */
               val t1 = getType(exp1, op.input)
               val t2 = getType(exp2, op.input)
