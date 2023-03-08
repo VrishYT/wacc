@@ -42,7 +42,7 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
 
 object Declare extends ParserBridge3[Type, String, RValue, Declare]
 
-case class Assign(x: LValue, y: RValue) extends Stat {
+case class AssignOrTypelessDeclare(x: LValue, y: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
         val rhsAssembly = y.toAssembly(gen).condToReg(gen.regs)
         val lval = x match {
@@ -85,19 +85,19 @@ case class Assign(x: LValue, y: RValue) extends Stat {
                     out.getReg(),
                     out.instr ++ rhsAssembly.instr ++ Seq(Mov(out.getReg(), rhsAssembly.getOp()))
                 )
-                return Assign.assDec(lval, reg, gen.regs)
+                return AssignOrTypelessDeclare.assDec(lval, reg, gen.regs)
             }
             case StrLiteral(string) => {
-                return Assign.assDec(lval, rhsAssembly, gen.regs)
+                return AssignOrTypelessDeclare.assDec(lval, rhsAssembly, gen.regs)
             }
             case _ => {
-                return Assign.assDec(lval, rhsAssembly, gen.regs)
+                return AssignOrTypelessDeclare.assDec(lval, rhsAssembly, gen.regs)
             }
         }
     }
 }
 
-object Assign extends ParserBridge2[LValue, RValue, Assign] {
+object AssignOrTypelessDeclare extends ParserBridge2[LValue, RValue, AssignOrTypelessDeclare] {
     def assDec(lval: Assembly, rval: Assembly, regs: RegisterAllocator)(implicit table: Table) : Seq[Instruction] = {
         val reg = Operands.opToReg(rval.getOp(), regs)
         val save = lval.getOp() match {

@@ -280,7 +280,7 @@ object SemanticChecker {
         }
 
         /* check assign statement */
-        case Assign(x, y) => {/* get type of left and right hand sides of the assign */
+        case AssignOrTypelessDeclare(x, y) => {/* get type of left and right hand sides of the assign */
 
           val rType = getRValType(y)
           var lType = rType
