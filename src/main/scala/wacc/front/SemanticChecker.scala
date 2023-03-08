@@ -25,31 +25,31 @@ object SemanticChecker {
 
     /* Add each struct to symbol table */
     classes.foreach(c => {
-      val cls = new ClassEntry(c.class_id)
+      val cls = new ClassEntry(c.class_id, symbolTable.classTable)
       c.decls.foreach(field => {
-        // if (field.t != getRValType(field.rval)){
-        //   ErrorLogger.err("Field" + field.id + "has mismatching types", field.pos)
-        // }
-        declareVar(field.id, field.t, cls, field.pos)
+        declareVar(field.id, field.t, cls, field.pos, field.isPrivate)
       })
       
       c.funcs.foreach(func => {
-        checkFunction(func)
         val funcTable = new FuncTable(func.fs._2, func.args.map(_.t), func.fs._1)
-        if (symbolTable.contains(func.fs._2)) {
+        if (cls.contains(func.fs._2)) {
           errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
         } else {
           /* Add the function into the global scope */
           if (func.args.distinct.size != func.args.size) errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
           else {
-            cls.addTable(func.fs._2, funcTable)
             func.args.foreach(param => funcTable.add(param.id, ParamSymbol(param.t)))
+            cls.addTable(func.fs._2, funcTable)
           }
         }
+      })
+
+      if (symbolTable.classTable.contains(c.class_id)){
+        errors += new TypeException(message = "Cannot redeclare class '" + c.class_id, pos = Seq(c.pos))
+      }else{
+        symbolTable.classTable.addTable(c.class_id, cls)
       } 
-    )
-      
-  })
+    })
 
 
     functions.foreach(func => {
@@ -67,7 +67,7 @@ object SemanticChecker {
     })
 
     /* check if a variable already exists in scope, error if it does, and add it to the scope if it doesn't */
-    def declareVar(id: String, t: Type, vars: Table, pos: (Int, Int)): Unit = {
+    def declareVar(id: String, t: Type, vars: Table, pos: (Int, Int), isPrivate: Boolean = false): Unit = {
       if (!vars.add(id, Symbol(t))) errors += new TypeException(message = "Cannot redeclare variable '" + id + "'", pos = Seq(pos))
     }
 
@@ -195,11 +195,11 @@ object SemanticChecker {
           case newClass@NewClass(class_id, rvals) => {
             val class_mems = symbolTable.classTable.getTable(class_id) match {
               case Some(x) => x
-              case None => ErrorLogger.err(s"Struct '${class_id}' is undefined", newClass.pos)
+              case None => ErrorLogger.err(s"Class '${class_id}' is undefined", newClass.pos)
             }
 
             val class_types = class_mems match {
-              case z : ClassTable => z.types
+              case z : ClassEntry => z.types
               case _ => ???
             }
             val size = class_mems.getSize
@@ -218,29 +218,32 @@ object SemanticChecker {
 
 
           /* if it's a function call :  */
-          case (func@Call(id, args)) => {
+          case (func@Call(ids, args)) => {
+            if (ids.length == 1) {
+                /* get a list of its parameter types in order */
+              val funcVars = symbolTable.get(ids.head) match {
+                case Some(x) => x
+                case None => ErrorLogger.err(s"Function '${ids}' is undefined", func.pos) 
+              }
+              val currentArgs = funcVars.paramTypes
 
-            /* get a list of its parameter types in order */
-            val funcVars = symbolTable.get(id) match {
-              case Some(x) => x
-              case None => ErrorLogger.err(s"Function '${id}' is undefined", func.pos) 
+              /* error if the number of arguments is wrong */
+              if (args.length != currentArgs.length) ErrorLogger.err("Invalid number of arguments for function '" + ids + "'. expected: " + currentArgs.length + ". actual: " + args.length, func.pos)
+
+              /* check each argument type passed in is the same as the corresponding parameter for this function */
+              for (i <- 0 to args.length - 1) {
+                val paramType = currentArgs(i)
+                val rType = getRValType(args(i))
+
+                /* error an argument type doesn't match the required parameter */
+                if (rType != paramType) ErrorLogger.err("invalid type for arg", rType, paramType, args(i).pos)
+              }
+
+              /* return the type of the function from the identifier maps */
+              return funcVars.returnType
             }
-            val currentArgs = funcVars.paramTypes
-
-            /* error if the number of arguments is wrong */
-            if (args.length != currentArgs.length) ErrorLogger.err("Invalid number of arguments for function '" + id + "'. expected: " + currentArgs.length + ". actual: " + args.length, func.pos)
-
-            /* check each argument type passed in is the same as the corresponding parameter for this function */
-            for (i <- 0 to args.length - 1) {
-              val paramType = currentArgs(i)
-              val rType = getRValType(args(i))
-
-              /* error an argument type doesn't match the required parameter */
-              if (rType != paramType) ErrorLogger.err("invalid type for arg", rType, paramType, args(i).pos)
-            }
-
-            /* return the type of the function from the identifier maps */
-            return funcVars.returnType
+            return IntType
+            
           }
 
           /* for an expression, match on the specific type of expression : */

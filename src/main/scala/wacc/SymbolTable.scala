@@ -214,11 +214,9 @@ case class ClassTable(val id: String) extends Table {
 case class ClassEntry(val class_id : String, override val parent: ClassTable) extends ChildTable(parent) {
     def types(): List[Type] = table.values.filter(x => x match {
         case _: Symbol => true
-        case _: FuncTable => true
         case _ => false
     }).map(y => y match {
         case z: Symbol => z.t
-        case a: FuncTable => a.returnType
         case _ => ???
     }).toList
 }
