@@ -162,7 +162,9 @@ object Parser {
   
   val annotation = "@" *> Annotation(IDENT)
   
-  val annotationList = sepBy(annotation, pure(""))
+  val annotationList = sepBy(annotation.guardAgainst {
+    case annotation if !annotation.isValid => Seq("unknown annotation") // TODO: improve error msg
+  }, pure(""))
 
   /*rule to pick on invalid function declarations with a missing type*/
   val _invalid_function = amend((attempt(IDENT <~ "(").hide).verifiedFail(
