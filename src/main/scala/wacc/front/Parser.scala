@@ -9,6 +9,7 @@ object Parser {
   import Lexing._
   import implicits.implicitSymbol
   import parsley.combinator._
+  import parsley.Parsley.lookAhead
   import parsley.errors.combinator._
   import parsley.errors.patterns._
   import parsley.expr._
@@ -41,6 +42,8 @@ object Parser {
   /*parsing of basic types such as boolean values, pair literal null and primitive types*/
   val BOOL_LIT = ("true" #> true <|> "false" #> false).label(
     "boolean literal").explain("booleans can either be true or false")
+  
+  val PRIVATE = ("private" #> true <|> "public" #> false) <|> lookAhead(types) #> false
 
   val PAIR_LIT = (pos <**> ("null") #> PairLiteralNull).label("pair null type")
 
@@ -65,11 +68,11 @@ object Parser {
   val IDENT_OR_ARRAY_ELEM = IdentOrArrayElem(IDENT.label("identifier"), invalid_call *> option(
     "[".label("index (like \'xs[idx]\')") *> sepBy(expr, "][") <* "]"))
 
-  lazy val STRUCT_ELEM = StructElem(IDENT <~ ".", IDENT)
+  lazy val CLASS_ELEM = ClassElem(IDENT <~ ".", sepBy(IDENT, "."))
 
   /*base elements of any expression, as the expression type is recursive*/
   private lazy val atom: Parsley[Expr] = "(".label("open parenthesis") *> expr <* ")" <|>
-    attempt(STRUCT_ELEM) <|>
+    attempt(CLASS_ELEM) <|>
     IDENT_OR_ARRAY_ELEM <|>
     IntLiteral(INTEGER.hide).label("integer literal").explain(
       "all numbers are signed 32-bit integers") <|>
@@ -110,9 +113,9 @@ object Parser {
 
   val ARRAY_TYPE: Parsley[Type] = chain.postfix(atom2, ArrayType <# array_type_desc("[]"))
 
-  val STRUCT_TYPE: Parsley[Type] = StructType("struct" *> IDENT)
+  val CLASS_TYPE: Parsley[Type] = ClassType(IDENT <~ lookAhead(IDENT))
 
-  lazy val types: Parsley[Type] = ARRAY_TYPE <|> BASE_TYPE <|> PAIR_TYPE <|> STRUCT_TYPE
+  lazy val types: Parsley[Type] = ARRAY_TYPE <|> BASE_TYPE <|> PAIR_TYPE <|> CLASS_TYPE
 
   val ARG_LIST = sepEndBy(expr, ",")
 
@@ -123,11 +126,11 @@ object Parser {
     expr <|>
     ARRAY_LITER <|>
     NewPair("newpair" *> "(" *> expr <~ ",", expr <~ ")") <|>
-    NewStruct("newstruct" *> "{" *> sepBy(rvalue, ",") <~ "}") <|>
+    NewClass("new" *> IDENT, "(" *> sepBy(rvalue, ",") <~ ")") <|>
     PAIR_ELEM 
 
   /*defined parsing for l-values*/
-  lazy val lvalue: Parsley[LValue] = attempt(STRUCT_ELEM) <|> IDENT_OR_ARRAY_ELEM <|> PAIR_ELEM
+  lazy val lvalue: Parsley[LValue] = attempt(CLASS_ELEM) <|> IDENT_OR_ARRAY_ELEM <|> PAIR_ELEM
 
   /*created a parsing rule to avoid function declarations in the middle of a block*/
   val _invalid_declaration = amend(attempt((types *> IDENT <~ "(").hide) *> unexpected(
@@ -171,21 +174,21 @@ object Parser {
     "function declaration missing type"))
 
   /*rule to parse on functions*/
-  val func = _invalid_function <|> Func(attempt(types <~> IDENT <~ "(".label(
+  val func = _invalid_function <|> Func(PRIVATE, attempt(types <~> IDENT <~ "(".label(
     "opening parenthesis")).label(
     "function declaration"), paramList <~ ")", "is" *> stats <* "end")
+  
+  val funcs = sepEndBy(func.guardAgainst { case func if !func.validReturn => Seq("function is missing a return/exit on all exit paths")}, pure(""))
 
   /*rule to parse on structs */
-  val member = Member(types, IDENT)
-  val memberList = sepBy(member, ",")
-  val struct = Struct(attempt("struct" *> IDENT <~ "{"), memberList <~ "}")
+  val field = Field(PRIVATE, types, IDENT, "=" *> rvalue)
+  val fieldList = sepBy(field, pure(""))
+  val cls = Class(attempt("class" *> IDENT <~ "{"), fieldList, funcs <~ "}")
  
 
   /*rule to parse on programs, we check that at the end of the function body
     we have a return or an exit on all exit paths using the method valid return*/
-  val program_ = Program("begin" *> sepEndBy(struct, pure("")), sepEndBy(func.guardAgainst {
-    case func if !func.validReturn => Seq("function is missing a return/exit on all exit paths")
-  }, pure("")), stats <* "end")
+  val program_ = Program("begin" *> sepEndBy(cls, pure("")), funcs, stats <* "end")
 
   val program = fully(program_)
 }
