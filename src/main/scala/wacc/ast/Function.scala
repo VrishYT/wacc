@@ -231,12 +231,20 @@ object TypelessFunc extends ParserBridgePos3[String, List[Param], List[Stat], Ty
 
 }
 
-/* parameter case class with position */
-case class Param(t: Type, id: String)(val pos: (Int, Int))
+trait Param {
+    val id: String
+    val pos: (Int, Int)
+    val t: Type
+}
 
-object Param extends ParserBridgePos2[Type, String, Param]
+/* parameter case class with position */
+case class TypedParam(t: Type, id: String)(val pos: (Int, Int)) extends Param
+
+object TypedParam extends ParserBridgePos2[Type, String, Param]
 
 /* typeless parameter case class with position */
-case class TypelessParam(id: String)(val pos: (Int, Int))
+case class TypelessParam(id: String)(val pos: (Int, Int)) extends Param {
+    val t = NoType
+}
 
 object TypelessParam extends ParserBridgePos1[String, TypelessParam]
