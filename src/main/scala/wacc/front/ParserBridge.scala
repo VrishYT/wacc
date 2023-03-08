@@ -5,6 +5,7 @@ import parsley.Parsley
 import parsley.position.pos
 import parsley.implicits.zipped.Zipped2
 import parsley.implicits.zipped.Zipped3
+import parsley.implicits.zipped.Zipped4
 
 
 object ParserBridge {
@@ -51,5 +52,14 @@ object ParserBridge {
       pos <**> (x, y, z).zipped(this.apply(_, _, _) _)
 
     override final def con(pos: (Int, Int)): (A, B, C) => D = this.apply(_, _, _)(pos)
+  }
+
+  trait ParserBridgePos4[-A, -B, -C, -D, +E] extends ParserSingletonBridge[(A, B, C, D) => E] {
+    def apply(x: A, y: B, z: C, a: D)(pos: (Int, Int)): E
+
+    def apply(x: Parsley[A], y: Parsley[B], z: Parsley[C], a: Parsley[D]): Parsley[E] =
+      pos <**> (x, y, z, a).zipped(this.apply(_, _, _, _) _)
+
+    override final def con(pos: (Int, Int)): (A, B, C, D) => E = this.apply(_, _, _, _)(pos)
   }
 }
