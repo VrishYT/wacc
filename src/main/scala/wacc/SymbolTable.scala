@@ -28,7 +28,7 @@ sealed abstract class Table extends TableEntry {
         beginCount = 0
     }
 
-    private def updateRecursive(id: String, symbol: Symbol): Unit = {
+    def updateRecursive(id: String, symbol: Symbol): Unit = {
 
         def updateParent(id: String, symbol: Symbol, table: Table): Unit = {
             if (table.contains(id)) table.table(id) = symbol

@@ -43,7 +43,9 @@ object SemanticChecker {
     /* checks for invalid semantics within a specific function */
     def checkFunction(func: Func): Unit = {
       symbolTable.get(func.fs._2) match {
-        case Some(x) => checkStatements(func.stats, x)
+        case Some(x) => {
+          checkStatements(func.stats, x)
+        }
         case None => errors += new TypeException(message = "Invalid function declaration", pos = Seq(func.pos))
       }      
     }
@@ -100,14 +102,29 @@ object SemanticChecker {
         }
       }
 
-      /* returns the type of an lvalue */
+      /* returns true if the lvalue isn't declared yet */
       def isInferredTypeDefinition(lVal: LValue): Boolean = {
         lVal match {
 
-          /* if its an identifier then get it's type from the parent and child scope maps */
+          /* if its an identifier then check if its in the parent and child scope maps yet */
           case (x@Ident(id)) =>  vars.getType(id) match {
                                       case Some(x) => false
                                       case None => true
+                               }
+          case _ => false
+        }
+      }
+
+      /* returns true if the lvalue has no type yet */
+      def isTypelessParam(lVal: LValue): Boolean = {
+        lVal match {
+
+          /* if its an identifier then check if it has a type in the parent and child scope maps yet*/
+          case (x@Ident(id)) =>  vars.getType(id) match {
+                                      case Some(x) => {
+                                        return x == NoType
+                                      }
+                                      case None => ???
                                }
           case _ => false
         }
@@ -292,6 +309,10 @@ object SemanticChecker {
                 ErrorLogger.err("Cannot re-assign value for a function: " + id, ident.pos)
               } else if (isInferredTypeDefinition(x)) {
                 declareVar(id, rType, vars, y.pos)
+              } else if (isTypelessParam(x)) {
+                vars.updateRecursive(id, Symbol(rType))
+              } else {
+                lType = getLValType(x)
               }
             }
             case _ => lType = getLValType(x)
