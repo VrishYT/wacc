@@ -122,7 +122,7 @@ object Parser {
   lazy val PAIR_ELEM = Fst(pair_op("fst") *> lvalue) <|> Snd(pair_op("snd") *> lvalue)
 
   /*defined parsing for r-values*/
-  lazy val rvalue: Parsley[RValue] = Call("call".label("function call") *> IDENT, "(" *> ARG_LIST <~ ")") <|>
+  lazy val rvalue: Parsley[RValue] = Call("call".label("function call") *> sepBy(IDENT, "."), "(" *> ARG_LIST <~ ")") <|> //TODO change for a list of idents
     expr <|>
     ARRAY_LITER <|>
     NewPair("newpair" *> "(" *> expr <~ ",", expr <~ ")") <|>
@@ -181,7 +181,7 @@ object Parser {
   val funcs = sepEndBy(func.guardAgainst { case func if !func.validReturn => Seq("function is missing a return/exit on all exit paths")}, pure(""))
 
   /*rule to parse on structs */
-  val field = Field(PRIVATE, types, IDENT, "=" *> rvalue)
+  val field = Field(PRIVATE, types, IDENT)
   val fieldList = sepBy(field, pure(""))
   val cls = Class(attempt("class" *> IDENT <~ "{"), fieldList, funcs <~ "}")
  
