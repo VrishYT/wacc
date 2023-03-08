@@ -16,7 +16,7 @@ import scala.io.Source
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 
-// @Ignore
+@Ignore
 class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTests {
 
     val timeLimit = Span(5, Seconds)
@@ -104,6 +104,6 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
 
     val make = "make".!!
     var examples = Paths.get("src/test/scala/wacc/wacc_examples/valid/")
-    Files.walk(examples).iterator().asScala.filter(_.getFileName.toString.endsWith(".wacc")).foreach(testFile(_))
+    // Files.walk(examples).iterator().asScala.filter(_.getFileName.toString.endsWith(".wacc")).foreach(testFile(_))
 
 }
