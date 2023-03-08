@@ -14,7 +14,7 @@ class TailRecursiveTypecheckTest extends AnyFunSuite {
         val program = Program(
             List(
                 Func(
-                    List(TailRecursiveFlag),
+                    List(TailRecursiveAnnotation),
                     (IntType,"sumToFive"),
                     List(Param(IntType,"x")(0,0)),
                     List(
