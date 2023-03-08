@@ -3,9 +3,9 @@ package ast
 
 import wacc.front.ParserBridge._
 
-case class Field(isPrivate: Boolean, t: Type, id: String, rval: RValue)(val pos: (Int, Int))
+case class Field(isPrivate: Boolean, t: Type, id: String)(val pos: (Int, Int))
 
-object Field extends ParserBridgePos4[Boolean, Type, String, RValue, Field]
+object Field extends ParserBridgePos3[Boolean, Type, String, Field]
 
 case class Class(class_id: String, decls: List[Field], funcs: List[Func])(val pos: (Int, Int))
 
