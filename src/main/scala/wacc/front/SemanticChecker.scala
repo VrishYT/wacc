@@ -15,11 +15,42 @@ object SemanticChecker {
     val errors = ArrayBuffer[TypeException]()
 
     /* lists of all statements and functions in program */
+    val classes = program.classes
     val statements = program.stats
     val functions = program.fs
 
     /* create a map for the global scope, containing function identifiers to return types */
     val vars = symbolTable.declare("main")
+    
+
+    /* Add each struct to symbol table */
+    classes.foreach(c => {
+      val cls = new ClassEntry(c.class_id)
+      c.decls.foreach(field => {
+        // if (field.t != getRValType(field.rval)){
+        //   ErrorLogger.err("Field" + field.id + "has mismatching types", field.pos)
+        // }
+        declareVar(field.id, field.t, cls, field.pos)
+      })
+      
+      c.funcs.foreach(func => {
+        checkFunction(func)
+        val funcTable = new FuncTable(func.fs._2, func.args.map(_.t), func.fs._1)
+        if (symbolTable.contains(func.fs._2)) {
+          errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
+        } else {
+          /* Add the function into the global scope */
+          if (func.args.distinct.size != func.args.size) errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
+          else {
+            cls.addTable(func.fs._2, funcTable)
+            func.args.foreach(param => funcTable.add(param.id, ParamSymbol(param.t)))
+          }
+        }
+      } 
+    )
+      
+  })
+
 
     functions.foreach(func => {
 
@@ -95,16 +126,37 @@ object SemanticChecker {
           /* if it's a pair element then get the type of x, which is in the form fst(y) or snd(y),
                     by calling getLValPairElem */
           case x: PairElem => getLValPairElem(x)
+
+          case classElem@ClassElem(id, elems@(e::es)) => {
+            getClassType(id, elems)
+          }
+
           /* Default case - should be unreachable. */
           case _ => ErrorLogger.err("Unknown lvalue passed in", 1)
         }
       }
 
+      def getClassType(id: String, elems: List[String]): Type = {
+        val e = elems.head
+        val es = elems.tail
+        symbolTable.classTable.getTable(id) match {  
+          case Some(x) => {
+            if (elems.length == 1){
+              x.getType(e) match {
+                case Some(y) => y
+                case None => ErrorLogger.err(s"elem $e does not exist in class $id")
+              }
+            }else {
+              return getClassType(e,es)
+            }
+          }
+          case None => ErrorLogger.err(s"struct $id does not exist")
+        }
+      }
+
       /* return the type of an rvalue. */
       def getRValType(rval: RValue): Type = {
-
         rval match {
-
           /* if it's a pair element then get the type of x, which is in the form fst(y) or snd(y),
                     by calling getLValPairElem */
           case x: PairElem => getLValPairElem(x)
@@ -136,13 +188,42 @@ object SemanticChecker {
             return new PairType(getPairElem(fst), getPairElem(snd))
           }
 
+          case classElem@ClassElem(id, elems@(e::es)) => {
+            getClassType(id, elems)
+          }
+
+          case newClass@NewClass(class_id, rvals) => {
+            val class_mems = symbolTable.classTable.getTable(class_id) match {
+              case Some(x) => x
+              case None => ErrorLogger.err(s"Struct '${class_id}' is undefined", newClass.pos)
+            }
+
+            val class_types = class_mems match {
+              case z : ClassTable => z.types
+              case _ => ???
+            }
+            val size = class_mems.getSize
+            if (rvals.length != size){
+              ErrorLogger.err(s"You have not defined the values for '${class_id}' fully", newClass.pos)
+            }
+
+            for (i <- 0 to size - 1) {
+              val expectedType = class_types(i)
+              val rValType = getRValType(rvals(i)) 
+              if (expectedType != rValType) ErrorLogger.err("invalid type assigned in class", expectedType, rValType, newClass.pos)
+            }
+              
+            return new ClassType(class_id)
+          }
+
+
           /* if it's a function call :  */
           case (func@Call(id, args)) => {
 
             /* get a list of its parameter types in order */
             val funcVars = symbolTable.get(id) match {
               case Some(x) => x
-              case None => ErrorLogger.err("Function '${id}' is undefined", func.pos) 
+              case None => ErrorLogger.err(s"Function '${id}' is undefined", func.pos) 
             }
             val currentArgs = funcVars.paramTypes
 

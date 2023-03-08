@@ -12,10 +12,10 @@ sealed abstract class Table extends TableEntry {
     var beginCount = 0 
     private var size = 0
 
-    def isInFunction: Boolean
-    def getReturnType: Type
+    def isInFunction: Boolean = false
+    def getReturnType: Type = AnyType
 
-    private val table = MapM[String, TableEntry]()
+    protected val table = MapM[String, TableEntry]()
 
     override def toString(): String = "\n" + table.filter(x => x._2.isInstanceOf[OpSymbol] || x._2.isInstanceOf[Table]).mkString("\n") + "\n ----"
 
@@ -112,7 +112,7 @@ sealed abstract class Table extends TableEntry {
         return true
     }
 
-    private def addTable(id: String, vars: Table) = {
+    def addTable(id: String, vars: Table) = {
         table(id) = vars
     }
 
@@ -192,9 +192,33 @@ case class ChildTable(val parent: Table) extends Table {
     override def getReturnType = parent.getReturnType
 }
 
-sealed class Symbol(val t: Type) extends TableEntry
+case class ClassTable(val id: String) extends Table {
+    // def addClass(cls: ClassEntry, decls: List[Field], funcs: List[Func]): Unit = {
+    //     decls.foreach(field => {
+    //         !cls.add(field.id, Symbol(field.t, field.isPrivate))
+    //     })
+    //     funcs.foreach(func =>{
+    //         val funcTable = new FuncTable(func.fs._2, func.args.map(_.t), func.fs._1)
+    //         cls.addTable(func.fs._2, funcTable)
+    //         func.args.foreach(param => funcTable.add(param.id, ParamSymbol(param.t)))
+    //     })
+    // }
+
+    def types(): List[Type] = table.values.filter(x => x match {
+        case y : Symbol => true
+        case _ => false
+    }).map(y => y match {
+        case z: Symbol => z.t
+        case _ => ???
+    }).toList
+}
+
+case class ClassEntry(class_id : String) extends Table
+
+class Symbol(val t: Type, val isPrivate : Boolean = false) extends TableEntry
 object Symbol {
-    def apply(t: Type): Symbol = new Symbol(t)
+    def apply(t: Type): Symbol = new Symbol(t, false)
+    def apply(t: Type, isPrivate: Boolean) = new Symbol(t, isPrivate)
 }
 
 case class ParamSymbol(override val t: Type) extends Symbol(t)
@@ -203,6 +227,9 @@ case class OpSymbol(override val t: Type, val op: Operand) extends Symbol(t)
 class SymbolTable {
 
     private val table = MapM[String, FuncTable]()
+
+    /* create global class table for storing all types of classes */
+    val classTable = new ClassTable("_class")
 
     override def toString(): String = table.mkString("\n")
 
