@@ -42,6 +42,11 @@ object SemanticChecker {
 
     /* checks for invalid semantics within a specific function */
     def checkFunction(func: Func): Unit = {
+      func.annotations.foreach(a => {
+        if (!a.verify(func)) {
+          errors += new TypeException(message = a.errorMsg, pos = Seq(func.pos))
+        }
+      })
       symbolTable.get(func.fs._2) match {
         case Some(x) => checkStatements(func.stats, x)
         case None => errors += new TypeException(message = "Invalid function declaration", pos = Seq(func.pos))
