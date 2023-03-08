@@ -33,7 +33,7 @@ sealed abstract class Table extends TableEntry {
             if (table.contains(id)) table.table(id) = symbol
             else {
                 table match {
-                    case ChildTable(parent) => updateParent(id, symbol, parent)
+                    case x: ChildTable => updateParent(id, symbol, x.parent)
                     case _ => ??? 
                 }
             }
@@ -51,7 +51,7 @@ sealed abstract class Table extends TableEntry {
             })
             if (filtered.isEmpty) {
                 table match {
-                    case ChildTable(parent) => getFromParent(parent)
+                    case x: ChildTable => getFromParent(x.parent)
                     case _ => None
                 }
             } else if (filtered.size > 1) None
@@ -85,7 +85,7 @@ sealed abstract class Table extends TableEntry {
             })
             if (filtered.isEmpty) {
                 table match {
-                    case ChildTable(parent) => update(parent)
+                    case x: ChildTable => update(x.parent)
                     case _ => ???
                 }
             } else if (filtered.size > 1) ???
@@ -139,7 +139,7 @@ sealed abstract class Table extends TableEntry {
         def getFromParent(id: String, table: Table): Option[TableEntry] = table.table.get(id) match {
             case x: Some[_] => x
             case None => table match {
-                case ChildTable(parent) => getFromParent(id, parent)
+                case x: ChildTable => getFromParent(id, x.parent)
                 case _ => None
             }
         }
@@ -156,7 +156,7 @@ sealed abstract class Table extends TableEntry {
         case Some(x) => x match {
             case x: OpSymbol => x.op
             case _ => this match {
-                case ChildTable(parent) => parent.getOp(id)
+                case x: ChildTable => x.parent.getOp(id)
             case _ => ???
             }
         }
@@ -187,13 +187,18 @@ case class FuncTable(val id: String, val paramTypes: Seq[Type], val returnType: 
     override def isInFunction = id != "main"
     override def getReturnType = returnType
 }
-case class ChildTable(val parent: Table) extends Table {
+sealed class ChildTable(val parent: Table) extends Table {
     override def isInFunction = parent.isInFunction
     override def getReturnType = parent.getReturnType
 }
+object ChildTable {
+    def apply(parent: Table): ChildTable = new ChildTable(parent)
+}
+
 
 case class ClassTable(val id: String) extends Table {
-    // def addClass(cls: ClassEntry, decls: List[Field], funcs: List[Func]): Unit = {
+    
+    // def addClass(, decls: List[Field], funcs: List[Func]): Unit = {
     //     decls.foreach(field => {
     //         !cls.add(field.id, Symbol(field.t, field.isPrivate))
     //     })
@@ -204,16 +209,19 @@ case class ClassTable(val id: String) extends Table {
     //     })
     // }
 
+}
+
+case class ClassEntry(val class_id : String, override val parent: ClassTable) extends ChildTable(parent) {
     def types(): List[Type] = table.values.filter(x => x match {
-        case y : Symbol => true
+        case _: Symbol => true
+        case _: FuncTable => true
         case _ => false
     }).map(y => y match {
         case z: Symbol => z.t
+        case a: FuncTable => a.returnType
         case _ => ???
     }).toList
 }
-
-case class ClassEntry(class_id : String) extends Table
 
 class Symbol(val t: Type, val isPrivate : Boolean = false) extends TableEntry
 object Symbol {
