@@ -56,7 +56,15 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
           case _ => expr.not()
         }
       }
-      case Ord | Chr => expr
+      case Ord | Chr => x match {
+        case _: Ident => {
+          val reg = gen.regs.allocate
+          // println(s"allocated ${reg.getReg()} for ident")
+          gen.regs.free(reg.getReg())
+          RegAssembly(reg.getReg(), expr.instr ++ reg.instr :+ Mov(reg.getReg(), expr.getOp()))
+        }
+        case _ => expr
+      }
       case Negate => {
         val out = gen.regs.allocate
         val reg = gen.regs.allocate
@@ -89,19 +97,28 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
 
   override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
 
+    // println(s"*--x $op y--*\n")
+    // println(x + "\n")
+    // println(y + "\n")
+
     def binaryOpToAssembly(out: Register, x: Register, y: Operand): Seq[Instruction] = op match {
       case ast.Mul => {
         gen.postSections.addOne(PrintStringSection)
         gen.postSections.addOne(IntegerOverflow)
-        val out2 = gen.regs.allocate
-        val out3 = gen.regs.allocate
-        gen.regs.free(out2.getReg())
-        gen.regs.free(out3.getReg())
-        out2.instr ++ out3.instr ++ Seq(
-          Mov(out3.getReg(), y),
-          SMull(out, out2.getReg(), x, out3.getReg()),
-          Cmp(out2.getReg(), ASR(out, ImmInt(31))),
-          LinkBranch("_errOverflow", NE))}
+        val temp = Register(12)
+        // println("optoreg")
+        val op = Operands.opToReg(y, gen.regs)
+        y match {
+          case _: LExpr => 
+          case _ => gen.regs.free(op.getReg())
+        }
+        // println("after optoreg")
+        op.instr ++ Seq(
+          SMull(out, temp, x, op.getReg()),
+          Cmp(temp, ASR(out, ImmInt(31))),
+          LinkBranch("_errOverflow", NE)
+        )
+      }
       case ast.Div => {
         gen.postSections.addOne(PrintStringSection)
         gen.postSections.addOne(DivZeroError)
@@ -172,8 +189,15 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
       case ast.NotEqual => evalBool(NE)
       case _ => {
         val out = x match {
-          case _: Ident => gen.regs.allocate
-          case _ => RegAssembly(r1)
+          case _: Ident => {
+            val reg = gen.regs.allocate
+            // println(s"allocated ${reg.getReg()} for ident")
+            reg
+          }
+          case x => {
+            // println(x)
+            RegAssembly(r1)
+          }
         }
         val op2 = expr2.getOp() match {
           case reg: Register => {
@@ -185,7 +209,11 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
           }
           case x => x
         }
-        return Assembly(out.getReg(), expr2.instr ++ expr1.instr ++ reg.instr ++ out.instr ++ binaryOpToAssembly(out.getReg(), r1, op2))
+        // println(s"regOut = ${out.getReg()}")
+        val assembly = Assembly(out.getReg(), expr2.instr ++ expr1.instr ++ reg.instr ++ out.instr ++ binaryOpToAssembly(out.getReg(), r1, op2))
+        gen.regs.free(out.getReg())
+        // println("---")
+        assembly
       }
     }
   }

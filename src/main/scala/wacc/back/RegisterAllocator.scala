@@ -5,7 +5,7 @@ class RegisterAllocator(val mem: MemoryAllocator) {
 
     import scala.collection.mutable.Queue
 
-    private val regsInUse = Queue[Register]()
+    val regsInUse = Queue[Register]()
     val freeRegs = Queue(
         Register(1), 
         Register(2), 
@@ -18,6 +18,7 @@ class RegisterAllocator(val mem: MemoryAllocator) {
         Register(9), 
         Register(10)
     )
+    /*register 0 is used for outputs and register 12 is used as a scratch register*/
 
     def reset(): Unit = {
         while (!regsInUse.isEmpty) {
@@ -26,15 +27,25 @@ class RegisterAllocator(val mem: MemoryAllocator) {
         }
     }
 
-    def isAllocated(reg: Register): Boolean = regsInUse.contains(reg)
+    def isAllocated(reg: Register): Boolean = {
+        regsInUse.foreach(r => if (r.i == reg.i) return true)
+        return false
+    }
 
-    def link(id: String, reg: Register)(implicit table: Table): Unit = {
-        table.update(id, reg)
+    def use(reg: Register): Unit = {
         freeRegs.removeFirst(_.i == reg.i)
         regsInUse.enqueue(reg)
     }
 
+    def link(id: String, reg: Register)(implicit table: Table): Unit = {
+        table.update(id, reg)
+        use(reg)
+    }
+
     def free(reg: Register): Unit = {
+        // println(s"use: $regsInUse")
+        // println(s"free: $freeRegs")
+        // println(s"freeReg: $reg")
         if (regsInUse.contains(reg) && !freeRegs.contains(reg)) {
             regsInUse -= reg
             freeRegs += reg
@@ -54,7 +65,7 @@ class RegisterAllocator(val mem: MemoryAllocator) {
             table.getIDFromReg(reg) match {
                 case Some(x) => {
                     val instr = mem.store(x, reg)
-                    table.update(x, instr.getOp())
+                    table.updateEntry(x, reg, instr.getOp())
                     return RegAssembly(reg, instr.instr)
                 }
                 case None => {
@@ -66,6 +77,7 @@ class RegisterAllocator(val mem: MemoryAllocator) {
 
         val reg = if (freeRegs.isEmpty) realloc() else RegAssembly(freeRegs.dequeue())
         regsInUse.enqueue(reg.getReg())
+        // println(s"allocated ${reg.getReg()}")
         return reg
     }
 

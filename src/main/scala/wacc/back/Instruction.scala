@@ -147,6 +147,7 @@ case class Pop(dest: Register*) extends Instruction {
     }
 }
 
+/*Data and Text Instructions*/
 case class Label(label: String) extends Instruction {
     override def arm11(implicit sb : StringBuilder) : Unit = {
         sb.append(s"${label}:")

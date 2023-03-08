@@ -7,6 +7,7 @@ object Condition extends Enumeration {
   val AL: Value = Value("")
   val NO: Value = Value("") // USED INTERNALLY ONLY
 
+  /*helper method for negating the conditions*/
   def invert(cond: Condition): Condition = cond match {
     case AL => NO
     case NO => AL

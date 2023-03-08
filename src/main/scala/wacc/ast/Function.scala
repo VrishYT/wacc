@@ -18,15 +18,25 @@ case class TypedFunc(fs: (Type, String), args: List[Param], stats: List[Stat])(v
 
     def toAssembly(gen: CodeGenerator)(implicit table: FuncTable): Seq[Instruction] = {
 
+        gen.mem.size = 0.max(table.getSize - gen.regs.freeRegs.size)
+
         (0 until args.length).foreach(i => {
             val param = args(i)
             gen.regs.link(param.id, Register(i + 1))
+            // println(s"link ${param.id} => r${i+1}")
+            // println(s"inUse: ${gen.regs.regsInUse}")
+            // println(s"free: ${gen.regs.freeRegs}")
         })
         
         val instr = stats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
-        val stack = 0.max(table.getSize - gen.regs.freeRegs.size)
 
-        return gen.mem.grow(stack) +: TypedFunc.generateFunction(s"wacc_${fs._2}", instr) :+ gen.mem.shrink(stack)
+        // println(s"table = ${table.getSize}\nfreeRegs = ${gen.regs.freeRegs.size}")
+        // println(s"inUse: ${gen.regs.regsInUse}")
+        // println(s"free: ${gen.regs.freeRegs}")
+
+        // println(s"stacksize = $stack")
+
+        return TypedFunc.generateFunction(s"wacc_${fs._2}", gen.mem.grow() +: instr, TypedFunc.FuncRegs:_*)
     }
 
     /* define validReturn of a function, and match on the last statement : */
@@ -58,6 +68,7 @@ case class TypedFunc(fs: (Type, String), args: List[Param], stats: List[Stat])(v
             valid
             }
     }
+
 }
 
 /* function case class with position */
@@ -67,15 +78,25 @@ case class TypelessFunc(name: String, args: List[Param], stats: List[Stat])(val 
 
     def toAssembly(gen: CodeGenerator)(implicit table: FuncTable): Seq[Instruction] = {
 
+        gen.mem.size = 0.max(table.getSize - gen.regs.freeRegs.size)
+
         (0 until args.length).foreach(i => {
             val param = args(i)
             gen.regs.link(param.id, Register(i + 1))
+            // println(s"link ${param.id} => r${i+1}")
+            // println(s"inUse: ${gen.regs.regsInUse}")
+            // println(s"free: ${gen.regs.freeRegs}")
         })
         
         val instr = stats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
-        val stack = 0.max(table.getSize - gen.regs.freeRegs.size)
 
-        return gen.mem.grow(stack) +: TypelessFunc.generateFunction(s"wacc_${name}", instr) :+ gen.mem.shrink(stack)
+        // println(s"table = ${table.getSize}\nfreeRegs = ${gen.regs.freeRegs.size}")
+        // println(s"inUse: ${gen.regs.regsInUse}")
+        // println(s"free: ${gen.regs.freeRegs}")
+
+        // println(s"stacksize = $stack")
+
+        return TypelessFunc.generateFunction(s"wacc_${fs._2}", gen.mem.grow() +: instr, TypelessFunc.FuncRegs:_*)
     }
 
     /* define validReturn of a function, and match on the last statement : */
@@ -107,6 +128,7 @@ case class TypelessFunc(name: String, args: List[Param], stats: List[Stat])(val 
             valid
             }
     }
+
 }
 
 /* function and parameter companion objects with parser bridges */
@@ -114,7 +136,7 @@ object TypedFunc extends ParserBridgePos3[(Type, String), List[Param], List[Stat
 
     import scala.collection.mutable.{ListBuffer}
 
-    val Func_Regs = Seq(
+    val FuncRegs = Seq(
         Register(1),
         Register(2),
         Register(3),
@@ -128,21 +150,21 @@ object TypedFunc extends ParserBridgePos3[(Type, String), List[Param], List[Stat
     )
 
     def generateFunction(id: String, instr: Seq[Instruction], regsToSave: Register*): Seq[Instruction] = {
-            val pop = if (regsToSave.isEmpty) Seq() else Seq(Pop{regsToSave:_*})
+            // val pop = if (regsToSave.isEmpty) Seq() else Seq(Pop{regsToSave:_*})
             Seq(
                 Label(id),
-                Push{(LR +: regsToSave):_*}
-            ) ++ instr ++ pop
+                Push{(regsToSave :+ LR):_*}
+            ) ++ instr
     }
 
     def callFunction(id: String, args: Seq[Operand] = Seq(), gen: CodeGenerator): Seq[Instruction] = {
 
-        if (args.length > Func_Regs.length) println("Too many args to load in") // TODO: load excess into mem 
+        if (args.length > FuncRegs.length) println("Too many args to load in") // TODO: load excess into mem 
 
-        val range = (0 until args.length.min(Func_Regs.length))
+        val range = (0 until args.length.min(FuncRegs.length))
 
         val instr = ListBuffer[Instruction]()
-        val regs = range.map(i => Register(i + 1))/*.filter(gen.regs.isAllocated(_))*/
+        val regs = range.map(i => Register(i + 1)).filter(gen.regs.isAllocated(_))
 
         if (!regs.isEmpty) instr += Push(regs:_*)
 
@@ -164,7 +186,7 @@ object TypelessFunc extends ParserBridgePos3[String, List[Param], List[Stat], Ty
 
     import scala.collection.mutable.{ListBuffer}
 
-    val Func_Regs = Seq(
+    val FuncRegs = Seq(
         Register(1),
         Register(2),
         Register(3),
@@ -178,21 +200,21 @@ object TypelessFunc extends ParserBridgePos3[String, List[Param], List[Stat], Ty
     )
 
     def generateFunction(id: String, instr: Seq[Instruction], regsToSave: Register*): Seq[Instruction] = {
-            val pop = if (regsToSave.isEmpty) Seq() else Seq(Pop{regsToSave:_*})
+            // val pop = if (regsToSave.isEmpty) Seq() else Seq(Pop{regsToSave:_*})
             Seq(
                 Label(id),
-                Push{(LR +: regsToSave):_*}
-            ) ++ instr ++ pop
+                Push{(regsToSave :+ LR):_*}
+            ) ++ instr
     }
 
     def callFunction(id: String, args: Seq[Operand] = Seq(), gen: CodeGenerator): Seq[Instruction] = {
 
-        if (args.length > Func_Regs.length) println("Too many args to load in") // TODO: load excess into mem 
+        if (args.length > FuncRegs.length) println("Too many args to load in") // TODO: load excess into mem 
 
-        val range = (0 until args.length.min(Func_Regs.length))
+        val range = (0 until args.length.min(FuncRegs.length))
 
         val instr = ListBuffer[Instruction]()
-        val regs = range.map(i => Register(i + 1))/*.filter(gen.regs.isAllocated(_))*/
+        val regs = range.map(i => Register(i + 1)).filter(gen.regs.isAllocated(_))
 
         if (!regs.isEmpty) instr += Push(regs:_*)
 

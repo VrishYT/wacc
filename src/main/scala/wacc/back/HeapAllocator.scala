@@ -17,7 +17,7 @@ class HeapAllocator {
      def mallocPair(fst: Operand, snd: Operand, out: Register): Assembly = {
 
         val elemSize = 4
-
+        /*malloc pairs and malloc elements inside pair*/
         def mallocPairElem(elem: Operand): Seq[Instruction] = {
             val instrs = (Mov(Register(0), ImmInt(elemSize)) +: malloc) ++ Seq(Mov(out, Register(0)),  Mov(Register(8), elem))
 

@@ -9,6 +9,8 @@ abstract class DataSection {
     def toAssembly(): Seq[Instruction]
 }
 
+/*assembly method that can be generalised to print characters, integers, 
+strings, pointers and new lines*/
 sealed abstract class PrintSection(val short: String, val format: String, val name: String) extends DataSection {
     def toAssembly(): Seq[Instruction] = {
         val label = s".L._print${short}_${name}"
@@ -35,6 +37,9 @@ case object PrintStringSection extends PrintSection("s", "%.*s", "str")
 case object PrintNewLine extends PrintSection("ln", "\\n", "ln")
 case object PrintPointerSection extends PrintSection("p", "%p", "p")
 
+
+/*assembly method checks value in register to see if it is a 1 or a 0 and 
+accordingly prints the boolean value*/
 case object PrintBoolSection extends DataSection {
     def toAssembly(): Seq[Instruction] = {
         return Seq(
@@ -62,6 +67,8 @@ case object PrintBoolSection extends DataSection {
     }
 }
 
+/*general template for loading 4 byte elems, storing 4 byte elems, 
+loading 1 byte and storing 1 byte*/
 sealed abstract class ArraySection(id: String, index: Register, array: Register, instr: Instruction) extends DataSection {
     def toAssembly(): Seq[Instruction] = {
         return TypedFunc.generateFunction(id, Seq(
@@ -106,6 +113,7 @@ case object ArrayStoreBSection extends ArraySection(
     Store(Register(3), Address(Register(1), Register(2)), false, true)
 )
 
+/*assembly method to read integers*/
 case object ReadIntSection extends DataSection {
     def toAssembly(): Seq[Instruction] = {
         return Seq(
@@ -127,6 +135,7 @@ case object ReadIntSection extends DataSection {
     }
 }
 
+/*assembly method to read characters*/
 case object ReadCharSection extends DataSection {
     def toAssembly(): Seq[Instruction] = {
         return Seq(
@@ -149,6 +158,7 @@ case object ReadCharSection extends DataSection {
     }
 }
 
+/*assembly method to free pair sections */
 case object FreePairSection extends DataSection {
     def toAssembly(): Seq[Instruction] = {
         return Seq(
