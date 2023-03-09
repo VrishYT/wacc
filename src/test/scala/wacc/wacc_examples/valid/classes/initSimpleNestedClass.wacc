@@ -1,0 +1,20 @@
+# simple nested class definition and instantiation
+
+# Output:
+
+# Exit:
+
+# Program:
+
+begin
+    class Vector {
+        int magnitude,
+        Point point
+    }
+    class Point {
+        int x,
+        int y
+    }
+    Point p = new Point { 3, 5 } ;
+    Vector v = new Vector { 1, p }
+end

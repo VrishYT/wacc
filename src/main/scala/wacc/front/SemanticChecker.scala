@@ -29,7 +29,7 @@ object SemanticChecker {
           errors += new TypeException(message = s"Cannot declare variable '$id'\n - class '$class_id' is not defined", pos = Seq(pos))
         }
         case _ => {
-          if (!vars.add(id, Symbol(t))) errors += new TypeException(message = "Cannot redeclare variable '" + id + "'", pos = Seq(pos))
+          if (!vars.add(id, Symbol(t, isPrivate))) errors += new TypeException(message = "Cannot redeclare variable '" + id + "'", pos = Seq(pos))
         }
       }
 
@@ -92,7 +92,7 @@ object SemanticChecker {
         errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
       } else {
         /* Add the function into the global scope */
-        if (func.args.distinct.size != func.args.size) errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
+        if (func.args.distinct.size != func.args.size) errors += new TypeException(message = "cannot redeclare function parameters", pos = Seq(func.pos))
         else symbolTable.declare(func.fs._2, func.args, func.fs._1)
       }
     })
@@ -121,6 +121,31 @@ object SemanticChecker {
 
     /* traverse a list of statements and error on semantic errors */
     def checkStatements(statements: List[Stat], vars: Table): Unit = {
+
+      def getClassType(ids: List[String], pos: (Int, Int)): Type = {
+
+        def get(ident: String, elems: List[String], table: Table): Type = getTypeFromVars(ident, table, pos) match {
+            case ClassType(class_id) => symbolTable.classes.get(class_id) match {
+              case Some(x) => elems match {
+                case Nil => ???
+                case id :: Nil => x.getSymbol(id) match {
+                  case Some(symbol) => {
+                    if (symbol.isPrivate) {
+                      ErrorLogger.err(s"cannot access private member '$id' of '$class_id'", pos)
+                    } else symbol.t
+                  }
+                  case None => ErrorLogger.err(s"elem $id does not exist in class $class_id", pos)
+                }
+                case id :: elems => get(id, elems, x)
+              }
+              case None => ErrorLogger.err(s"class $class_id does not exist", pos)
+            }
+          case _ => ErrorLogger.err(s"$ident is not an instance of a class", pos)
+        }
+
+        get(ids.head, ids.tail, vars)
+
+      }
 
       /* returns the type of the contents of a pairElem (fst(x) or snd(x), where x is passed in) */
       def getPairElemType(t: Type): Type = t match {
@@ -161,35 +186,13 @@ object SemanticChecker {
                     by calling getLValPairElem */
           case x: PairElem => getLValPairElem(x)
 
-          case classElem@ClassElem(id :: elems) => {
-            getClassType(id, elems, classElem.pos)
+          case classElem@ClassElem(ids) => {
+            getClassType(ids, classElem.pos)
           }
 
           /* Default case - should be unreachable. */
           case _ => ErrorLogger.err("Unknown lvalue passed in", 1)
         }
-      }
-
-      def getClassType(id: String, elems: List[String], pos: (Int, Int)): Type = {
-        val e = elems.head
-        val es = elems.tail
-        getTypeFromVars(id, vars, pos) match {
-          case ClassType(class_id) => symbolTable.classes.get(class_id) match {  
-            case Some(x) => {
-              if (elems.length == 1){
-                x.getType(e) match {
-                  case Some(y) => y
-                  case None => ErrorLogger.err(s"elem $e does not exist in class $class_id")
-                }
-              }else {
-                return getClassType(e,es, pos)
-              }
-            }
-            case None => ErrorLogger.err(s"class $class_id does not exist")
-          }
-          case _ => ErrorLogger.err(s"$id is not an instance of a class")
-        }
-        
       }
 
       /* return the type of an rvalue. */
@@ -226,8 +229,8 @@ object SemanticChecker {
             return new PairType(getPairElem(fst), getPairElem(snd))
           }
 
-          case classElem@ClassElem(id :: elems) => {
-            getClassType(id, elems, classElem.pos)
+          case classElem@ClassElem(ids) => {
+            getClassType(ids, classElem.pos)
           }
 
           case newClass@NewClass(class_id, rvals) => {

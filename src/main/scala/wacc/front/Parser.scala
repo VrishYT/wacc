@@ -174,11 +174,11 @@ object Parser {
     "function declaration missing type"))
 
   /*rule to parse on functions*/
-  val func = _invalid_function <|> Func(PRIVATE, attempt(types <~> IDENT <~ "(".label(
-    "opening parenthesis")).label(
+  val func = _invalid_function <|> Func(PRIVATE, types <~> IDENT <~ "(".label(
+    "opening parenthesis").label(
     "function declaration"), paramList <~ ")", "is" *> stats <* "end")
   
-  val funcList = sepEndBy(func.guardAgainst { case func if !func.validReturn => Seq("function is missing a return/exit on all exit paths")}, pure(""))
+  val funcList = sepEndBy(attempt(func).guardAgainst { case func if !func.validReturn => Seq("function is missing a return/exit on all exit paths")}, pure(""))
 
   /*rule to parse on classes */
   val field = Field(PRIVATE, types, IDENT)
