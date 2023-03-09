@@ -1,0 +1,13 @@
+# simple class definition program
+
+# Output:
+
+# Program:
+
+begin
+    class MyClass {
+        int x
+    }
+
+    skip
+end

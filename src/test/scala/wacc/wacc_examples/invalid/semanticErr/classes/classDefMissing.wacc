@@ -1,0 +1,13 @@
+# class instantiated doesn't exist
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+    MyClass x = new MyClass {}
+end

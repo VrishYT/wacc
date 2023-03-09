@@ -1,0 +1,15 @@
+# class contains instance of itself
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+    class MyClass {
+        MyClass x
+    }
+end

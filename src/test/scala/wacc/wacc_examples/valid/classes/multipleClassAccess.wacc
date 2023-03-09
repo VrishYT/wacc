@@ -1,0 +1,20 @@
+# multiple class attribute accesses
+
+# Output:
+# hello
+
+# Exit:
+# 5
+
+# Program:
+
+begin
+    class MyClass {
+        int x,
+        string y
+    }
+
+    MyClass x = new MyClass {5, "hello"} ;
+    println x.y ;
+    exit x.x
+end

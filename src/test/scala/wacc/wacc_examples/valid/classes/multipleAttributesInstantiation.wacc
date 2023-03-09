@@ -1,0 +1,14 @@
+# simple class definition and instantiation
+
+# Output:
+
+# Program:
+
+begin
+    class MyClass {
+        int x,
+        string y
+    }
+
+    MyClass x = new MyClass { 5, "hello" }
+end

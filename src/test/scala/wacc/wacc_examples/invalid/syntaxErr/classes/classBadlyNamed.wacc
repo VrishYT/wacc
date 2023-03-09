@@ -1,0 +1,16 @@
+# program has invalid class name - class keyword and name are conflated
+
+# Output:
+# #syntax_error#
+
+# Exit:
+# 100
+
+# Program:
+
+begin
+    classMyClass {
+        int x,
+        int y
+    }
+end
