@@ -18,8 +18,12 @@ case class Func(annotations: List[Annotation], fs: (Type, String), args: List[Pa
             // println(s"inUse: ${gen.regs.regsInUse}")
             // println(s"free: ${gen.regs.freeRegs}")
         })
-        
-        val instr = stats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
+
+        // println(s"*-Stats:-*\n$stats\n")
+        val modifiedStats = annotations.foldRight(stats)(_.process(_))
+        // println(s"*-Modified Stats:-*\n$modifiedStats")
+
+        val instr = modifiedStats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
 
         // println(s"table = ${table.getSize}\nfreeRegs = ${gen.regs.freeRegs.size}")
         // println(s"inUse: ${gen.regs.regsInUse}")
