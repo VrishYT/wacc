@@ -53,7 +53,12 @@ object SemanticChecker {
       symbolTable.classes.get(c.class_id) match {
         case Some(members) => {
           /* declare attributes of a class */
-          c.decls.foreach(f => declareVar(f.id, f.t, members, f.pos, f.isPrivate))
+          c.decls.foreach(f => f.t match {
+            case ClassType(id) if (id == c.class_id) => {
+              errors += new TypeException(message = s"Cannot have instance of a class within a class", pos = Seq(f.pos))
+            }
+            case _ => declareVar(f.id, f.t, members, f.pos, f.isPrivate)
+          })
 
           /* declare methods within a class */
           c.funcs.foreach(func => {
