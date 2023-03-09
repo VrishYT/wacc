@@ -43,7 +43,7 @@ object Parser {
   val BOOL_LIT = ("true" #> true <|> "false" #> false).label(
     "boolean literal").explain("booleans can either be true or false")
   
-  val PRIVATE = ("private" #> true <|> "public" #> false) <|> lookAhead(types) #> false
+  lazy val PRIVATE = ("private" #> true <|> "public" #> false) <|> lookAhead(types) #> false
 
   val PAIR_LIT = (pos <**> ("null") #> PairLiteralNull).label("pair null type")
 
@@ -178,17 +178,18 @@ object Parser {
     "opening parenthesis")).label(
     "function declaration"), paramList <~ ")", "is" *> stats <* "end")
   
-  val funcs = sepEndBy(func.guardAgainst { case func if !func.validReturn => Seq("function is missing a return/exit on all exit paths")}, pure(""))
+  val funcList = sepEndBy(func.guardAgainst { case func if !func.validReturn => Seq("function is missing a return/exit on all exit paths")}, pure(""))
 
-  /*rule to parse on structs */
+  /*rule to parse on classes */
   val field = Field(PRIVATE, types, IDENT)
   val fieldList = sepBy(field, pure(""))
-  val cls = Class(attempt("class" *> IDENT <~ "{"), fieldList, funcs <~ "}")
+  val class_ = Class(attempt("class" *> IDENT <~ "{"), fieldList, funcList <~ "}")
+  val classList = sepEndBy(class_, pure(""))
  
 
   /*rule to parse on programs, we check that at the end of the function body
     we have a return or an exit on all exit paths using the method valid return*/
-  val program_ = Program("begin" *> sepEndBy(cls, pure("")), funcs, stats <* "end")
+  val program_ = Program("begin" *> classList, funcList, stats <* "end")
 
   val program = fully(program_)
 }
