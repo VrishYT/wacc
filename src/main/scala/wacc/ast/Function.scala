@@ -7,7 +7,7 @@ import wacc.back._
 /* function case class with position */
 case class Func(isPrivate: Boolean, fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
 
-    def toAssembly(gen: CodeGenerator)(implicit table: FuncTable): Seq[Instruction] = {
+    def toAssembly(gen: CodeGenerator, class_id: String = "")(implicit table: FuncTable): Seq[Instruction] = {
 
         gen.mem.size = 0.max(table.getSize - gen.regs.freeRegs.size)
 
@@ -27,7 +27,7 @@ case class Func(isPrivate: Boolean, fs: (Type, String), args: List[Param], stats
 
         // println(s"stacksize = $stack")
 
-        return Func.generateFunction(s"wacc_${fs._2}", gen.mem.grow() +: instr, Func.FuncRegs:_*)
+        return Func.generateFunction(s"${class_id}_wacc_${fs._2}", gen.mem.grow() +: instr, Func.FuncRegs:_*)
     }
 
     /* define validReturn of a function, and match on the last statement : */
