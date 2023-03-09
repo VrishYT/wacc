@@ -182,7 +182,7 @@ object Parser {
 
   /*rule to parse on classes */
   val field = Field(PRIVATE, types, IDENT)
-  val fieldList = sepBy(field, pure(""))
+  val fieldList = sepBy(field, ",")
   val class_ = Class(attempt("class" *> IDENT <~ "{"), fieldList, funcList <~ "}")
   val classList = sepEndBy(class_, pure(""))
  
