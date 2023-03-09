@@ -163,7 +163,7 @@ sealed abstract class Table extends TableEntry {
         case _ => ???
     }
 
-    private def getSymbol(id: String): Option[Symbol] = get(id) match {
+    def getSymbol(id: String): Option[Symbol] = get(id) match {
         case Some(x) => x match {
             case x: Symbol => Some(x)
             case _ => None 
@@ -241,7 +241,7 @@ case class MethodTable(
     val parent: ClassTable
 ) extends FuncTable(id, paramTypes, returnType, isPrivate)
 
-class Symbol(val t: Type, val isPrivate : Boolean = false) extends TableEntry
+class Symbol(val t: Type, val isPrivate : Boolean = false) extends TableEntry 
 object Symbol {
     def apply(t: Type): Symbol = new Symbol(t, false)
     def apply(t: Type, isPrivate: Boolean) = new Symbol(t, isPrivate)
