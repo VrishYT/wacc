@@ -126,7 +126,7 @@ object Parser {
     expr <|>
     ARRAY_LITER <|>
     NewPair("newpair" *> "(" *> expr <~ ",", expr <~ ")") <|>
-    NewClass("new" *> IDENT, "(" *> sepBy(rvalue, ",") <~ ")") <|>
+    NewClass("new" *> IDENT, "{" *> sepBy(rvalue, ",") <~ "}") <|> // TODO: CHECK @PREESHA- braces instead of parentheses ???
     PAIR_ELEM 
 
   /*defined parsing for l-values*/
