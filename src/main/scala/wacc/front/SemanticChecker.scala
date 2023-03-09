@@ -43,7 +43,6 @@ object SemanticChecker {
       if (symbolTable.classes.contains(c.class_id)) {
         errors += new TypeException(message = s"Cannot redeclare class '${c.class_id}'", pos = Seq(c.pos))
       } else {
-        c.decls.foreach(f => declareVar(f.id, f.t, members, f.pos, f.isPrivate))
         symbolTable.classes(c.class_id) = members
       }
 
