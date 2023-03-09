@@ -21,36 +21,63 @@ object SemanticChecker {
 
     /* create a map for the global scope, containing function identifiers to return types */
     val vars = symbolTable.declare("main")
-    
 
-    /* Add each struct to symbol table */
-    classes.foreach(c => {
-      val cls = new ClassEntry(c.class_id, symbolTable.classTable)
-      c.decls.foreach(field => {
-        declareVar(field.id, field.t, cls, field.pos, field.isPrivate)
-      })
-      
-      c.funcs.foreach(func => {
-        val funcTable = new FuncTable(func.fs._2, func.args.map(_.t), func.fs._1)
-        if (cls.contains(func.fs._2)) {
-          errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
-        } else {
-          /* Add the function into the global scope */
-          if (func.args.distinct.size != func.args.size) errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
-          else {
-            func.args.foreach(param => funcTable.add(param.id, ParamSymbol(param.t)))
-            cls.addTable(func.fs._2, funcTable)
-          }
+    /* check if a variable already exists in scope, error if it does, and add it to the scope if it doesn't */
+    def declareVar(id: String, t: Type, vars: Table, pos: (Int, Int), isPrivate: Boolean = false): Unit = {
+      t match {
+        case ClassType(class_id) if (symbolTable.classes.contains(id)) => {
+          errors += new TypeException(message = s"Cannot declare variable '$id'\n - class '$class_id' is not defined", pos = Seq(pos))
         }
-      })
+        case _ => {
+          if (!vars.add(id, Symbol(t))) errors += new TypeException(message = "Cannot redeclare variable '" + id + "'", pos = Seq(pos))
+        }
+      }
 
-      if (symbolTable.classTable.contains(c.class_id)){
-        errors += new TypeException(message = "Cannot redeclare class '" + c.class_id, pos = Seq(c.pos))
-      }else{
-        symbolTable.classTable.addTable(c.class_id, cls)
-      } 
+    }
+    
+    /* Add each class to the symbol table */
+    classes.foreach(c => {
+      val members = ClassTable(c.class_id)
+
+      /* if class exists give a semantic error */
+      if (symbolTable.classes.contains(c.class_id)) {
+        errors += new TypeException(message = s"Cannot redeclare class '${c.class_id}'", pos = Seq(c.pos))
+      } else {
+        c.decls.foreach(f => declareVar(f.id, f.t, members, f.pos, f.isPrivate))
+        symbolTable.classes(c.class_id) = members
+      }
+
     })
 
+    /* Add attributes and functions to the symbol table */
+    classes.foreach(c => {
+      symbolTable.classes.get(c.class_id) match {
+        case Some(members) => {
+          /* declare attributes of a class */
+          c.decls.foreach(f => declareVar(f.id, f.t, members, f.pos, f.isPrivate))
+
+          /* declare methods within a class */
+          c.funcs.foreach(func => {
+            // TODO: reduce code duplication with normal func defs
+            /* check if the functions already exists in the map */
+            if (members.contains(func.fs._2)) {
+              /* error if the function has been declared more than once */
+              errors += new TypeException(message = s"Cannot redeclare function '${func.fs._2}' in class '${c.class_id}'", pos = Seq(func.pos))
+            } else {
+              /* Add the function into the global scope */
+              if (func.args.distinct.size != func.args.size) errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
+              else {
+                val table = FuncTable(func.fs._2, func.args.map(_.t), func.fs._1, func.isPrivate)
+                func.args.foreach(param => table.add(param.id, ParamSymbol(param.t)))
+                members.addTable(func.fs._2, table)
+              }
+            }
+          })
+        }
+        case None =>
+      }
+
+    })
 
     functions.foreach(func => {
 
@@ -65,11 +92,6 @@ object SemanticChecker {
         else symbolTable.declare(func.fs._2, func.args, func.fs._1)
       }
     })
-
-    /* check if a variable already exists in scope, error if it does, and add it to the scope if it doesn't */
-    def declareVar(id: String, t: Type, vars: Table, pos: (Int, Int), isPrivate: Boolean = false): Unit = {
-      if (!vars.add(id, Symbol(t))) errors += new TypeException(message = "Cannot redeclare variable '" + id + "'", pos = Seq(pos))
-    }
 
     /* checks for invalid semantics within a specific function */
     def checkFunction(func: Func): Unit = {
@@ -139,7 +161,7 @@ object SemanticChecker {
       def getClassType(id: String, elems: List[String]): Type = {
         val e = elems.head
         val es = elems.tail
-        symbolTable.classTable.getTable(id) match {  
+        symbolTable.classes.get(id) match {  
           case Some(x) => {
             if (elems.length == 1){
               x.getType(e) match {
@@ -193,13 +215,13 @@ object SemanticChecker {
           }
 
           case newClass@NewClass(class_id, rvals) => {
-            val class_mems = symbolTable.classTable.getTable(class_id) match {
+            val class_mems = symbolTable.classes.get(class_id) match {
               case Some(x) => x
               case None => ErrorLogger.err(s"Class '${class_id}' is undefined", newClass.pos)
             }
 
             val class_types = class_mems match {
-              case z : ClassEntry => z.types
+              case z : ClassTable => z.types
               case _ => ???
             }
             val size = class_mems.getSize
@@ -464,6 +486,7 @@ object SemanticChecker {
     }
 
     /* check semantics of all statements in the program */
+    classes.foreach(c => c.funcs.foreach(func => checkFunction(func)))
     functions.foreach(func => checkFunction(func))
     checkStatements(statements, vars)
 
