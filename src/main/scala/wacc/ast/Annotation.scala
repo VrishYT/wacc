@@ -8,6 +8,7 @@ import parsley.genericbridges.ParserBridge1
 sealed abstract class Annotation(val errorMsg: String) {
     def isValid: Boolean = true
     def verify(func: Func): Boolean = false
+    def process(stats: List[Stat]): List[Stat] = stats
 }
 
 object Annotation extends ParserBridge1[String, Annotation] {
@@ -17,9 +18,15 @@ object Annotation extends ParserBridge1[String, Annotation] {
     }
 }
 
+case object UnknownAnnotation extends Annotation("Unknown annotation - shouldn't have ever reached this???") {
+    override def isValid: Boolean = false
+}
+
 case object TailRecursiveAnnotation extends Annotation("Function is not tail-recursive\n - cannot optimize with \'@tailrec\' annotation") {
+
     override def verify(func: Func): Boolean = {
-        def verifyBranch(stats: List[Stat]): Boolean = {
+        import scala.annotation.nowarn
+        @nowarn def verifyBranch(stats: List[Stat]): Boolean = {
             var tailCallVar: Any = null
             stats.foreach(stat => stat match {
                 case Declare(_, id, rhs) => rhs match {
@@ -33,12 +40,19 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
                     }
                 }
                 case If(_, x, y) => {
+
+                    def endsInReturn(stats: List[Stat]): Boolean = stats.last match {
+                        case x: Return => true
+                        case _ => false
+                    }
+
                     val thenBranch = verifyBranch(x)
                     val elseBranch = verifyBranch(y)
-                    return thenBranch || elseBranch
+                    if (thenBranch) return endsInReturn(y)
+                    else if (elseBranch) return endsInReturn(x)
                 }
                 case Begin(xs) => {
-                    val branch = verifyBranch(xs)
+                    verifyBranch(xs)
                 }
                 case Return(expr) => {
                     return tailCallVar == expr
@@ -50,9 +64,16 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
 
         verifyBranch(func.stats)
     }
-}
-case object UnknownAnnotation extends Annotation("Unknown annotation - shouldn't have ever reached this???") {
-    override def isValid: Boolean = false
+    
+    override def process(stats: List[Stat]): List[Stat] = {
+
+        import scala.collection.mutable.ListBuffer
+
+        val beforeRecursiveIf = ListBuffer[Stat]()
+        // TODO
+        stats
+    }
+
 }
 
 
