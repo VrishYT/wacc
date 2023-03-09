@@ -12,4 +12,6 @@ begin
     class MyClass {
         MyClass x
     }
+
+    skip
 end
