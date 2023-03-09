@@ -1,9 +1,8 @@
 package wacc
 package ast
 
-import wacc.front.ParserBridge._
-import wacc.back._
-import wacc._
+import front.ParserBridge._
+import back._
 
 
 case class Field(isPrivate: Boolean, t: Type, id: String)(val pos: (Int, Int))

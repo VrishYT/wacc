@@ -12,7 +12,6 @@ sealed abstract class Table extends TableEntry {
     var beginCount = 0 
     private var size = 0
 
-    def isInFunction: Boolean = false
     def getReturnType: Type = AnyType
 
     val table = MapM[String, TableEntry]()
@@ -27,7 +26,7 @@ sealed abstract class Table extends TableEntry {
         beginCount = 0
     }
 
-    private def updateRecursive(id: String, symbol: Symbol): Unit = {
+    def updateRecursive(id: String, symbol: Symbol): Unit = {
 
         def updateParent(id: String, symbol: Symbol, table: Table): Unit = {
             if (table.contains(id)) table.table(id) = symbol
@@ -160,7 +159,7 @@ sealed abstract class Table extends TableEntry {
             case _ => ???
             }
         }
-        case _ => ???
+        case _ => NoOperand(id)
     }
 
     def getSymbol(id: String): Option[Symbol] = get(id) match {
@@ -183,14 +182,11 @@ sealed abstract class Table extends TableEntry {
 
 }
 
-sealed class FuncTable(
-    val id: String, 
-    val paramTypes: Seq[Type], 
-    val returnType: Type, 
-    val isPrivate: Boolean = false
-) extends Table {
-    override def isInFunction = id != "main"
+class FuncTable(val id: String, val paramTypes: Seq[Type], var returnType: Type, val isPrivate: Boolean) extends Table {
     override def getReturnType = returnType
+    def setReturnType(t: Type): Unit = {
+        returnType = t
+    }
 }
 
 object FuncTable {
@@ -204,7 +200,6 @@ object FuncTable {
 
 
 sealed class ChildTable(val parent: Table) extends Table {
-    override def isInFunction = parent.isInFunction
     override def getReturnType = parent.getReturnType
 }
 object ChildTable {
@@ -236,10 +231,10 @@ case class ClassTable(val class_id : String) extends Table {
 case class MethodTable(
     override val id: String, 
     override val paramTypes: Seq[Type], 
-    override val returnType: Type, 
+    t: Type, 
     override val isPrivate: Boolean = false,
     val parent: ClassTable
-) extends FuncTable(id, paramTypes, returnType, isPrivate)
+) extends FuncTable(id, paramTypes, t, isPrivate)
 
 class Symbol(val t: Type, val isPrivate : Boolean = false) extends TableEntry 
 object Symbol {

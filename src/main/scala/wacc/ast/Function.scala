@@ -4,36 +4,15 @@ package ast
 import wacc.front.ParserBridge._
 import wacc.back._
 
-/* function case class with position */
-case class Func(isPrivate: Boolean, fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
-
-    def toAssembly(gen: CodeGenerator, class_id: String = "")(implicit table: FuncTable): Seq[Instruction] = {
-
-        gen.mem.size = 0.max(table.getSize - gen.regs.freeRegs.size)
-
-        (0 until args.length).foreach(i => {
-            val param = args(i)
-            gen.regs.link(param.id, Register(i + 1))
-            // println(s"link ${param.id} => r${i+1}")
-            // println(s"inUse: ${gen.regs.regsInUse}")
-            // println(s"free: ${gen.regs.freeRegs}")
-        })
-        
-        val instr = stats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
-
-        // println(s"table = ${table.getSize}\nfreeRegs = ${gen.regs.freeRegs.size}")
-        // println(s"inUse: ${gen.regs.regsInUse}")
-        // println(s"free: ${gen.regs.freeRegs}")
-
-        // println(s"stacksize = $stack")
-        val id = if (class_id != "") s"wacc_${class_id}_${fs._2}" else s"wacc_${fs._2}"
-
-        return Func.generateFunction(id, gen.mem.grow() +: instr, Func.FuncRegs:_*)
-    }
+sealed abstract class Func(
+    val isPrivate: Boolean,
+    val fs: (Type, String), 
+    val args: List[Param], 
+    val stats: List[Stat]
+)(val pos: (Int, Int)) {
 
     /* define validReturn of a function, and match on the last statement : */
     def validReturn: Boolean = validReturn(stats)
-
     def validReturn(stats: List[Stat]): Boolean = stats.last match {
 
         /* return true if it's a return or exit */
@@ -58,12 +37,35 @@ case class Func(isPrivate: Boolean, fs: (Type, String), args: List[Param], stats
             /* return valid once all eligible paths of control flow
                         have been checked */
             valid
-            }
+        }
     }
+
+    def toAssembly(gen: CodeGenerator, class_id: String = "")(implicit table: FuncTable): Seq[Instruction] = {
+
+        gen.mem.size = 0.max(table.getSize - gen.regs.freeRegs.size)
+
+        (0 until args.length).foreach(i => {
+            val param = args(i)
+            gen.regs.link(param.id, Register(i + 1))
+            // println(s"link ${param.id} => r${i+1}")
+            // println(s"inUse: ${gen.regs.regsInUse}")
+            // println(s"free: ${gen.regs.freeRegs}")
+        })
+        
+        val instr = stats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
+
+        // println(s"table = ${table.getSize}\nfreeRegs = ${gen.regs.freeRegs.size}")
+        // println(s"inUse: ${gen.regs.regsInUse}")
+        // println(s"free: ${gen.regs.freeRegs}")
+
+        // println(s"stacksize = $stack")
+
+        return Func.generateFunction(s"wacc_${fs._2}", gen.mem.grow() +: instr, Func.FuncRegs:_*)
+    }
+
 }
 
-/* function and parameter companion objects with parser bridges */
-object Func extends ParserBridgePos4[Boolean, (Type, String), List[Param], List[Stat], Func] {
+object Func {
 
     import scala.collection.mutable.{ListBuffer}
 
@@ -109,11 +111,44 @@ object Func extends ParserBridgePos4[Boolean, (Type, String), List[Param], List[
 
         return instr.toSeq
     }
+}
 
+/* function case class with position */
+case class TypedFunc(
+    override val isPrivate: Boolean, 
+    override val fs: (Type, String), 
+    override val args: List[Param], 
+    override val stats: List[Stat]
+)(override val pos: (Int, Int)) extends Func(isPrivate, fs, args, stats)(pos)
+
+/* function and parameter companion objects with parser bridges */
+object TypedFunc extends ParserBridgePos4[Boolean, (Type, String), List[Param], List[Stat], Func] 
+
+/* function case class with position */
+case class TypelessFunc(
+    override val isPrivate: Boolean,
+    val name: String, 
+    override val args: List[Param], 
+    override val stats: List[Stat]
+)(override val pos: (Int, Int)) extends Func(isPrivate, (NoType, name), args, stats)(pos)
+
+/* function and parameter companion objects with parser bridges */
+object TypelessFunc extends ParserBridgePos4[Boolean, String, List[Param], List[Stat], Func]
+
+trait Param {
+    val id: String
+    val pos: (Int, Int)
+    val t: Type
 }
 
 /* parameter case class with position */
-case class Param(t: Type, id: String)(val pos: (Int, Int))
+case class TypedParam(t: Type, id: String)(val pos: (Int, Int)) extends Param
 
-object Param extends ParserBridgePos2[Type, String, Param]
+object TypedParam extends ParserBridgePos2[Type, String, Param]
 
+/* typeless parameter case class with position */
+case class TypelessParam(id: String)(val pos: (Int, Int)) extends Param {
+    val t = NoType
+}
+
+object TypelessParam extends ParserBridgePos1[String, TypelessParam]

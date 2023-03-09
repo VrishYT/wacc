@@ -136,11 +136,13 @@ object Parser {
   val _invalid_declaration = amend(attempt((types *> IDENT <~ "(").hide) *> unexpected(
     "function declaration")).explain(
     "all functions must be declared at the top of main block")
+  
+  val declare = Declare(types, IDENT, "=" *> rvalue) 
 
   /*defined parsing for statements*/
   val stat: Parsley[Stat] = _invalid_declaration <|>
     ("skip" #> Skip) <|>
-    (Assign(attempt(lvalue <~ "=".label("assignment")), rvalue)) <|>
+    (AssignOrTypelessDeclare(attempt(lvalue <~ "=".label("assignment")), rvalue)) <|>
     (Declare(types, IDENT, "=" *> rvalue)) <|>
     (Read("read" *> lvalue)) <|>
     (Free("free" *> expr)) <|>
@@ -165,16 +167,18 @@ object Parser {
   val _invalid_pointer = amend((attempt("*")) *> unexpected("pointer").explain(
     "WACC is not like C and does not use pointers"))
 
-  val param = Param(types, _invalid_pointer <|> IDENT)
+  val param = TypedParam(types, _invalid_pointer <|> IDENT) <|> TypelessParam(_invalid_pointer <|> IDENT)
 
   val paramList = sepBy(param, ",")
 
   /*rule to pick on invalid function declarations with a missing type*/
-  val _invalid_function = amend((attempt(IDENT <~ "(").hide).verifiedFail(
-    "function declaration missing type"))
+  // val _invalid_function = amend((attempt(IDENT <~ "(").hide).verifiedFail(
+  //   "function declaration missing type"))
 
-  /*rule to parse on functions*/
-  val func = _invalid_function <|> Func(PRIVATE, types <~> IDENT <~ "(".label(
+  val func = attempt(TypedFunc(PRIVATE, types <~> IDENT <~ "(".label(
+    "opening parenthesis").label(
+    "function declaration"), paramList <~ ")", "is" *> stats <* "end")) <|>
+    TypelessFunc(PRIVATE, IDENT <~ "(".label(
     "opening parenthesis").label(
     "function declaration"), paramList <~ ")", "is" *> stats <* "end")
   
@@ -185,7 +189,6 @@ object Parser {
   val fieldList = sepBy(field, ",")
   val class_ = Class(attempt("class" *> IDENT <~ "{"), fieldList, funcList <~ "}")
   val classList = sepEndBy(class_, pure(""))
- 
 
   /*rule to parse on programs, we check that at the end of the function body
     we have a return or an exit on all exit paths using the method valid return*/

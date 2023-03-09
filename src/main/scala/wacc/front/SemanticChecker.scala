@@ -195,6 +195,34 @@ object SemanticChecker {
         }
       }
 
+      /* returns true if the lvalue isn't declared yet */
+      def isInferredTypeDefinition(lVal: LValue): Boolean = {
+        lVal match {
+
+          /* if its an identifier then check if its in the parent and child scope maps yet */
+          case (x@Ident(id)) =>  vars.getType(id) match {
+                                      case Some(x) => false
+                                      case None => true
+                               }
+          case _ => false
+        }
+      }
+
+      /* returns true if the lvalue has no type yet */
+      def isTypelessParam(lVal: LValue): Boolean = {
+        lVal match {
+
+          /* if its an identifier then check if it has a type in the parent and child scope maps yet*/
+          case (x@Ident(id)) =>  vars.getType(id) match {
+                                      case Some(x) => {
+                                        return x == NoType
+                                      }
+                                      case None => ???
+                               }
+          case _ => false
+        }
+      }
+
       /* return the type of an rvalue. */
       def getRValType(rval: RValue): Type = {
         rval match {
@@ -365,7 +393,7 @@ object SemanticChecker {
                 })
                 ErrorLogger.err("invalid binary op type", rValType, types, exp.pos)
               }
-
+              
               /* check both operands are of correct type */
               val t1 = getType(exp1, op.input)
               val t2 = getType(exp2, op.input)
@@ -395,17 +423,26 @@ object SemanticChecker {
         }
 
         /* check assign statement */
-        case Assign(x, y) => {
+        case AssignOrTypelessDeclare(x, y) => {/* get type of left and right hand sides of the assign */
+
+          val rType = getRValType(y)
+          var lType = rType
 
           /* error if the identifier being reassigned is a function. */
           x match {
-            case (ident@Ident(id)) if (symbolTable.contains(id) && !vars.contains(id)) => ErrorLogger.err("Cannot re-assign value for a function: " + id, ident.pos)
-            case _ =>
+            case (ident@Ident(id)) => {
+              if (symbolTable.contains(id) && !vars.contains(id)) {
+                ErrorLogger.err("Cannot re-assign value for a function: " + id, ident.pos)
+              } else if (isInferredTypeDefinition(x)) {
+                declareVar(id, rType, vars, y.pos)
+              } else if (isTypelessParam(x)) {
+                vars.updateRecursive(id, Symbol(rType))
+              } else {
+                lType = getLValType(x)
+              }
+            }
+            case _ => lType = getLValType(x)
           }
-
-          /* get type of left and right hand sides of the assign */
-          val lType = getLValType(x)
-          val rType = getRValType(y)
 
           /* error when attempting to assign an unknown type to another unknown type */
           if (lType == AnyType && rType == AnyType) ErrorLogger.err("invalid type for assign\n  cannot assign when both types are unknown", x.pos, y.pos)
@@ -439,10 +476,19 @@ object SemanticChecker {
           val rType = getRValType(x)
 
           /* error if we are not inside of a function */
-          if (!vars.isInFunction) ErrorLogger.err("invalid return call\n  cannot return outside a function body", x.pos)
+          val funcTable = vars match {
+            case x: FuncTable if (x.id != "main") => x
+            case _ => ErrorLogger.err("invalid return call\n  cannot return outside a function body", x.pos)
+          }
 
           /* error if return type does not match return type of the current function being checked */
-          val funcType = vars.getReturnType
+          var funcType = funcTable.getReturnType
+
+          if (funcType == NoType) {
+            funcType = rType
+            funcTable.setReturnType(rType)
+          }
+
           if (rType != funcType) ErrorLogger.err("invalid type for return", rType, funcType, x.pos)
         }
 

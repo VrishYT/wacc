@@ -53,6 +53,10 @@ object ClassType extends ParserBridge1[String, ClassType]
 /* base types extending type */
 sealed trait BaseType extends Type
 
+case object NoType extends BaseType with ParserBridge0[BaseType] {
+  def apply() = NoType
+}
+
 case object IntType extends BaseType with ParserBridge0[BaseType] {
   def apply() = IntType
 }
