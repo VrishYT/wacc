@@ -127,6 +127,7 @@ object SemanticChecker {
         def get(ident: String, elems: List[String], table: Table): Type = getTypeFromVars(ident, table, pos) match {
             case ClassType(class_id) => symbolTable.classes.get(class_id) match {
               case Some(x) => elems match {
+                case Nil => ???
                 case id :: Nil => x.getSymbol(id) match {
                   case Some(symbol) => {
                     if (symbol.isPrivate) {
