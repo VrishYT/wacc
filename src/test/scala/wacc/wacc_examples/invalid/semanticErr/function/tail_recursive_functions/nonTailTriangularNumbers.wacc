@@ -1,0 +1,15 @@
+begin
+    @tailrec
+    int triangular(int x) is
+        if (x <= 1)
+        then return x
+        else 
+            int y = call triangular(x - 1) ;
+            return x + y
+        fi
+    end
+
+    int x = call triangular(5) ;
+    exit x
+
+end
