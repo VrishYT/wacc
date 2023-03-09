@@ -71,14 +71,14 @@ object SemanticChecker {
               /* Add the function into the global scope */
               if (func.args.distinct.size != func.args.size) errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
               else {
-                val table = FuncTable(func.fs._2, func.args.map(_.t), func.fs._1, func.isPrivate)
+                val table = MethodTable(func.fs._2, func.args.map(_.t), func.fs._1, func.isPrivate, members)
                 func.args.foreach(param => table.add(param.id, ParamSymbol(param.t)))
                 members.addTable(func.fs._2, table)
               }
             }
           })
         }
-        case None =>
+        case None => ???
       }
 
     })
@@ -97,18 +97,26 @@ object SemanticChecker {
       }
     })
 
-    /* checks for invalid semantics within a specific function */
-    def checkFunction(func: Func): Unit = {
-      symbolTable.get(func.fs._2) match {
-        case Some(x) => checkStatements(func.stats, x)
-        case None => errors += new TypeException(message = "Invalid function declaration", pos = Seq(func.pos))
-      }      
-    }
-
     /* return the type of an identifier from the parent and child scope maps */
-    def getTypeFromVars(id: String, vars: Table, pos: (Int, Int)): Type = vars.getType(id) match {
-      case Some(x) => x
-      case None => ErrorLogger.err("Variable " + id + " not found", pos)
+    def getTypeFromVars(id: String, vars: Table, pos: (Int, Int)): Type = {
+      def get(vars: Table): Option[Type] = vars.getType(id) match {
+        case x: Some[_] => x
+        case None => None
+      }
+
+      vars match {
+        case x: MethodTable => get(x) match {
+          case Some(x) => x
+          case _ => get(x.parent) match {
+            case Some(x) => x
+            case None => ErrorLogger.err("Variable/Class attribute " + id + " not found", pos)
+          }
+        }
+        case _ => get(vars) match {
+          case Some(x) => x
+          case None => ErrorLogger.err("Variable " + id + " not found", pos)
+        }
+      }
     }
 
     /* traverse a list of statements and error on semantic errors */
@@ -154,7 +162,7 @@ object SemanticChecker {
           case x: PairElem => getLValPairElem(x)
 
           case classElem@ClassElem(id, elems@(e::es)) => {
-            getClassType(id, elems)
+            getClassType(id, elems, classElem.pos)
           }
 
           /* Default case - should be unreachable. */
@@ -162,22 +170,26 @@ object SemanticChecker {
         }
       }
 
-      def getClassType(id: String, elems: List[String]): Type = {
+      def getClassType(id: String, elems: List[String], pos: (Int, Int)): Type = {
         val e = elems.head
         val es = elems.tail
-        symbolTable.classes.get(id) match {  
-          case Some(x) => {
-            if (elems.length == 1){
-              x.getType(e) match {
-                case Some(y) => y
-                case None => ErrorLogger.err(s"elem $e does not exist in class $id")
+        getTypeFromVars(id, vars, pos) match {
+          case ClassType(class_id) => symbolTable.classes.get(class_id) match {  
+            case Some(x) => {
+              if (elems.length == 1){
+                x.getType(e) match {
+                  case Some(y) => y
+                  case None => ErrorLogger.err(s"elem $e does not exist in class $class_id")
+                }
+              }else {
+                return getClassType(e,es, pos)
               }
-            }else {
-              return getClassType(e,es)
             }
+            case None => ErrorLogger.err(s"class $class_id does not exist")
           }
-          case None => ErrorLogger.err(s"struct $id does not exist")
+          case _ => ErrorLogger.err(s"$id is not an instance of a class")
         }
+        
       }
 
       /* return the type of an rvalue. */
@@ -215,7 +227,7 @@ object SemanticChecker {
           }
 
           case classElem@ClassElem(id, elems@(e::es)) => {
-            getClassType(id, elems)
+            getClassType(id, elems, classElem.pos)
           }
 
           case newClass@NewClass(class_id, rvals) => {
@@ -493,8 +505,21 @@ object SemanticChecker {
     }
 
     /* check semantics of all statements in the program */
-    classes.foreach(c => c.funcs.foreach(func => checkFunction(func)))
-    functions.foreach(func => checkFunction(func))
+    classes.foreach(c => symbolTable.classes.get(c.class_id) match {
+      case Some(members) => c.funcs.foreach(func => members.getMethodTable(func.fs._2) match {
+        case Some(x) => checkStatements(func.stats, x)
+        case None => {
+          errors += new TypeException(message = s"invalid method declaration in '${c.class_id}'", pos = Seq(func.pos))
+        }
+      }) 
+      case None =>  
+    })
+
+    functions.foreach(func => symbolTable.get(func.fs._2) match {
+      case Some(x) => checkStatements(func.stats, x)
+      case None => errors += new TypeException(message = "Invalid function declaration", pos = Seq(func.pos))
+    })
+
     checkStatements(statements, vars)
 
     return errors
