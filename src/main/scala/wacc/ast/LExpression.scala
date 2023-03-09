@@ -6,6 +6,7 @@ import wacc.back._
 
 /* left expressions extending expressions and left values */
 sealed trait LExpr extends Expr with LValue {
+    def valid: Boolean = true
     def pos: (Int, Int)
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = TODOAssembly
 }
@@ -18,9 +19,9 @@ case class Ident(id: String)(val pos: (Int, Int)) extends LExpr {
 object Ident extends ParserBridgePos1[String, Ident]
 
 case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LExpr {
-  
-// ARGUMENT 1: ptr, ARGUMENT 2: index, FOR _arrLoad
-// ARGUMENT 1: ptr, ARGUMENT 2: index, ARGUMENT 3: value, FOR _arrStore
+    
+  // ARGUMENT 1: ptr, ARGUMENT 2: index, FOR _arrLoad
+  // ARGUMENT 1: ptr, ARGUMENT 2: index, ARGUMENT 3: value, FOR _arrStore
   def getInnerType(t: Type, xs: Seq[Expr]): Type = {
     if (xs.isEmpty) t
     else t match {
@@ -139,18 +140,30 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
   
 object ArrayElem extends ParserBridgePos2[String, List[Expr], ArrayElem]
   
-case class IdentOrArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LExpr
+// case class IdentOrArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LExpr
 
 /* identifier or array elements with parser bridge */
-object IdentOrArrayElem extends ParserBridgePos2[String, Option[List[Expr]], LExpr] {
-    def apply(id: String, xs: Option[List[Expr]])(pos: (Int, Int)): LExpr = xs match {
-        case None => Ident(id)(pos)
-        case Some(xs) => ArrayElem(id, xs)(pos)
+object LExpr extends ParserBridgePos2[List[String], Option[List[Expr]], LExpr] {
+    def apply(ids: List[String], xs: Option[List[Expr]])(pos: (Int, Int)): LExpr = xs match {
+        case None => ids match {
+          case id :: Nil => Ident(id)(pos)
+          case _ => ClassElem(ids)(pos)
+        }
+        case Some(xs) => ids match {
+          case id :: Nil => ArrayElem(id, xs)(pos)
+          case _ => InvalidLExpr(pos)
+        }
     }
 }
 
-case class ClassElem(id: String, elems: List[String])(val pos: (Int, Int)) extends LExpr
+// case class ClassElem(id: String, elems: List[String])(val pos: (Int, Int)) extends LExpr
+case class ClassElem(ids: List[String])(val pos: (Int, Int)) extends LExpr
 
-object ClassElem extends ParserBridgePos2[String, List[String], ClassElem] 
+object ClassElem extends ParserBridgePos1[List[String], ClassElem] 
+
+case class InvalidLExpr(val position: (Int, Int)) extends LExpr {
+  override def valid: Boolean = false
+  override def pos: (Int, Int) = position
+}
 
 

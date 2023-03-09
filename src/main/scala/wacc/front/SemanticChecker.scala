@@ -161,7 +161,7 @@ object SemanticChecker {
                     by calling getLValPairElem */
           case x: PairElem => getLValPairElem(x)
 
-          case classElem@ClassElem(id, elems@(e::es)) => {
+          case classElem@ClassElem(id :: elems) => {
             getClassType(id, elems, classElem.pos)
           }
 
@@ -226,7 +226,7 @@ object SemanticChecker {
             return new PairType(getPairElem(fst), getPairElem(snd))
           }
 
-          case classElem@ClassElem(id, elems@(e::es)) => {
+          case classElem@ClassElem(id :: elems) => {
             getClassType(id, elems, classElem.pos)
           }
 
