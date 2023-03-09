@@ -1,7 +1,6 @@
 # Very simple tail recursive function
 
 # Output:
-# 
 
 # Exit:
 # 5
@@ -16,7 +15,11 @@ begin
         else
             int y = call sumToFive(x + 1) ;
             return y 
-        fi
+        fi ;
+        # dead code
+        print "x = " ;
+        println x ; 
+        return -1
     end
     int x = call sumToFive(0) ;
     exit x    
@@ -28,5 +31,9 @@ end
 #     do 
 #         x = x + 1 # FLATTEN CALLS INTO REASSIGNS
 #     done ;
-#     return x
+#     return x ;
+#     # dead code
+#     print "x = " ;
+#     println x ;
+#     return -1
 # end

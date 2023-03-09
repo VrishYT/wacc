@@ -1,7 +1,12 @@
 # Very simple tail recursive function
 
 # Output:
-# 
+# x = 0
+# x = 1
+# x = 2
+# x = 3
+# x = 4
+# x = 5
 
 # Exit:
 # 5
@@ -11,6 +16,8 @@
 begin
     @tailrec
     int sumToFive(int x) is
+        print "x = " ;
+        println x ;
         if x == 5
         then return x
         else
@@ -26,7 +33,11 @@ end
 # int sumToFive(int x) is
 #     while x != 5 # INVERT CONDITION
 #     do 
+#         print "x = " ;
+#         println x ;
 #         x = x + 1 # FLATTEN CALLS INTO REASSIGNS
 #     done ;
+#     print "x = " ;
+#     println x ;
 #     return x
 # end
