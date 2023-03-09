@@ -475,11 +475,14 @@ object SemanticChecker {
         case Return(x) => {
           val rType = getRValType(x)
 
-          /* error if we are not inside of a function */
-          val funcTable = vars match {
+          def getFuncTable(table: Table): FuncTable = table match {
             case x: FuncTable if (x.id != "main") => x
+            case x: ChildTable => getFuncTable(x.parent)
             case _ => ErrorLogger.err("invalid return call\n  cannot return outside a function body", x.pos)
           }
+
+          /* error if we are not inside of a function */
+          val funcTable = getFuncTable(vars)
 
           /* error if return type does not match return type of the current function being checked */
           var funcType = funcTable.getReturnType
