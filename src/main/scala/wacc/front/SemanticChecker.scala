@@ -208,18 +208,35 @@ object SemanticChecker {
         }
       }
 
-      /* returns true if the lvalue has no type yet */
-      def isTypelessParam(lVal: LValue): Boolean = {
+      def trySetLeftTypelessParam(lVal: LValue, vars: Table, lType: Type) = {
         lVal match {
 
           /* if its an identifier then check if it has a type in the parent and child scope maps yet*/
           case (x@Ident(id)) =>  vars.getType(id) match {
                                       case Some(x) => {
-                                        return x == NoType
+                                        if (x == NoType) {
+                                          vars.updateRecursive(id, Symbol(lType))
+                                        }
                                       }
                                       case None => ???
                                }
-          case _ => false
+          case _ =>
+        }
+      }
+
+      def trySetRightTypelessParam(rVal: RValue, vars: Table, rType: Type) = {
+        rVal match {
+
+          /* if its an identifier then check if it has a type in the parent and child scope maps yet*/
+          case (x@Ident(id)) =>  vars.getType(id) match {
+                                      case Some(x) => {
+                                        if (x == NoType) {
+                                          vars.updateRecursive(id, Symbol(rType))
+                                        }
+                                      }
+                                      case None => ???
+                               }
+          case _ =>
         }
       }
 
@@ -408,6 +425,21 @@ object SemanticChecker {
         }
       }
 
+            /* returns true if the lvalue has no type yet */
+      def isTypelessParam(lVal: LValue): Boolean = {
+        lVal match {
+
+          /* if its an identifier then check if it has a type in the parent and child scope maps yet*/
+          case (x@Ident(id)) =>  vars.getType(id) match {
+                                      case Some(x) => {
+                                        return x == NoType
+                                      }
+                                      case None => ???
+                               }
+          case _ => false
+        }
+      }
+
       /* checks each statement */
       def checkStatement(statement: Stat): Unit = statement match {
 
@@ -565,6 +597,95 @@ object SemanticChecker {
         }
       }) 
       case None =>  
+    })
+
+    def trySetLeftTypelessParam(lVal: LValue, vars: Table, lType: Type) = {
+      lVal match {
+
+        /* if its an identifier then check if it has a type in the parent and child scope maps yet*/
+        case (x@Ident(id)) =>  vars.getType(id) match {
+                                      case Some(x) => {
+                                        if (x == NoType) {
+                                          vars.updateRecursive(id, Symbol(lType))
+                                        }
+                                      }
+                                      case None => ???
+                               }
+        case _ =>
+      }
+    }
+
+    def trySetRightTypelessParam(rVal: RValue, vars: Table, rType: Type) = {
+        rVal match {
+
+          /* if its an identifier then check if it has a type in the parent and child scope maps yet*/
+          case (x@Ident(id)) =>  vars.getType(id) match {
+                                      case Some(x) => {
+                                        if (x == NoType) {
+                                          vars.updateRecursive(id, Symbol(rType))
+                                        }
+                                      }
+                                      case None => 
+                               }
+          case _ =>
+        }
+      }
+
+    def tryInferParam(statement: Stat, vars: Table): Unit = {
+      statement match {
+
+        /* check return statement */
+        case Return(x) => {
+
+          def getFuncTable(table: Table): FuncTable = table match {
+            case x: FuncTable if (x.id != "main") => x
+            case x: ChildTable => getFuncTable(x.parent)
+            case _ => ErrorLogger.err("invalid return call\n  cannot return outside a function body", x.pos)
+          }
+
+          /* error if we are not inside of a function */
+          val funcTable = getFuncTable(vars)
+
+          /* error if return type does not match return type of the current function being checked */
+          var funcType = funcTable.getReturnType
+
+          trySetRightTypelessParam(x, vars, funcType)
+        }
+
+        /* check exit statement */
+        case Exit(x) => {
+          trySetRightTypelessParam(x, vars, IntType)
+        }
+
+        /* check if statement */
+        case If(p, xs, ys) => {
+
+          
+          trySetRightTypelessParam(p, vars, BoolType)
+          
+          xs.foreach(stat => tryInferParam(stat, vars))
+          ys.foreach(stat => tryInferParam(stat, vars))
+        }
+
+        /* check while statement */
+        case While(p, xs) => {
+
+          trySetRightTypelessParam(p, vars, BoolType)
+          xs.foreach(stat => tryInferParam(stat, vars))
+        }
+
+        /* check begin statement, by checking the semantics of its body's statements */
+        case Begin(xs) => {
+          checkStatements(xs, vars)
+        }
+
+        case _ =>
+      }
+    }
+
+    functions.foreach(func => symbolTable.get(func.fs._2) match {
+      case Some(x) => func.stats.foreach(stat => tryInferParam(stat, x))
+      case None => 
     })
 
     functions.foreach(func => symbolTable.get(func.fs._2) match {
