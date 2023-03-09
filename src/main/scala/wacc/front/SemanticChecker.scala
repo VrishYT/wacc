@@ -7,7 +7,7 @@ object SemanticChecker {
   import error._
   import wacc.ast._
 
-  import scala.collection.mutable.{ArrayBuffer}
+  import scala.collection.mutable.{ArrayBuffer, Map => MapM}
 
   def typecheck(program: Program, symbolTable: SymbolTable): ArrayBuffer[TypeException] = {
 
@@ -185,27 +185,67 @@ object SemanticChecker {
           /* if it's a function call :  */
           case (func@Call(id, args)) => {
 
-            /* get a list of its parameter types in order */
-            val funcVars = symbolTable.get(id) match {
+            def checkOverloadedFunc(funcVars: FuncTable): Boolean = {
+              val currentArgs = funcVars.paramTypes
+
+              /* error if the number of arguments is wrong */
+              if (args.length != currentArgs.length) return false
+
+              for (i <- 0 to args.length - 1) {
+                val paramType = currentArgs(i)
+                val rType = getRValType(args(i))
+
+                /* error an argument type doesn't match the required parameter */
+                if (rType != paramType) return false
+              }
+
+              return true
+            }
+
+            /* error if function not defined */
+            val count = functionCount.get(id) match {
               case Some(x) => x
               case None => ErrorLogger.err("Function '${id}' is undefined", func.pos) 
             }
-            val currentArgs = funcVars.paramTypes
 
-            /* error if the number of arguments is wrong */
-            if (args.length != currentArgs.length) ErrorLogger.err("Invalid number of arguments for function '" + id + "'. expected: " + currentArgs.length + ". actual: " + args.length, func.pos)
+            /* check every overloaded function for a match */
+            (0 until count).foreach(i => {
+              val uniqueFuncId = s"${i}_${id}"
+              val funcVars = symbolTable.get(uniqueFuncId) match {
+                case Some(x) => x
+                case None => ???
+              }
 
-            /* check each argument type passed in is the same as the corresponding parameter for this function */
-            for (i <- 0 to args.length - 1) {
-              val paramType = currentArgs(i)
-              val rType = getRValType(args(i))
+              if (checkOverloadedFunc(funcVars)) {
+                func.rename(uniqueFuncId)
+                return funcVars.returnType
+              }              
+            })
 
-              /* error an argument type doesn't match the required parameter */
-              if (rType != paramType) ErrorLogger.err("invalid type for arg", rType, paramType, args(i).pos)
-            }
+            /* if none are valid, error */
+            ErrorLogger.err(s"invalid call to ${id}", func.pos)
 
-            /* return the type of the function from the identifier maps */
-            return funcVars.returnType
+            // /* get a list of its parameter types in order */
+            // val funcVars = symbolTable.get(id) match {
+            //   case Some(x) => x
+            //   case None => ErrorLogger.err("Function '${id}' is undefined", func.pos) 
+            // }
+            // val currentArgs = funcVars.paramTypes
+
+            // /* error if the number of arguments is wrong */
+            // if (args.length != currentArgs.length) ErrorLogger.err("Invalid number of arguments for function '" + id + "'. expected: " + currentArgs.length + ". actual: " + args.length, func.pos)
+
+            // /* check each argument type passed in is the same as the corresponding parameter for this function */
+            // for (i <- 0 to args.length - 1) {
+            //   val paramType = currentArgs(i)
+            //   val rType = getRValType(args(i))
+
+            //   /* error an argument type doesn't match the required parameter */
+            //   if (rType != paramType) ErrorLogger.err("invalid type for arg", rType, paramType, args(i).pos)
+            // }
+
+            // /* return the type of the function from the identifier maps */
+            // return funcVars.returnType
           }
 
           /* for an expression, match on the specific type of expression : */

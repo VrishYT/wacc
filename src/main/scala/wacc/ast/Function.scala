@@ -5,7 +5,12 @@ import wacc.front.ParserBridge._
 import wacc.back._
 
 /* function case class with position */
-case class Func(fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
+case class Func(var fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
+
+    def rename(newId: String): Unit = {
+        val t = fs._1
+        fs = (t, newId)
+    }
 
     def toAssembly(gen: CodeGenerator)(implicit table: FuncTable): Seq[Instruction] = {
 
