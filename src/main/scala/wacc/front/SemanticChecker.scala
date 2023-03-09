@@ -196,7 +196,7 @@ object SemanticChecker {
               /* error if the types of all elements in the array are not the same */
               val head :: tail = xs
               val t = getRValType(head)
-              tail.foreach(exp => if (getRValType(exp) != t) ErrorLogger.err("Types in array not the same", getRValType(exp), t, array.pos))
+              tail.foreach(exp => if (getRValType(exp) != t) ErrorLogger.err("types in array not the same", getRValType(exp), t, array.pos))
 
               /* return ArrayType of the type of elements in the array */
               ArrayType(getRValType(xs.head))
@@ -221,22 +221,25 @@ object SemanticChecker {
           case newClass@NewClass(class_id, rvals) => {
             val class_mems = symbolTable.classes.get(class_id) match {
               case Some(x) => x
-              case None => ErrorLogger.err(s"Class '${class_id}' is undefined", newClass.pos)
+              case None => ErrorLogger.err(s"invalid constructor for class ${class_id}\n  - class '${class_id}' does not exist", newClass.pos)
             }
 
             val class_types = class_mems match {
-              case z : ClassTable => z.types
+              case z : ClassTable => z.types()
               case _ => ???
             }
+
             val size = class_mems.getSize
             if (rvals.length != size){
-              ErrorLogger.err(s"You have not defined the values for '${class_id}' fully", newClass.pos)
+              ErrorLogger.err(s"invalid constructor for class ${class_id}\n  - missing arguments", newClass.pos)
             }
 
+            // TODO: REPLACE FOR LOOP WITH FOREACH
             for (i <- 0 to size - 1) {
-              val expectedType = class_types(i)
-              val rValType = getRValType(rvals(i)) 
-              if (expectedType != rValType) ErrorLogger.err("invalid type assigned in class", expectedType, rValType, newClass.pos)
+              val expectedType = class_types(i) 
+              val field = rvals(i)
+              val rValType = getRValType(field) 
+              if (expectedType != rValType) ErrorLogger.err(s"invalid constructor for class ${class_id}\n  - invalid type of argument", expectedType, rValType, field.pos)
             }
               
             return new ClassType(class_id)
@@ -249,12 +252,12 @@ object SemanticChecker {
                 /* get a list of its parameter types in order */
               val funcVars = symbolTable.get(ids.head) match {
                 case Some(x) => x
-                case None => ErrorLogger.err(s"Function '${ids}' is undefined", func.pos) 
+                case None => ErrorLogger.err(s"function '${ids}' is undefined", func.pos) 
               }
               val currentArgs = funcVars.paramTypes
 
               /* error if the number of arguments is wrong */
-              if (args.length != currentArgs.length) ErrorLogger.err("Invalid number of arguments for function '" + ids + "'. expected: " + currentArgs.length + ". actual: " + args.length, func.pos)
+              if (args.length != currentArgs.length) ErrorLogger.err("invalid number of arguments for function '" + ids + "'. expected: " + currentArgs.length + ". actual: " + args.length, func.pos)
 
               /* check each argument type passed in is the same as the corresponding parameter for this function */
               for (i <- 0 to args.length - 1) {
