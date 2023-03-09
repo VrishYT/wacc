@@ -134,7 +134,7 @@ sealed abstract class Table extends TableEntry {
 
     def contains(id: String): Boolean = table.contains(id)
 
-    private def get(id: String): Option[TableEntry] = {
+    protected def get(id: String): Option[TableEntry] = {
 
         def getFromParent(id: String, table: Table): Option[TableEntry] = table.table.get(id) match {
             case x: Some[_] => x
@@ -183,10 +183,26 @@ sealed abstract class Table extends TableEntry {
 
 }
 
-case class FuncTable(val id: String, val paramTypes: Seq[Type], val returnType: Type, val isPrivate: Boolean = false) extends Table {
+sealed class FuncTable(
+    val id: String, 
+    val paramTypes: Seq[Type], 
+    val returnType: Type, 
+    val isPrivate: Boolean = false
+) extends Table {
     override def isInFunction = id != "main"
     override def getReturnType = returnType
 }
+
+object FuncTable {
+    def apply(
+        id: String, 
+        paramTypes: Seq[Type], 
+        returnType: Type, 
+        isPrivate: Boolean = false
+    ): FuncTable = new FuncTable(id, paramTypes, returnType, isPrivate)
+}
+
+
 sealed class ChildTable(val parent: Table) extends Table {
     override def isInFunction = parent.isInFunction
     override def getReturnType = parent.getReturnType
@@ -196,6 +212,18 @@ object ChildTable {
 }
 
 case class ClassTable(val class_id : String) extends Table {
+
+    def getMethodTable(id: String): Option[MethodTable] = super.get(id) match {
+        case Some(x) => x match {
+            case x: MethodTable => Some(x)
+            case x => {
+                println(s"get $x")
+                None
+            } 
+        }
+        case None => None
+    }
+
     def types(): List[Type] = table.values.filter(x => x match {
         case _: Symbol => true
         case _ => false
@@ -204,6 +232,14 @@ case class ClassTable(val class_id : String) extends Table {
         case _ => ???
     }).toList
 }
+
+case class MethodTable(
+    override val id: String, 
+    override val paramTypes: Seq[Type], 
+    override val returnType: Type, 
+    override val isPrivate: Boolean = false,
+    val parent: ClassTable
+) extends FuncTable(id, paramTypes, returnType, isPrivate)
 
 class Symbol(val t: Type, val isPrivate : Boolean = false) extends TableEntry
 object Symbol {
