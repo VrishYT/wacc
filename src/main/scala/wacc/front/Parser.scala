@@ -63,17 +63,17 @@ object Parser {
     labels("arithmetic operator", "logical operator",
       "comparison operator", "index (like \'xs[idx]\')")
 
-  /*ident or array elem checks if the text is only an ident or
+  /*ident or class elem or array elem checks if the text is only an ident or a class elem (<ident> (.<ident>)*)
       it is an array elem (it is followed by a [) and creates the corresponding AST node*/
-  val IDENT_OR_ARRAY_ELEM = IdentOrArrayElem(IDENT.label("identifier"), invalid_call *> option(
-    "[".label("index (like \'xs[idx]\')") *> sepBy(expr, "][") <* "]"))
-
-  lazy val CLASS_ELEM = ClassElem(IDENT <~ ".", sepBy(IDENT, "."))
+  val L_EXPR = LExpr(sepBy1(IDENT, ".").label("identifier/class elem"), invalid_call *> option(
+    "[".label("index (like \'xs[idx]\')") *> sepBy(expr, "][") <* "]")).guardAgainst {
+      case x if (!x.valid) => Seq("Cannot access the elements of an array within a class directly.")
+    }
 
   /*base elements of any expression, as the expression type is recursive*/
   private lazy val atom: Parsley[Expr] = "(".label("open parenthesis") *> expr <* ")" <|>
-    attempt(CLASS_ELEM) <|>
-    IDENT_OR_ARRAY_ELEM <|>
+    // attempt(CLASS_ELEM) <|>
+    L_EXPR <|>
     IntLiteral(INTEGER.hide).label("integer literal").explain(
       "all numbers are signed 32-bit integers") <|>
     CharLiteral(CHR_LIT) <|>
@@ -130,7 +130,7 @@ object Parser {
     PAIR_ELEM 
 
   /*defined parsing for l-values*/
-  lazy val lvalue: Parsley[LValue] = attempt(CLASS_ELEM) <|> IDENT_OR_ARRAY_ELEM <|> PAIR_ELEM
+  lazy val lvalue: Parsley[LValue] = L_EXPR <|> PAIR_ELEM  
 
   /*created a parsing rule to avoid function declarations in the middle of a block*/
   val _invalid_declaration = amend(attempt((types *> IDENT <~ "(").hide) *> unexpected(
