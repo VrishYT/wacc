@@ -183,7 +183,7 @@ sealed abstract class Table extends TableEntry {
 
 }
 
-case class FuncTable(val id: String, val paramTypes: Seq[Type], val returnType: Type) extends Table {
+case class FuncTable(val id: String, val paramTypes: Seq[Type], val returnType: Type, val isPrivate: Boolean = false) extends Table {
     override def isInFunction = id != "main"
     override def getReturnType = returnType
 }
@@ -195,23 +195,7 @@ object ChildTable {
     def apply(parent: Table): ChildTable = new ChildTable(parent)
 }
 
-
-case class ClassTable(val id: String) extends Table {
-    
-    // def addClass(, decls: List[Field], funcs: List[Func]): Unit = {
-    //     decls.foreach(field => {
-    //         !cls.add(field.id, Symbol(field.t, field.isPrivate))
-    //     })
-    //     funcs.foreach(func =>{
-    //         val funcTable = new FuncTable(func.fs._2, func.args.map(_.t), func.fs._1)
-    //         cls.addTable(func.fs._2, funcTable)
-    //         func.args.foreach(param => funcTable.add(param.id, ParamSymbol(param.t)))
-    //     })
-    // }
-
-}
-
-case class ClassEntry(val class_id : String, override val parent: ClassTable) extends ChildTable(parent) {
+case class ClassTable(val class_id : String) extends Table {
     def types(): List[Type] = table.values.filter(x => x match {
         case _: Symbol => true
         case _ => false
@@ -235,13 +219,13 @@ class SymbolTable {
     private val table = MapM[String, FuncTable]()
 
     /* create global class table for storing all types of classes */
-    val classTable = new ClassTable("_class")
+    val classes = MapM[String, ClassTable]()
 
     override def toString(): String = table.mkString("\n")
 
     def declare(id: String): FuncTable = declare(id, Seq(), AnyType)
     def declare(id: String, params: Seq[Param], returnType: Type): FuncTable = {
-        val func = new FuncTable(id, params.map(_.t), returnType)
+        val func = FuncTable(id, params.map(_.t), returnType)
         table(id) = func
         params.foreach(param => func.add(param.id, ParamSymbol(param.t)))
         return func
