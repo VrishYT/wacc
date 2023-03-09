@@ -1,0 +1,12 @@
+begin
+    class Point {
+        int x,
+        int y
+
+        int getX() is
+            return x
+        end
+    }
+
+    skip
+end
