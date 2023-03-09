@@ -26,8 +26,9 @@ case class Func(isPrivate: Boolean, fs: (Type, String), args: List[Param], stats
         // println(s"free: ${gen.regs.freeRegs}")
 
         // println(s"stacksize = $stack")
+        val id = if (class_id != "") s"wacc_${class_id}_${fs._2}" else s"wacc_${fs._2}"
 
-        return Func.generateFunction(s"${class_id}_wacc_${fs._2}", gen.mem.grow() +: instr, Func.FuncRegs:_*)
+        return Func.generateFunction(id, gen.mem.grow() +: instr, Func.FuncRegs:_*)
     }
 
     /* define validReturn of a function, and match on the last statement : */

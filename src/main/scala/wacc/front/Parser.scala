@@ -181,7 +181,7 @@ object Parser {
   val funcList = sepEndBy(attempt(func).guardAgainst { case func if !func.validReturn => Seq("function is missing a return/exit on all exit paths")}, pure(""))
 
   /*rule to parse on classes */
-  val field = Field(PRIVATE, types, IDENT)
+  val field = attempt(Field(PRIVATE, types, IDENT <* notFollowedBy("(")))
   val fieldList = sepBy(field, ",")
   val class_ = Class(attempt("class" *> IDENT <~ "{"), fieldList, funcList <~ "}")
   val classList = sepEndBy(class_, pure(""))
