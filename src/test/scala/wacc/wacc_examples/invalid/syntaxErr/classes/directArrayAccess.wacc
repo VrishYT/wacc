@@ -1,0 +1,8 @@
+begin
+    class Array {
+        int[] x
+    }
+    Array a = new Array { [0, 1, 2] } ;
+    int x = a.x[1] ;
+    exit x
+end
