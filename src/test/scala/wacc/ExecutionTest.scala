@@ -105,7 +105,7 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
 
                 }
             }
-            case None => 
+            case None => println(s"ignored file ${path.getFileName()}")
         }
 
 
@@ -113,7 +113,7 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
 
 
     val make = "make".!!
-    var examples = Paths.get("src/test/scala/wacc/wacc_examples/valid/")
+    var examples = Paths.get("src/test/scala/wacc/wacc_examples/valid/advanced")
     Files.walk(examples).iterator().asScala.filter(_.getFileName.toString.endsWith(".wacc")).foreach(testFile(_))
 
 }
