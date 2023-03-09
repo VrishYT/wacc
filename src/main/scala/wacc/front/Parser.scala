@@ -140,8 +140,8 @@ object Parser {
   /*defined parsing for statements*/
   val stat: Parsley[Stat] = _invalid_declaration <|>
     ("skip" #> Skip) <|>
+    (Assign(attempt(lvalue <~ "=".label("assignment")), rvalue)) <|>
     (Declare(types, IDENT, "=" *> rvalue)) <|>
-    (Assign(lvalue, "=".label("assignment") *> rvalue)) <|>
     (Read("read" *> lvalue)) <|>
     (Free("free" *> expr)) <|>
     (Return("return" *> expr)) <|>
