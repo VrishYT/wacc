@@ -37,12 +37,13 @@ object SemanticChecker {
     
     /* Add each class to the symbol table */
     classes.foreach(c => {
-      val members = ClassTable(c.class_id)
 
       /* if class exists give a semantic error */
       if (symbolTable.classes.contains(c.class_id)) {
         errors += new TypeException(message = s"Cannot redeclare class '${c.class_id}'", pos = Seq(c.pos))
       } else {
+        val types = c.decls.map(_.t)
+        val members = ClassTable(c.class_id, types)
         symbolTable.classes(c.class_id) = members
       }
 
@@ -268,7 +269,7 @@ object SemanticChecker {
             }
 
             val class_types = class_mems match {
-              case z : ClassTable => z.types()
+              case z : ClassTable => z.types
               case _ => ???
             }
 

@@ -206,7 +206,7 @@ object ChildTable {
     def apply(parent: Table): ChildTable = new ChildTable(parent)
 }
 
-case class ClassTable(val class_id : String) extends Table {
+case class ClassTable(val class_id : String, val types: Seq[Type] = Seq()) extends Table {
 
     def getMethodTable(id: String): Option[MethodTable] = super.get(id) match {
         case Some(x) => x match {
@@ -218,14 +218,6 @@ case class ClassTable(val class_id : String) extends Table {
         }
         case None => None
     }
-
-    def types(): List[Type] = table.values.filter(x => x match {
-        case _: Symbol => true
-        case _ => false
-    }).map(y => y match {
-        case z: Symbol => z.t
-        case _ => ???
-    }).toList
 }
 
 case class MethodTable(
