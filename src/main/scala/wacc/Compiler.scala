@@ -52,7 +52,10 @@ class Compiler(private val file: File) {
                     false           
                 }
             }
-            case x: util.Failure[_] => ErrorLogger.err("cannot read file", 1)
+            case x: util.Failure[_] => {
+                println(x)
+                false
+            }
         }
     }
     
