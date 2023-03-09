@@ -21,19 +21,65 @@ object SemanticChecker {
     /* create a map for the global scope, containing function identifiers to return types */
     val vars = symbolTable.declare("main")
 
+    /* tracks the number of overloaded functions found per function id */
+    val functionCount = MapM[String, Int]()
+
     functions.foreach(func => {
 
-      /* check if the functions already exists in the map */
-      if (symbolTable.contains(func.fs._2)) {
+      val id = func.fs._2
 
-        /* error if the function has been declared more than once */
-        errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
-      } else {
-        /* Add the function into the global scope */
-        if (func.args.distinct.size != func.args.size) errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
-        else symbolTable.declare(func.fs._2, func.args, func.fs._1)
+      functionCount.get(id) match {
+        case Some(count) => {
+          if (checkNonDuplicateFunction(func, count)) {
+            storeFunction(func, count)
+            functionCount(id) = count + 1
+          }
+        }
+        case None => {
+          storeFunction(func, 0)
+          functionCount(id) = 1
+        }
       }
+
+      // /* check if the functions already exists in the map */
+      // if (symbolTable.contains(func.fs._2)) {
+
+      //   /* error if the function has been declared more than once */
+      //   errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
+      // } else {
+      //   /* Add the function into the global scope */
+      //   if (func.args.distinct.size != func.args.size) errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
+      //   else symbolTable.declare(func.fs._2, func.args, func.fs._1)
+      // }
     })
+
+    /* Add the function into the global scope */
+    def storeFunction(func: Func, i: Int): Unit = {
+      if (func.args.distinct.size != func.args.size) {
+        errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
+      } else {
+        val uniqueFuncId = s"${i}_${func.fs._2}"
+        symbolTable.declare(uniqueFuncId, func.args, func.fs._1)
+        func.rename(uniqueFuncId)
+      }
+    }
+
+    /* check a function is not a duplicate function */
+    def checkNonDuplicateFunction(func: Func, count: Int): Boolean = {
+      (0 until count).foreach(i => {
+        val funcTable = symbolTable.get(s"${i}_${func.fs._2}") match {
+          case Some(x) => x
+          case None => ???
+        }
+        /* error if the function has been declared more than once */
+        if (funcTable.returnType != func.fs._1 || funcTable.paramTypes != func.args.map(_.t)) {
+          errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
+          return false
+        }
+      })
+
+      return true
+    }
 
     /* check if a variable already exists in scope, error if it does, and add it to the scope if it doesn't */
     def declareVar(id: String, t: Type, vars: Table, pos: (Int, Int)): Unit = {
