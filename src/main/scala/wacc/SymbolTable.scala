@@ -1,6 +1,6 @@
 package wacc
 
-import scala.collection.mutable.{Map => MapM}
+import scala.collection.mutable.{LinkedHashMap => MapM}
 import back._
 import ast._
 
@@ -206,7 +206,7 @@ object ChildTable {
     def apply(parent: Table): ChildTable = new ChildTable(parent)
 }
 
-case class ClassTable(val class_id : String, val types: Seq[Type] = Seq()) extends Table {
+case class ClassTable(val class_id : String, val types: Seq[Type]) extends Table {
 
     def getMethodTable(id: String): Option[MethodTable] = super.get(id) match {
         case Some(x) => x match {
