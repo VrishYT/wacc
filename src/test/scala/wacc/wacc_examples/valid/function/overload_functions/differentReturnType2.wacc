@@ -1,0 +1,27 @@
+# overloads function with different return type only
+
+# Output:
+# ord b = 98
+# chr (ord b) = b
+#
+
+# Program:
+
+begin
+  char foo(int x) is
+    char res = chr x ;
+    return res
+  end
+
+  int foo(char x) is
+    int res = ord x ;
+    return res
+  end
+
+  int x = call foo('b') ;
+  char y = call foo(x) ;
+  print "ord b = " ;
+  println x ;
+  print "chr (ord b) = " ;
+  println y 
+end
