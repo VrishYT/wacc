@@ -170,15 +170,21 @@ object Parser {
   val param = TypedParam(types, _invalid_pointer <|> IDENT) <|> TypelessParam(_invalid_pointer <|> IDENT)
 
   val paramList = sepBy(param, ",")
+  
+  val annotation = "@" *> Annotation(IDENT)
+  
+  val annotationList = sepBy(annotation.guardAgainst {
+    case annotation if !annotation.isValid => Seq("unknown annotation") // TODO: improve error msg
+  }, pure(""))
 
   /*rule to pick on invalid function declarations with a missing type*/
   // val _invalid_function = amend((attempt(IDENT <~ "(").hide).verifiedFail(
   //   "function declaration missing type"))
 
-  val func = attempt(TypedFunc(PRIVATE, types <~> IDENT <~ "(".label(
+  val func = attempt(TypedFunc(annotationList, PRIVATE, types <~> IDENT <~ "(".label(
     "opening parenthesis").label(
     "function declaration"), paramList <~ ")", "is" *> stats <* "end")) <|>
-    TypelessFunc(PRIVATE, IDENT <~ "(".label(
+    TypelessFunc(annotationList, PRIVATE, IDENT <~ "(".label(
     "opening parenthesis").label(
     "function declaration"), paramList <~ ")", "is" *> stats <* "end")
   

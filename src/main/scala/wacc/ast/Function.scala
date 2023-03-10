@@ -5,6 +5,7 @@ import wacc.front.ParserBridge._
 import wacc.back._
 
 sealed abstract class Func(
+    val annotations: List[Annotation],
     val isPrivate: Boolean,
     val fs: (Type, String), 
     val args: List[Param], 
@@ -51,8 +52,12 @@ sealed abstract class Func(
             // println(s"inUse: ${gen.regs.regsInUse}")
             // println(s"free: ${gen.regs.freeRegs}")
         })
+
+        // println(s"*-Stats:-*\n$stats\n")
+        val modifiedStats = annotations.foldRight(stats)(_.process(_))
+        // println(s"*-Modified Stats:-*\n$modifiedStats")
         
-        val instr = stats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
+        val instr = modifiedStats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
 
         // println(s"table = ${table.getSize}\nfreeRegs = ${gen.regs.freeRegs.size}")
         // println(s"inUse: ${gen.regs.regsInUse}")
@@ -115,25 +120,31 @@ object Func {
 
 /* function case class with position */
 case class TypedFunc(
+    override val annotations: List[Annotation],
     override val isPrivate: Boolean, 
     override val fs: (Type, String), 
     override val args: List[Param], 
     override val stats: List[Stat]
-)(override val pos: (Int, Int)) extends Func(isPrivate, fs, args, stats)(pos)
+)(override val pos: (Int, Int)) extends Func(
+    annotations, isPrivate, fs, args, stats
+)(pos)
 
 /* function and parameter companion objects with parser bridges */
-object TypedFunc extends ParserBridgePos4[Boolean, (Type, String), List[Param], List[Stat], Func] 
+object TypedFunc extends ParserBridgePos5[List[Annotation], Boolean, (Type, String), List[Param], List[Stat], Func] 
 
 /* function case class with position */
 case class TypelessFunc(
+    override val annotations: List[Annotation],
     override val isPrivate: Boolean,
     val name: String, 
     override val args: List[Param], 
     override val stats: List[Stat]
-)(override val pos: (Int, Int)) extends Func(isPrivate, (NoType, name), args, stats)(pos)
+)(override val pos: (Int, Int)) extends Func(
+    annotations, isPrivate, (NoType, name), args, stats
+)(pos)
 
 /* function and parameter companion objects with parser bridges */
-object TypelessFunc extends ParserBridgePos4[Boolean, String, List[Param], List[Stat], Func]
+object TypelessFunc extends ParserBridgePos5[List[Annotation], Boolean, String, List[Param], List[Stat], Func]
 
 trait Param {
     val id: String

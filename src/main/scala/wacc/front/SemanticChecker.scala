@@ -559,18 +559,32 @@ object SemanticChecker {
 
     /* check semantics of all statements in the program */
     classes.foreach(c => symbolTable.classes.get(c.class_id) match {
-      case Some(members) => c.funcs.foreach(func => members.getMethodTable(func.fs._2) match {
-        case Some(x) => checkStatements(func.stats, x)
-        case None => {
-          errors += new TypeException(message = s"invalid method declaration in '${c.class_id}'", pos = Seq(func.pos))
+      case Some(members) => c.funcs.foreach(func => {
+      func.annotations.foreach(a => {
+        if (!a.verify(func)) {
+          errors += new TypeException(message = a.errorMsg, pos = Seq(func.pos))
+        }
+      })
+        members.getMethodTable(func.fs._2) match {
+          case Some(x) => checkStatements(func.stats, x)
+          case None => {
+            errors += new TypeException(message = s"invalid method declaration in '${c.class_id}'", pos = Seq(func.pos))
+          }
         }
       }) 
       case None =>  
     })
 
-    functions.foreach(func => symbolTable.get(func.fs._2) match {
-      case Some(x) => checkStatements(func.stats, x)
-      case None => errors += new TypeException(message = "Invalid function declaration", pos = Seq(func.pos))
+    functions.foreach(func => {
+      func.annotations.foreach(a => {
+        if (!a.verify(func)) {
+          errors += new TypeException(message = a.errorMsg, pos = Seq(func.pos))
+        }
+      })
+      symbolTable.get(func.fs._2) match {
+        case Some(x) => checkStatements(func.stats, x)
+        case None => errors += new TypeException(message = "invalid function declaration", pos = Seq(func.pos))
+      }
     })
 
     checkStatements(statements, vars)
