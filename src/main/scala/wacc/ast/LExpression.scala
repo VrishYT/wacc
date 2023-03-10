@@ -3,6 +3,7 @@ package ast
 
 import wacc.front.ParserBridge._
 import wacc.back._
+import scala.collection.mutable.ListBuffer
 
 /* left expressions extending expressions and left values */
 sealed trait LExpr extends Expr with LValue {
@@ -156,8 +157,65 @@ object LExpr extends ParserBridgePos2[List[String], Option[List[Expr]], LExpr] {
     }
 }
 
-// case class ClassElem(id: String, elems: List[String])(val pos: (Int, Int)) extends LExpr
-case class ClassElem(ids: List[String])(val pos: (Int, Int)) extends LExpr
+
+case class ClassElem(ids: List[String])(val pos: (Int, Int)) extends LExpr {
+  override def toAssembly(gen: CodeGenerator)(implicit table: Table): RegAssembly = {
+    println("class elem")
+    val classAss = Operands.opToReg(table.getOp(ids.head), Register(12))
+    val classType = table.getType(ids.head) match {
+        case Some(x : ClassType) => x.class_id
+        case None => ???
+    }
+    val instrs = ListBuffer[Instruction]()
+    instrs += classAss
+    val load = toAssemblyLoad(gen, ids.tail, Register(12), classType, instrs)(table)
+    RegAssembly(load.getReg(), Seq(Comment(s"class elem ${ids.mkString(".")}"), classAss) ++ load.instr)
+  }
+
+  def toAssemblyLoad(gen: CodeGenerator, ids: List[String], accumReg: Register, classType: String, instrs: ListBuffer[Instruction])(implicit table: Table): RegAssembly = {
+    ids match {
+      case y :: Nil => {
+        println("last name")
+        val outReg = Register(0)
+        val classTable = gen.symbolTable.classes.get(classType) match {
+          case Some(a) => a
+          case None => ???
+        }
+        val elemType = classTable.getSymbol(y) match {
+          case Some(z) => z.t
+          case None => ???
+        }
+        val elems = classTable.keys
+
+        var elemOffset = 0
+        val i = 0
+        while (i >= 0 && i < elems.length - 1) {
+          if (elems(i) == y){
+            elemOffset = i*4
+          }
+        } 
+
+        val loadByte = (elemType == CharType || elemType == BoolType)
+        return RegAssembly(outReg, loadClassElem(accumReg, outReg, elemOffset, loadByte))
+      }
+
+      case _ => {
+        val classAss = Operands.opToReg(table.getOp(ids.head), accumReg)
+        val classType = table.getType(ids.head) match {
+          case Some(x : ClassType) => x.class_id
+          case None => ???
+        }
+        instrs += classAss
+        toAssemblyLoad(gen, ids.tail, accumReg, classType, instrs)
+      }
+    }
+  }
+
+  def loadClassElem(reg: Register, outReg: Register, offset: Int, byte : Boolean): Seq[Instruction] = {
+      return Seq(Load(outReg, Address(reg, ImmInt(offset))),
+                 Load(outReg, Address(outReg, ImmInt(0)), byte))
+  }
+}
 
 object ClassElem extends ParserBridgePos1[List[String], ClassElem] 
 
