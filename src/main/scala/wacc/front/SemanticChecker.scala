@@ -72,7 +72,7 @@ object SemanticChecker {
           case None => ???
         }
         /* error if the function has been declared more than once */
-        if (funcTable.returnType != func.fs._1 || funcTable.paramTypes != func.args.map(_.t)) {
+        if (funcTable.returnType == func.fs._1 && funcTable.paramTypes == func.args.map(_.t)) {
           errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
           return false
         }
@@ -147,7 +147,7 @@ object SemanticChecker {
       }
 
       /* return the type of an rvalue. */
-      def getRValType(rval: RValue): Type = {
+      def getRValType(rval: RValue, lvalType: Option[Type] = None): Type = {
 
         rval match {
 
@@ -199,7 +199,10 @@ object SemanticChecker {
                 if (rType != paramType) return false
               }
 
-              return true
+              return lvalType match {
+                case Some(x) => x == funcVars.returnType
+                case None => false
+              }
             }
 
             /* error if function not defined */
@@ -343,7 +346,7 @@ object SemanticChecker {
 
         /* check declare statement */
         case Declare(t, id, rhs) => {
-          val rType = getRValType(rhs)
+          val rType = getRValType(rhs, Some(t))
 
           /* error if the left type is not the same as the right type */
           if (rType != t) ErrorLogger.err("invalid type for declare", rType, t, rhs.pos)
@@ -363,7 +366,7 @@ object SemanticChecker {
 
           /* get type of left and right hand sides of the assign */
           val lType = getLValType(x)
-          val rType = getRValType(y)
+          val rType = getRValType(y, Some(lType))
 
           /* error when attempting to assign an unknown type to another unknown type */
           if (lType == AnyType && rType == AnyType) ErrorLogger.err("invalid type for assign\n  cannot assign when both types are unknown", x.pos, y.pos)
