@@ -1,0 +1,25 @@
+# overloads function with different return type only
+
+# Output:
+# x = 0
+# y = true
+#
+
+# Program:
+
+begin
+  int foo() is
+    return 0
+  end
+
+  bool foo() is
+    return true
+  end
+
+  int x = call foo() ;
+  bool y = call foo() ;
+  print "x = " ;
+  println x ;
+  print "y = " ;
+  println y 
+end
