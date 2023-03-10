@@ -30,7 +30,7 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
             var tailCallVar: Any = null
             stats.foreach(stat => stat match {
                 case Declare(_, id, rhs) => rhs match {
-                    case Call(funcId, _) if (funcId == func.fs._2) => tailCallVar = Ident(id)(0,0) 
+                    case Call(funcId :: Nil, _) if (funcId == func.fs._2) => tailCallVar = Ident(id)(0,0) 
                     case _ => 
                 }
                 case AssignOrTypelessDeclare(lval, rval) => lval match {
