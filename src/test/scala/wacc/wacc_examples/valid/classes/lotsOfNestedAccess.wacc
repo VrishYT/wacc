@@ -1,3 +1,9 @@
+# lots of nested class accesses
+
+# Output:
+
+# Program:
+
 begin
     class A {
         B b
