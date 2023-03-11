@@ -26,26 +26,35 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
 
     override def verify(func: Func): Boolean = {
         import scala.annotation.nowarn
+        var tailCallVar: Any = null
         @nowarn def verifyBranch(stats: List[Stat]): Boolean = {
-            var tailCallVar: Any = null
             def matchId(ids: List[String], funcId: String): Boolean = ids.last == funcId.substring(funcId.indexOf("_") + 1)
-            stats.foreach(stat => stat match {
+            stats.foreach {
                 case Declare(_, id, rhs) => rhs match {
                     case Call(ids, _) if (matchId(ids, func.fs._2)) => tailCallVar = Ident(id)(0,0) 
                     case _ => 
                 }
-                case AssignOrTypelessDeclare(lval, rval) => lval match {
-                    case x: LExpr => rval match {
-                        case Call(ids, _) if (matchId(ids, func.fs._2)) => tailCallVar = x
+                case AssignOrTypelessDeclare(lval, rval) => rval match {
+                    case Call(ids, _) if (matchId(ids, func.fs._2)) => tailCallVar = lval
                         case _ => 
                     }
+                case If(_, x, y) => {
+                    val thenBranch = verifyBranch(x)
+                    val tailVarSaved = tailCallVar
+                    val elseBranch = verifyBranch(y)
+                    if (tailCallVar == null) {
+                        tailCallVar = tailVarSaved
+                    } else if (tailVarSaved != null) {
+                        ??? // TODO
                 }
-                case If(_, x, y) if (verifyBranch(x) || verifyBranch(y)) => return true
+                    if (thenBranch || elseBranch) return true
+                }
                 case Begin(xs) => verifyBranch(xs)
                 case While(_, xs) => verifyBranch(xs)
-                case Return(expr) =>  return tailCallVar == expr
-                case _ => 
-            })
+                case Return(expr) => return tailCallVar == expr
+                case Skip => 
+                case _ => tailCallVar = null
+            }
             false
         }
 
