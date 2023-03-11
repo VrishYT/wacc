@@ -48,8 +48,10 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
 
                     val thenBranch = verifyBranch(x)
                     val elseBranch = verifyBranch(y)
-                    if (thenBranch) return endsInReturn(y)
-                    else if (elseBranch) return endsInReturn(x)
+
+                    if (thenBranch || elseBranch) return true
+                    // if (thenBranch) return endsInReturn(y)
+                    // else if (elseBranch) return endsInReturn(x)
                 }
                 case Begin(xs) => {
                     verifyBranch(xs)
