@@ -1,0 +1,34 @@
+# if contains recursive call and skip
+# base case happens outside 
+
+# Output:
+# 
+
+# Exit:
+# 5
+
+# Program:
+
+begin
+    @tailrec
+    int sumToFive(int x) is
+        if x == 5
+        then skip
+        else
+            int y = call sumToFive(x + 1) ;
+            return y 
+        fi ;
+        return x
+    end
+    int x = call sumToFive(0) ;
+    exit x    
+end
+
+# Should be treated as:
+# int sumToFive(int x) is
+#     while x != 5 # INVERT CONDITION
+#     do 
+#         x = x + 1 # FLATTEN CALLS INTO REASSIGNS
+#     done ;
+#     return x
+# end
