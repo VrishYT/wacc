@@ -30,3 +30,13 @@ end
 #     done ;
 #     return x
 # end
+
+# Or:
+# int sumToFive(int x) is
+#     while true
+#     do 
+#         if (x == 5) return x
+#         else x = x + 1
+#     done ;
+#     return x
+# end

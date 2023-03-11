@@ -27,3 +27,18 @@ begin
     int x = call fib(9, a_init, b_init) ;
     exit x
 end
+
+# int fib(int n, int a, int b) is
+#     while true 
+#     do 
+#         if n == 0 return a
+#         else 
+#             if n == 1 return b
+#             else 
+#                 n = n - 1 ;
+#                 a = b ;
+#                 b = a + b
+#             fi
+#         fi
+#     done
+# end
