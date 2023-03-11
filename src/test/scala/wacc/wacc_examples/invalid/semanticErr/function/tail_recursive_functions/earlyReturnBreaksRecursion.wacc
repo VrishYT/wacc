@@ -1,0 +1,21 @@
+# Calling an undefined identifier.
+# Thanks to Ethan Range, Fawwaz Abdullah, Robbie Buxton, and Edward Hartley
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+    @tailrec # this is not a recursive function so this is semenatically invalid
+    int sumToFive(int x) is
+        return x ;
+        int y = call sumToFive(x + 1) ;
+        return y
+    end
+    int x = call sumToFive(0) ;
+    exit x    
+end

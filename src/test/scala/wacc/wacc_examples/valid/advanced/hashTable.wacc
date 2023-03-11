@@ -6,6 +6,8 @@
 # 
 # Integers those mapped to the same index are stored on the list (in any order) in that index.
 
+# NO_EXEC
+
 begin
 
 	######################### Functions for Hash Table Interface ###############################

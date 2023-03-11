@@ -1,0 +1,33 @@
+# overloads recursive function
+
+# Output:
+# a = 64
+# (a % 4) == 0 is true
+#
+
+# Program:
+
+begin
+  bool foo(int x) is
+    int res = call foo(x) ;
+    return res == 0
+  end
+
+  int foo(int x) is
+    if x <= 0
+    then
+      return x
+    else
+      int y = call foo(x - 4) ;
+      return y
+    fi 
+  end
+
+
+  int a = 64 ;
+  bool x = call foo(a) ;
+  print "a = " ;
+  println a ;
+  print "(a % 4) == 0 is " ;
+  println x 
+end

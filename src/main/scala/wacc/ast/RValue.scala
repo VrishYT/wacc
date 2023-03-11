@@ -55,7 +55,12 @@ object NewPair extends ParserBridge2[Expr, Expr, NewPair] {
     def apply(fst: Expr, snd: Expr) = new NewPair(fst, snd)(fst.pos, snd.pos)
 }
 
-case class Call(id: List[String], args: List[Expr])(val pos: (Int, Int)) extends RValue {
+case class Call(var id: List[String], args: List[Expr])(val pos: (Int, Int)) extends RValue {
+    def rename(newId: String): Unit = {
+        val newIdList = id.init :+ newId
+        id = newIdList
+    }
+
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
         val out = args.map(_.toAssembly(gen))
         val func = Func.callFunction(s"_wacc_${id}", args = out.map(_.getOp()), gen = gen)

@@ -1,0 +1,14 @@
+# simple class definition and instantiation with the attributes not being in alphabetical order 
+
+# Output:
+
+# Program:
+
+begin
+    class MyClass {
+        int x,
+        string a
+    }
+
+    MyClass x = new MyClass { 5, "hello" }
+end
