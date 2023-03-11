@@ -561,8 +561,9 @@ object SemanticChecker {
     classes.foreach(c => symbolTable.classes.get(c.class_id) match {
       case Some(members) => c.funcs.foreach(func => members.getMethodTable(func.fs._2) match {
         case Some(x) => {
-
           checkStatements(func.stats, x)
+          /* modify arguments to take a class instance as a parameter */
+          func.args.prepend(TypedParam(ClassType(c.class_id), "this")(0,0))
         }
         case None => {
           errors += new TypeException(message = s"invalid method declaration in '${c.class_id}'", pos = Seq(func.pos))
