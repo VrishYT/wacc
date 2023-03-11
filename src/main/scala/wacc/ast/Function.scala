@@ -7,10 +7,15 @@ import wacc.back._
 sealed abstract class Func(
     val annotations: List[Annotation],
     val isPrivate: Boolean,
-    val fs: (Type, String), 
+    var fs: (Type, String), 
     val args: List[Param], 
     val stats: List[Stat]
 )(val pos: (Int, Int)) {
+
+    def rename(newId: String): Unit = {
+        val t = fs._1
+        fs = (t, newId)
+    }
 
     /* define validReturn of a function, and match on the last statement : */
     def validReturn: Boolean = validReturn(stats)
@@ -122,11 +127,11 @@ object Func {
 case class TypedFunc(
     override val annotations: List[Annotation],
     override val isPrivate: Boolean, 
-    override val fs: (Type, String), 
+    val fs2: (Type, String), 
     override val args: List[Param], 
     override val stats: List[Stat]
 )(override val pos: (Int, Int)) extends Func(
-    annotations, isPrivate, fs, args, stats
+    annotations, isPrivate, fs2, args, stats
 )(pos)
 
 /* function and parameter companion objects with parser bridges */
