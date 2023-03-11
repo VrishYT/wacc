@@ -132,6 +132,7 @@ sealed abstract class Table extends TableEntry {
     }
 
     def contains(id: String): Boolean = table.contains(id)
+    def keys(): List[String] = table.keys.toList
 
     protected def get(id: String): Option[TableEntry] = {
 
