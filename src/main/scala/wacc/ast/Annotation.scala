@@ -28,37 +28,21 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
         import scala.annotation.nowarn
         @nowarn def verifyBranch(stats: List[Stat]): Boolean = {
             var tailCallVar: Any = null
+            def matchId(ids: List[String], funcId: String): Boolean = ids.last == funcId.substring(funcId.indexOf("_") + 1)
             stats.foreach(stat => stat match {
                 case Declare(_, id, rhs) => rhs match {
-                    case Call(funcId :: Nil, _) if (funcId == func.fs._2) => tailCallVar = Ident(id)(0,0) 
+                    case Call(ids, _) if (matchId(ids, func.fs._2)) => tailCallVar = Ident(id)(0,0) 
                     case _ => 
                 }
                 case AssignOrTypelessDeclare(lval, rval) => lval match {
                     case x: LExpr => rval match {
-                        case Call(funcId, _) if (funcId == func.fs._2) => tailCallVar = x
+                        case Call(ids, _) if (matchId(ids, func.fs._2)) => tailCallVar = x
                         case _ => 
                     }
                 }
-                case If(_, x, y) => {
-
-                    def endsInReturn(stats: List[Stat]): Boolean = stats.last match {
-                        case x: Return => true
-                        case _ => false
-                    }
-
-                    val thenBranch = verifyBranch(x)
-                    val elseBranch = verifyBranch(y)
-
-                    if (thenBranch || elseBranch) return true
-                    // if (thenBranch) return endsInReturn(y)
-                    // else if (elseBranch) return endsInReturn(x)
-                }
-                case Begin(xs) => {
-                    verifyBranch(xs)
-                }
-                case Return(expr) => {
-                    return tailCallVar == expr
-                }
+                case If(_, x, y) if (verifyBranch(x) || verifyBranch(y)) => return true
+                case Begin(xs) => verifyBranch(xs)
+                case Return(expr) =>  return tailCallVar == expr
                 case _ => 
             })
             false
