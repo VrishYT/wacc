@@ -102,21 +102,19 @@ object SemanticChecker {
     def getTypeFromVars(id: String, vars: Table, pos: (Int, Int)): Type = {
       def get(vars: Table): Option[Type] = vars.getType(id) match {
         case x: Some[_] => x
-        case None => None
-      }
-
-      vars match {
-        case x: MethodTable => get(x) match {
-          case Some(x) => x
-          case _ => get(x.parent) match {
-            case Some(x) => x
-            case None => ErrorLogger.err("Variable/Class attribute " + id + " not found", pos)
+        case None => vars.getType("this") match {
+          case x: Some[_] => x
+          case None => vars match {
+            case x: MethodTable => if (id == "this") Some(ClassType(x.parent.class_id)) else get(x.parent)
+            case x: ChildTable => get(x.parent)
+            case _ => None
           }
         }
-        case _ => get(vars) match {
-          case Some(x) => x
-          case None => ErrorLogger.err("Variable " + id + " not found", pos)
-        }
+      }
+      
+      get(vars) match {
+        case Some(x) => x
+        case None => ErrorLogger.err("Variable " + id + " not found", pos)
       }
     }
 
