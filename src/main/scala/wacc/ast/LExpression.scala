@@ -185,15 +185,23 @@ case class ClassElem(ids: List[String])(val pos: (Int, Int)) extends LExpr {
           case Some(z) => z.t
           case None => ???
         }
-        val elems = classTable.keys
 
-        var elemOffset = 0
-        val i = 0
-        while (i >= 0 && i < elems.length - 1) {
-          if (elems(i) == y){
-            elemOffset = i*4
+        def getElemOffset: Int = {
+          val iterator = classTable.table.keysIterator
+          var elemOffset: Option[Int] = None
+          var i = 0
+          while (iterator.hasNext) {
+            if (iterator.next == y) {
+              elemOffset = Some(i*4)
+            } else i += 1
+          } 
+          elemOffset match {
+            case Some(x) => x
+            case None => ??? 
           }
-        } 
+        }
+
+        val elemOffset = getElemOffset
 
         val loadByte = (elemType == CharType || elemType == BoolType)
         return RegAssembly(outReg, loadClassElem(accumReg, outReg, elemOffset, loadByte))

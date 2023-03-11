@@ -3,11 +3,12 @@ package ast
 
 import wacc.front.ParserBridge._
 import wacc.back._
+import scala.collection.mutable.ListBuffer
 
 sealed abstract class Func(
     val isPrivate: Boolean,
     val fs: (Type, String), 
-    val args: List[Param], 
+    val args: ListBuffer[Param], 
     val stats: List[Stat]
 )(val pos: (Int, Int)) {
 
@@ -117,9 +118,9 @@ object Func {
 case class TypedFunc(
     override val isPrivate: Boolean, 
     override val fs: (Type, String), 
-    override val args: List[Param], 
+    arguments: List[Param], 
     override val stats: List[Stat]
-)(override val pos: (Int, Int)) extends Func(isPrivate, fs, args, stats)(pos)
+)(override val pos: (Int, Int)) extends Func(isPrivate, fs, ListBuffer.from(arguments), stats)(pos)
 
 /* function and parameter companion objects with parser bridges */
 object TypedFunc extends ParserBridgePos4[Boolean, (Type, String), List[Param], List[Stat], Func] 
@@ -128,9 +129,9 @@ object TypedFunc extends ParserBridgePos4[Boolean, (Type, String), List[Param], 
 case class TypelessFunc(
     override val isPrivate: Boolean,
     val name: String, 
-    override val args: List[Param], 
+    arguments: List[Param], 
     override val stats: List[Stat]
-)(override val pos: (Int, Int)) extends Func(isPrivate, (NoType, name), args, stats)(pos)
+)(override val pos: (Int, Int)) extends Func(isPrivate, (NoType, name),  ListBuffer.from(arguments), stats)(pos)
 
 /* function and parameter companion objects with parser bridges */
 object TypelessFunc extends ParserBridgePos4[Boolean, String, List[Param], List[Stat], Func]

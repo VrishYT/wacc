@@ -72,7 +72,7 @@ object SemanticChecker {
               /* Add the function into the global scope */
               if (func.args.distinct.size != func.args.size) errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
               else {
-                val table = MethodTable(func.fs._2, func.args.map(_.t), func.fs._1, func.isPrivate, members)
+                val table = MethodTable(func.fs._2, func.args.toSeq.map(_.t), func.fs._1, func.isPrivate, members)
                 func.args.foreach(param => table.add(param.id, ParamSymbol(param.t)))
                 members.addTable(func.fs._2, table)
               }
@@ -94,7 +94,7 @@ object SemanticChecker {
       } else {
         /* Add the function into the global scope */
         if (func.args.distinct.size != func.args.size) errors += new TypeException(message = "cannot redeclare function parameters", pos = Seq(func.pos))
-        else symbolTable.declare(func.fs._2, func.args, func.fs._1)
+        else symbolTable.declare(func.fs._2, func.args.toSeq, func.fs._1)
       }
     })
 
@@ -560,7 +560,10 @@ object SemanticChecker {
     /* check semantics of all statements in the program */
     classes.foreach(c => symbolTable.classes.get(c.class_id) match {
       case Some(members) => c.funcs.foreach(func => members.getMethodTable(func.fs._2) match {
-        case Some(x) => checkStatements(func.stats, x)
+        case Some(x) => {
+
+          checkStatements(func.stats, x)
+        }
         case None => {
           errors += new TypeException(message = s"invalid method declaration in '${c.class_id}'", pos = Seq(func.pos))
         }
