@@ -4,6 +4,7 @@ package ast
 import wacc.back._
 import wacc.front.ParserBridge._
 import parsley.genericbridges._
+import scala.collection.mutable.{ListBuffer}
 
 /* right values as a sealed trait with a position attribute */
 trait RValue {
@@ -57,9 +58,76 @@ object NewPair extends ParserBridge2[Expr, Expr, NewPair] {
 
 case class Call(id: List[String], args: List[Expr])(val pos: (Int, Int)) extends RValue {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
-        val out = args.map(_.toAssembly(gen))
-        val func = Func.callFunction(s"wacc_${id.last}", args = out.map(_.getOp()), gen = gen)
-        Assembly(Register(0), out.map(_.instr).fold(Seq())(_ ++ _) ++ func)
+        val list = ListBuffer[Instruction]()
+        if (id.length > 1){
+            //if the length is greater than 1 then we want to get the register the class that is 
+            //instantiated in stored in, so we use get symbol
+            val classSymbol = table.getSymbol(id.head) match {
+                case Some(z : OpSymbol) => z
+                case None => ???
+            }
+            // we also get the symbol so that we can find the correct type of the class and 
+            // pass in the correct class table that corresponds to the class we are dealing with
+            val classType = classSymbol.t match {
+                case x : ClassType => x.class_id
+                case _ => ???
+            }
+            val classTable = gen.symbolTable.classes.get(classType) match {
+                case Some(x) => x
+                case None => ???
+            }
+            //pass in the operand that relates to the instantiation of the class
+            return CallAssembly(id.tail, gen, list, classSymbol.op, classTable)(table)
+        }else{
+            val out = args.map(_.toAssembly(gen))
+            val func = Func.callFunction(s"wacc_${id.head}", args = out.map(_.getOp()), gen = gen)
+            return Assembly(Register(0), out.map(_.instr).fold(Seq())(_ ++ _) ++ func)
+        }
+        
+    } 
+
+    def CallAssembly(ids : List[String], gen: CodeGenerator, instrs: ListBuffer[Instruction], currOp : Operand, classTable: Table)(implicit table: Table) : Assembly = {
+        ids match {
+            case x :: y :: Nil => {
+                // this is the base case for the list of calls 
+                val out = args.map(_.toAssembly(gen))
+                //find the id corresponding to the type of class the variable x represents
+                val classType = classTable.getType(x) match {
+                    case Some(x:ClassType) => x.class_id
+                    case None => ???
+                } 
+                //feed currOp as the first argument so the reference to the class that holds the function is passed in 
+                //as an argument 
+                val func = Func.callFunction(s"wacc_${classType}_${y}", args = currOp +: out.map(_.getOp()), gen = gen)
+                return Assembly(Register(0), out.map(_.instr).fold(Seq())(_ ++ _) ++ func)
+            }
+            case _ => {
+                val classRef = ids.head
+                //find the id corresponding to the type of class the variable classRef represents
+                val newClassType = classTable.getSymbol(classRef) match {
+                    case Some(x: ClassType) => x.class_id
+                    case None => ???
+                }
+                //find the corresponding table that represents the variables for the newClassType class
+                val newClassTable = gen.symbolTable.classes.get(newClassType) match {
+                    case Some(x) => x
+                    case None => ???
+                }
+                val elems = table.keys
+                var elemOffset = 0
+                val i = 0
+                while (i >= 0 && i < elems.length - 1) {
+                    if (elems(i) == classRef){
+                        elemOffset = i*4
+                    }
+                }
+                //ensure that the correct variable that corresponds to a specific offset is loaded into our temporary variable
+                //the currOp will always hold the memory location of the current class we are dealing with
+                val op: RegAssembly = Operands.opToReg(currOp, gen.regs)
+                instrs ++= (op.instr ++ Seq(Load(Register(12), Address(op.getReg, ImmInt(elemOffset)))))
+                return CallAssembly(ids.tail, gen, instrs, Register(12), newClassTable)(table)
+            }
+        }
     }
 }
 
