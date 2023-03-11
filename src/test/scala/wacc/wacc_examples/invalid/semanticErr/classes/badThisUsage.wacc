@@ -1,0 +1,13 @@
+# using a this outside a class
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+    int x = this.x
+end

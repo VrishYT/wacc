@@ -1,0 +1,10 @@
+begin
+    class C {
+        int x
+
+        int f(int x) is
+            return this.x + x
+        end
+    }
+    skip
+end
