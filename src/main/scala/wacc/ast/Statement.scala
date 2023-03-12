@@ -385,6 +385,51 @@ case class Print(x: Expr) extends Stat {
                 val ass = a.toAssembly(gen)
                 ass.instr ++ printValue(identType, ass.getOp(), gen)
             }
+
+            case c@ClassElem(ids) => {
+                def findType(ids: List[String], currTable: Table) : Type = {
+                    ids match {
+                        case y :: Nil => {
+                            val classType = currTable.getType(y) match {
+                                case Some(z) => z 
+                                case None => ???
+                            }
+                            return classType
+                        }
+                        case id :: rest => {
+                            val classType = currTable.getType(id) match {
+                                case Some(x) => x match {
+                                    case ClassType(id) => id
+                                    case _ => ???
+                                }
+                                case None => ???
+                            }
+                            val classTable = gen.symbolTable.classes.get(classType) match {
+                                case Some(x) => x
+                                case None => ???
+                            }
+                            return findType(rest, classTable)
+                        }
+                    }
+                }
+                
+                val classType = table.getType(ids.head) match {
+                    case Some(x) => {
+                        x match {
+                            case ClassType(id) => {
+                                gen.symbolTable.classes.get(id) match {
+                                    case Some(y) => findType(ids.tail, y)
+                                    case None => ???
+                                }
+                            }
+                            case _ => ???
+                        }
+                    }
+                    case None => ???
+                }
+                val ass = c.toAssembly(gen)
+                ass.instr ++ printValue(classType, ass.getOp(), gen)
+            }
             /*need to case match to print pair nulls accordingly*/
             case p@PairLiteralNull(_) => {
                 gen.postSections.addOne(PrintPointerSection)
@@ -455,7 +500,7 @@ case class Print(x: Expr) extends Stat {
                 )
             }
             
-            case PairType(_,_) | ArrayType(_) => {
+            case PairType(_,_) | ArrayType(_) | ClassType(_) => {
                 gen.postSections.addOne(PrintPointerSection)
                 return Seq(
                     Push(Register(0), Register(1), Register(2), Register(3)),
