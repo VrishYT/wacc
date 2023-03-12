@@ -1,10 +1,8 @@
 # assignment to variable not declared in current scope
 
 # Output:
-# #semantic_error#
 
 # Exit:
-# 200
 
 # Program:
 

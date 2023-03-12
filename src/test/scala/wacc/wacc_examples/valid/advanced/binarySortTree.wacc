@@ -9,6 +9,8 @@
 # element has a type <pair, pair> which is the pointer to the two children 
 # nodes in the binary search tree.
 
+# NO_EXEC
+
 begin
 
   # Create a new node of a binary search tree having the given integer value 

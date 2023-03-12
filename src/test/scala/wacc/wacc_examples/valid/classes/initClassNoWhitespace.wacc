@@ -1,0 +1,14 @@
+# simple class definition and instantiation with no whitespace between class name and args
+
+# Output:
+
+# Program:
+
+begin
+    class MyClass {
+        int x
+    }
+
+    MyClass x = new MyClass{5}
+
+end

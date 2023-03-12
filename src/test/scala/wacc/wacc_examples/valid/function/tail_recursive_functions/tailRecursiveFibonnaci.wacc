@@ -1,0 +1,29 @@
+# Tail recursive fibonnaci function
+
+# Output:
+# 
+
+# Exit:
+# 34
+
+# Program:
+
+begin
+    @tailrec
+    int fib(int n, int a, int b) is 
+        if n == 0
+        then return a
+        else 
+            if n == 1
+            then return b
+            else 
+                int x = call fib(n - 1, b, a + b) ;
+                return x
+            fi
+        fi
+    end
+    int a_init = 0 ;
+    int b_init = 1 ;
+    int x = call fib(9, a_init, b_init) ;
+    exit x
+end

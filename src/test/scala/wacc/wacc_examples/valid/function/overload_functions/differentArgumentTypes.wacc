@@ -1,0 +1,53 @@
+# overloads multi-argument function with different argument types only
+
+# Output:
+# a = 0
+# b = 0
+# c = 1
+# d = 2
+# e = 3
+# f = 4
+#
+
+# Program:
+
+begin
+  int foo(int x) is
+    return x
+  end
+
+  int foo(int x, int y) is
+    return x + y
+  end
+
+  int foo(bool x, int y) is
+    return y
+  end
+
+  int foo(int x, bool y) is
+    return x
+  end
+
+  int foo(bool x, bool y) is
+    return 0
+  end
+
+  int a = call foo(true, false) ;
+  print "a = " ;
+  println a ;
+  int b = call foo(false, false) ;
+  print "b = " ;
+  println b ;
+  int c = call foo(0, 1) ;
+  print "c = " ;
+  println c ;
+  int d = call foo(2) ;
+  print "d = " ;
+  println d ;
+  int e = call foo(true, 3) ;
+  print "e = " ;
+  println e ;
+  int f = call foo(4, true) ;
+  print "f = " ;
+  println f 
+end

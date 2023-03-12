@@ -40,6 +40,11 @@ case class LSL(reg: Register, op: Operand) extends Operand {
     override def toString(): String = arm11
 }
 
+case class NoOperand(id: String) extends Operand {
+    def arm11: String = ""
+    override def toString(): String = arm11
+}
+
 object Operands {
     /*assigns a specific register to our operand*/
     def opToReg(op: Operand, dest: Register): Instruction = {

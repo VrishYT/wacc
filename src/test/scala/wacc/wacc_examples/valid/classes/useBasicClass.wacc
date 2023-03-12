@@ -1,0 +1,17 @@
+# simple class definition, instantiation and usage
+
+# Output:
+
+# Exit:
+# 5
+
+# Program:
+
+begin
+    class MyClass {
+        int x
+    }
+
+    MyClass x = new MyClass {5} ;
+    exit x.x
+end

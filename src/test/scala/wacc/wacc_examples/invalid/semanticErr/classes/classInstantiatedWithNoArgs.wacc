@@ -1,0 +1,17 @@
+# class instantiation doesn't contain any args
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+    class MyClass {
+        int x
+    }
+
+    MyClass x = new MyClass {}
+end

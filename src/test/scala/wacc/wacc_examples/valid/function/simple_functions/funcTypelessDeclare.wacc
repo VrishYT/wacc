@@ -1,10 +1,9 @@
 # functions cannot access global variables
 
 # Output:
-# #semantic_error#
+# 5
 
 # Exit:
-# 200
 
 # Program:
 

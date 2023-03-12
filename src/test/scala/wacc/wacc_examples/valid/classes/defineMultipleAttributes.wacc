@@ -1,0 +1,14 @@
+# class definition with multiple attributes
+
+# Output:
+
+# Program:
+
+begin
+    class MyClass {
+        int x,
+        string y
+    }
+
+    skip
+end

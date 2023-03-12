@@ -1,0 +1,21 @@
+# No base case with tailrec annotation is allowed but will hang on execution (user problem)
+
+# NO_EXEC
+
+# Output:
+# 
+
+# Exit:
+# 
+
+# Program:
+
+begin
+    @tailrec
+    int f(int x) is
+        int y = call f(x + 1) ; 
+        return y
+    end
+
+    int x = call f(0)
+end
