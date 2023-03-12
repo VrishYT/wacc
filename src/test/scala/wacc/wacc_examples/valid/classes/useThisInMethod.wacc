@@ -1,0 +1,12 @@
+begin
+    class C {
+        int x
+
+        int f(int x) is
+            return this.x + x
+        end
+    }
+    C inst = new C {5};
+    int result = call inst.f(4);
+    exit result
+end
