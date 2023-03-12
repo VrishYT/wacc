@@ -96,7 +96,7 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
             Seq("rm", basename + ".s").!!
 
             assert(exit == expected._1)
-            assert(out.mkString == expected._3.mkString)
+            assert(out.map(_.replaceAll("0[xX][0-9a-fA-F]+", "#addrs#")).mkString == expected._3.mkString)
 
         }
     }
