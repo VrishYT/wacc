@@ -165,7 +165,7 @@ object LExpr extends ParserBridgePos2[List[String], Option[List[Expr]], LExpr] {
 
 case class ClassElem(ids: List[String])(val pos: (Int, Int)) extends LExpr {
   override def toAssembly(gen: CodeGenerator)(implicit table: Table): RegAssembly = {
-    println("class elem")
+    
     val classAss = Operands.opToReg(table.getOp(ids.head), Register(12))
     val classType = table.getType(ids.head) match {
         case Some(x : ClassType) => x.class_id
@@ -178,9 +178,24 @@ case class ClassElem(ids: List[String])(val pos: (Int, Int)) extends LExpr {
   }
 
   def toAssemblyLoad(gen: CodeGenerator, ids: List[String], accumReg: Register, classType: String, instrs: ListBuffer[Instruction], address: Boolean = false)(implicit table: Table): RegAssembly = {
+    
+    def getElemOffset(classTable : Table, id: String): Int = {
+      val iterator = classTable.table.keysIterator
+      var elemOffset: Option[Int] = None
+      var i = 0
+      while (iterator.hasNext) {
+        if (iterator.next() == id) {
+          elemOffset = Some(i*4)
+        } else i += 1
+      } 
+      elemOffset match {
+        case Some(x) => x
+        case None => ??? 
+      }
+    }
+    
     ids match {
       case y :: Nil => {
-        println("last name")
         val outReg = Register(0)
         val classTable = gen.symbolTable.classes.get(classType) match {
           case Some(a) => a
@@ -191,39 +206,35 @@ case class ClassElem(ids: List[String])(val pos: (Int, Int)) extends LExpr {
           case None => ???
         }
 
-        def getElemOffset: Int = {
-          val iterator = classTable.table.keysIterator
-          var elemOffset: Option[Int] = None
-          var i = 0
-          while (iterator.hasNext) {
-            if (iterator.next() == y) {
-              elemOffset = Some(i*4)
-            } else i += 1
-          } 
-          elemOffset match {
-            case Some(x) => x
-            case None => ??? 
-          }
-        }
-
-        val elemOffset = getElemOffset
+        val elemOffset = getElemOffset(classTable, y)
 
         val loadByte = (elemType == CharType || elemType == BoolType)
         if (address) {
-          return RegAssembly(outReg, loadAddrClassElem(accumReg, outReg, elemOffset))
+          return RegAssembly(outReg, instrs.toSeq ++ loadAddrClassElem(accumReg, outReg, elemOffset))
         }else {
-          return RegAssembly(outReg, loadClassElem(accumReg, outReg, elemOffset, loadByte))
+          return RegAssembly(outReg, instrs.toSeq ++ loadClassElem(accumReg, outReg, elemOffset, loadByte))
         }
       }
 
       case _ => {
-        val classAss = Operands.opToReg(table.getOp(ids.head), accumReg)
-        val classType = table.getType(ids.head) match {
-          case Some(x : ClassType) => x.class_id
+        val newClassTable = gen.symbolTable.classes.get(classType) match {
+          case Some(a) => a
           case None => ???
         }
-        instrs += classAss
-        toAssemblyLoad(gen, ids.tail, accumReg, classType, instrs)
+        val newClassType = newClassTable.getType(ids.head) match {
+          case Some(x) => x match {
+            case y : ClassType => y.class_id
+            case _ => ???
+          }
+          case None => ???
+        }
+
+        val elemOffset = getElemOffset(newClassTable, ids.head)
+        val temp = gen.regs.allocate
+        instrs ++= Seq(
+                  Load(temp.getReg, Address(accumReg, ImmInt(elemOffset))), 
+                  Load(accumReg, Address(temp.getReg, ImmInt(0))))
+        return toAssemblyLoad(gen, ids.tail, accumReg, newClassType, instrs)
       }
     }
   }
