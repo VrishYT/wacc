@@ -484,23 +484,7 @@ object SemanticChecker {
         }
       }
 
-      def trySetRightTypelessParam(rVal: RValue, vars: Table, rType: Type) = {
-        rVal match {
-
-          /* if its an identifier then check if it has a type in the parent and child scope maps yet*/
-          case (x@Ident(id)) =>  vars.getType(id) match {
-                                      case Some(x) => {
-                                        if (x == NoType) {
-                                          vars.updateRecursive(id, Symbol(rType))
-                                        }
-                                      }
-                                      case None => ???
-                               }
-          case _ =>
-        }
-      }
-
-            /* returns true if the lvalue has no type yet */
+      /* returns true if the lvalue has no type yet */
       def isTypelessParam(lVal: LValue): Boolean = {
         lVal match {
 
@@ -689,22 +673,6 @@ object SemanticChecker {
       case None =>  
     })
 
-    def trySetLeftTypelessParam(lVal: LValue, vars: Table, lType: Type) = {
-      lVal match {
-
-        /* if its an identifier then check if it has a type in the parent and child scope maps yet*/
-        case (x@Ident(id)) =>  vars.getType(id) match {
-                                      case Some(x) => {
-                                        if (x == NoType) {
-                                          vars.updateRecursive(id, Symbol(lType))
-                                        }
-                                      }
-                                      case None => ???
-                               }
-        case _ =>
-      }
-    }
-
     def trySetRightTypelessParam(rVal: RValue, vars: Table, rType: Type) = {
         rVal match {
 
@@ -722,77 +690,116 @@ object SemanticChecker {
       }
 
     def tryInferParam(statement: Stat, vars: Table): Unit = {
-      statement match {
 
-        /* check return statement */
-        case Return(x) => {
+      def checkParamRVal(rVal: RValue, vars: Table): Unit = {
+      /* for an expression, match on the specific type of expression : */
+        rVal match {
+            /* for an array element with index : */
+            case (elem@ArrayElem(id, exps)) => {
+                trySetRightTypelessParam(elem, vars, IntType)
+            }
 
-          def getFuncTable(table: Table): FuncTable = table match {
-            case x: FuncTable if (x.id != "main") => x
-            case x: ChildTable => getFuncTable(x.parent)
-            case _ => ErrorLogger.err("invalid return call\n  cannot return outside a function body", x.pos)
-          }
+            /* for a unary operator, get its input and output types as val types */
+            case UnaryOpExpr(op, exp) => {
+              trySetRightTypelessParam(exp, vars, op.input)
+            }
 
-          /* error if we are not inside of a function */
-          val funcTable = getFuncTable(vars)
-
-          /* error if return type does not match return type of the current function being checked */
-          var funcType = funcTable.getReturnType
-
-          trySetRightTypelessParam(x, vars, funcType)
-        }
-
-        /* check exit statement */
-        case Exit(x) => {
-          trySetRightTypelessParam(x, vars, IntType)
-        }
-
-        /* check if statement */
-        case If(p, xs, ys) => {
-
-          
-          trySetRightTypelessParam(p, vars, BoolType)
-          
-          xs.foreach(stat => tryInferParam(stat, vars))
-          ys.foreach(stat => tryInferParam(stat, vars))
-        }
-
-        /* check while statement */
-        case While(p, xs) => {
-
-          trySetRightTypelessParam(p, vars, BoolType)
-          xs.foreach(stat => tryInferParam(stat, vars))
-        }
-
-        /* check begin statement, by checking the semantics of its body's statements */
-        case Begin(xs) => {
-          checkStatements(xs, vars)
-        }
-
-        case _ =>
+            /* for a binary operator : */
+            case BinaryOpExpr(op, exp1, exp2) => {
+              val types = op.input
+              if (types.length == 1) {
+                trySetRightTypelessParam(exp1, vars, types(0))
+                trySetRightTypelessParam(exp2, vars, types(0))
+              }
+              trySetRightTypelessParam(exp1, vars, getRValType(vars, exp2))
+              trySetRightTypelessParam(exp2, vars, getRValType(vars, exp1))
+            }
+            /* Default case - should be unreachable. */
+            case _ => 
       }
     }
 
-    functions.foreach(func => symbolTable.get(func.fs._2) match {
-      case Some(x) => func.stats.foreach(stat => tryInferParam(stat, x))
-      case None => 
-    })
+    statement match {
 
-    functions.foreach(func => {
-      func.annotations.foreach(a => {
-        if (!a.verify(func)) {
-          errors += new TypeException(message = a.errorMsg, pos = Seq(func.pos))
-        }
-      })
-      symbolTable.get(func.fs._2) match {
-        case Some(x) => checkStatements(func.stats, x)
-        case None => errors += new TypeException(message = "invalid function declaration", pos = Seq(func.pos))
+      /* check return statement */
+      case Return(x) => {
+        checkParamRVal(x, vars)
+      }
+
+      /* check exit statement */
+      case Exit(x) => {
+        trySetRightTypelessParam(x, vars, IntType)
+        checkParamRVal(x, vars)
+      }
+
+      /* check if statement */
+      case If(p, xs, ys) => {
+          
+        trySetRightTypelessParam(p, vars, BoolType)
+          
+        xs.foreach(stat => tryInferParam(stat, vars))
+        ys.foreach(stat => tryInferParam(stat, vars))
+        checkParamRVal(p, vars)
+      }
+
+      /* check while statement */
+      case While(p, xs) => {
+
+        trySetRightTypelessParam(p, vars, BoolType)
+        xs.foreach(stat => tryInferParam(stat, vars))
+        checkParamRVal(p, vars)
+      }
+
+      /* check begin statement, by checking the semantics of its body's statements */
+      case Begin(xs) => {
+        checkStatements(xs, vars)
+      }
+
+      case _ =>
+    }
+  }
+
+  functions.foreach(func => {
+    func.annotations.foreach(a => {
+      if (!a.verify(func)) {
+        errors += new TypeException(message = a.errorMsg, pos = Seq(func.pos))
       }
     })
+    symbolTable.get(func.fs._2) match {
+      case Some(x) => checkStatements(func.stats, x)
+      case None => errors += new TypeException(message = "invalid function declaration", pos = Seq(func.pos))
+    }
+  })
 
-    checkStatements(statements, vars)
+  checkStatements(statements, vars)
 
-    return errors
+  functions.foreach(func => symbolTable.get(func.fs._2) match {
+    case Some(x) => {
+      func.stats.foreach(stat => try {
+        tryInferParam(stat, x)
+      } catch {
+        case x: TypeException => 
+      })
+    }
+    case None => 
+  })
+
+  /*
+  functions.foreach(func => {
+    func.args.foreach(param => {
+      vars.getType(param.id) match {
+        case Some(x) => {
+          if (x == NoType) {
+            errors += new TypeException(message = "non-inferrable function patamter", pos = Seq(func.pos))
+          }
+        }
+        case None =>
+      }
+    })
+  })
+  */
+
+  return errors
   }
 
 }
