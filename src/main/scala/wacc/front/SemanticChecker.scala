@@ -74,6 +74,9 @@ object SemanticChecker {
               else {
                 val table = MethodTable(func.fs._2, func.args.toSeq.map(_.t), func.fs._1, func.isPrivate, members)
                 func.args.foreach(param => table.add(param.id, ParamSymbol(param.t)))
+                /* modify arguments to take a class instance as a parameter */
+                func.args.prepend(TypedParam(ClassType(c.class_id), "this")(0,0))
+                table.add("this", ParamSymbol(ClassType(c.class_id)))
                 members.addTable(func.fs._2, table)
               }
             }
@@ -103,7 +106,12 @@ object SemanticChecker {
       def get(vars: Table): Option[Type] = vars.getType(id) match {
         case x: Some[_] => x
         case None => vars.getType("this") match {
-          case x: Some[_] => x
+          case Some(x) => x match {
+            case ClassType(class_id) => symbolTable.classes.get(class_id) match {
+              case Some(x) => x.getType(id)
+              case None => ???
+            }
+          }
           case None => vars match {
             case x: MethodTable => if (id == "this") Some(ClassType(x.parent.class_id)) else get(x.parent)
             case x: ChildTable => get(x.parent)
@@ -291,15 +299,16 @@ object SemanticChecker {
           /* if it's a function call :  */
           case (func@Call(ids, args)) => {
             if (ids.length == 1) {
+              val id = ids.head
                 /* get a list of its parameter types in order */
-              val funcVars = symbolTable.get(ids.head) match {
+              val funcVars = symbolTable.get(id) match {
                 case Some(x) => x
-                case None => ErrorLogger.err(s"function '${ids}' is undefined", func.pos) 
+                case None => ErrorLogger.err(s"function '${id}' is undefined", func.pos) 
               }
               val currentArgs = funcVars.paramTypes
 
               /* error if the number of arguments is wrong */
-              if (args.length != currentArgs.length) ErrorLogger.err("invalid number of arguments for function '" + ids + "'. expected: " + currentArgs.length + ". actual: " + args.length, func.pos)
+              if (args.length != currentArgs.length) ErrorLogger.err("invalid number of arguments for function '" + id + "'. expected: " + currentArgs.length + ". actual: " + args.length, func.pos)
 
               /* check each argument type passed in is the same as the corresponding parameter for this function */
               for (i <- 0 to args.length - 1) {
@@ -311,9 +320,10 @@ object SemanticChecker {
               }
 
               /* return the type of the function from the identifier maps */
-              return funcVars.returnType
+              funcVars.returnType
+            } else {
+              AnyType
             }
-            return IntType
             
           }
 
@@ -560,8 +570,6 @@ object SemanticChecker {
       case Some(members) => c.funcs.foreach(func => members.getMethodTable(func.fs._2) match {
         case Some(x) => {
           checkStatements(func.stats, x)
-          /* modify arguments to take a class instance as a parameter */
-          func.args.prepend(TypedParam(ClassType(c.class_id), "_this")(0,0))
         }
         case None => {
           errors += new TypeException(message = s"invalid method declaration in '${c.class_id}'", pos = Seq(func.pos))
