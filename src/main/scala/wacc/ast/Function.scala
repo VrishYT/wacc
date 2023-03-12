@@ -61,7 +61,9 @@ sealed abstract class Func(
 
         // println(s"stacksize = $stack")
 
-        return Func.generateFunction(s"wacc_${fs._2}", gen.mem.grow() +: instr, Func.FuncRegs:_*)
+        val name = if (class_id == "") fs._2 else s"${class_id}_${fs._2}"
+
+        return Func.generateFunction(s"wacc_${name}", gen.mem.grow() +: instr, Func.FuncRegs:_*)
     }
 
 }
