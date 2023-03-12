@@ -15,8 +15,12 @@ sealed trait LExpr extends Expr with LValue {
 /* expressions extending left expressions */
 case class Ident(id: String)(val pos: (Int, Int)) extends LExpr {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
+      println(id)
       table.getOp(id) match {
-        case NoOperand(id) => ClassElem(List("this", id))(pos).toAssembly(gen)
+        case x@NoOperand(id) => {
+          if (table.containsRecursive("this")) ClassElem(List("this", id))(pos).toAssembly(gen)
+          else Assembly(x)
+        }
         case _ => Assembly(table.getOp(id))
       } 
     }
