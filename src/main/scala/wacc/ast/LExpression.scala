@@ -14,7 +14,12 @@ sealed trait LExpr extends Expr with LValue {
 
 /* expressions extending left expressions */
 case class Ident(id: String)(val pos: (Int, Int)) extends LExpr {
-    override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = Assembly(table.getOp(id))
+    override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
+      table.getOp(id) match {
+        case NoOperand(id) => ClassElem(List("this", id))(pos).toAssembly(gen)
+        case _ => Assembly(table.getOp(id))
+      } 
+    }
 }
 
 object Ident extends ParserBridgePos1[String, Ident]
