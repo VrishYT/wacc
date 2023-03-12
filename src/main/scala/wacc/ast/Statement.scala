@@ -3,6 +3,7 @@ package ast
 
 import wacc.back._
 import parsley.genericbridges._ 
+import scala.collection.mutable.{ListBuffer}
 
 /* statements as objects extending the sealed trait Stat */
 sealed trait Stat {
@@ -62,9 +63,29 @@ case class AssignOrTypelessDeclare(x: LValue, y: RValue) extends Stat {
                 return (addrAssemb.instr ++ reg.instr ++ rhsAssembly.instr ++ 
                         Seq(Store(reg.getReg(), addrAssemb.getOp())))
             }
+            case x: ClassElem => {
+                def toAssemblyStore(): RegAssembly = {
+                    val classAss = Operands.opToReg(table.getOp(x.ids.head), Register(12))
+                    val classType = table.getType(x.ids.head) match {
+                        case Some(x : ClassType) => x.class_id
+                        case None => ???
+                    }
+                    val instrs = ListBuffer[Instruction]()
+                    instrs += classAss
+                    val load = x.toAssemblyLoad(gen, x.ids.tail, Register(12), classType, instrs, true)(table)
+                    RegAssembly(load.getReg(), Seq(Comment(s"class elem ${x.ids.mkString(".")}"), classAss) ++ load.instr)
+                }
+                val clsElemAss = toAssemblyStore()
+                val reg = Operands.opToScratch(rhsAssembly.getOp)
+                val instr = y match {
+                    case CharLiteral(_) | BoolLiteral(_) => Seq(Store(reg.getReg(), clsElemAss.getReg, false, true)) 
+                    case _ => Seq(Store(reg.getReg(), Address(clsElemAss.getReg), false, false))
+                }
+                return (clsElemAss.instr ++ reg.instr ++ rhsAssembly.instr ++ instr)
+            } 
+
             case _ => x.toAssembly(gen)
         }
-
         
         lval.getOp() match {
             case NoOperand(id) => {

@@ -1,0 +1,18 @@
+begin 
+    class Car {
+        Wheel wheel 
+    }
+
+    class Wheel {
+        Tyre tyre 
+    }
+
+    class Tyre {
+        int diameter(int x) is
+            return x
+        end
+    }
+
+    Car ford = new Car {new Wheel {new Tyre {}}}
+    int d = call ford.wheel.tyre.diameter(5)
+end

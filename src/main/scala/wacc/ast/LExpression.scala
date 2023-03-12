@@ -172,7 +172,7 @@ case class ClassElem(ids: List[String])(val pos: (Int, Int)) extends LExpr {
     RegAssembly(load.getReg(), Seq(Comment(s"class elem ${ids.mkString(".")}"), classAss) ++ load.instr)
   }
 
-  def toAssemblyLoad(gen: CodeGenerator, ids: List[String], accumReg: Register, classType: String, instrs: ListBuffer[Instruction])(implicit table: Table): RegAssembly = {
+  def toAssemblyLoad(gen: CodeGenerator, ids: List[String], accumReg: Register, classType: String, instrs: ListBuffer[Instruction], address: Boolean = false)(implicit table: Table): RegAssembly = {
     ids match {
       case y :: Nil => {
         println("last name")
@@ -204,7 +204,11 @@ case class ClassElem(ids: List[String])(val pos: (Int, Int)) extends LExpr {
         val elemOffset = getElemOffset
 
         val loadByte = (elemType == CharType || elemType == BoolType)
-        return RegAssembly(outReg, loadClassElem(accumReg, outReg, elemOffset, loadByte))
+        if (address) {
+          return RegAssembly(outReg, loadAddrClassElem(accumReg, outReg, elemOffset))
+        }else {
+          return RegAssembly(outReg, loadClassElem(accumReg, outReg, elemOffset, loadByte))
+        }
       }
 
       case _ => {
@@ -217,6 +221,10 @@ case class ClassElem(ids: List[String])(val pos: (Int, Int)) extends LExpr {
         toAssemblyLoad(gen, ids.tail, accumReg, classType, instrs)
       }
     }
+  }
+
+  def loadAddrClassElem(reg: Register, outReg: Register, offset: Int): Seq[Instruction] = {
+      return Seq(Load(outReg, Address(reg, ImmInt(offset))))
   }
 
   def loadClassElem(reg: Register, outReg: Register, offset: Int, byte : Boolean): Seq[Instruction] = {
