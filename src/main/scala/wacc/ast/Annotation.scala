@@ -36,8 +36,8 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
                 }
                 case AssignOrTypelessDeclare(lval, rval) => rval match {
                     case Call(ids, _) if (matchId(ids, func.fs._2)) => tailCallVar = lval
-                        case _ => 
-                    }
+                    case _ => 
+                }
                 case If(_, x, y) => {
                     val thenBranch = verifyBranch(x)
                     val tailVarSaved = tailCallVar
@@ -46,7 +46,7 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
                         tailCallVar = tailVarSaved
                     } else if (tailVarSaved != null) {
                         ??? // TODO
-                }
+                    }
                     if (thenBranch || elseBranch) return true
                 }
                 case Begin(xs) => verifyBranch(xs)
@@ -63,7 +63,7 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
     
     override def process(func: Func)(implicit funcTable: FuncTable): Func = {
 
-        import scala.collection.mutable.{Map => MapM}
+        // import scala.collection.mutable.{Map => MapM}
         import scala.collection.mutable.ListBuffer
 
         // TODO
@@ -107,63 +107,95 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
 
         val instr = ListBuffer[Stat]()
 
-        def processStats(stats: List[Stat])(implicit table: Table): Unit = {
-            val modifiedVars = MapM[LValue, LValue]()
+        def processStats(stats: List[Stat], cond: Option[(Expr, Boolean)] = None)(implicit table: Table): Unit = {
+            var ifCount = 0
+            var whileCount = 0
+            var beginCount = 0
+
+            val modifiedVars = ListBuffer[LValue]()
+
             def modifyVars(lval: LValue, call: Call): Unit = {
+                val callArgs = call.args
+                val funcArgs = func.args.map(_.id).filter(_ != "this")
+                modifiedVars += lval
+                funcArgs.zip(callArgs).foreach(x => {
+                    var out: Stat = AssignOrTypelessDeclare(Ident(x._1)(0,0), x._2)
+                    out = cond match {
+                        case Some(x) => x match {
+                            case (x: Expr, inverted: Boolean) => {
+                                if (inverted) {
+                                    If(x, List(Skip), List(out))
+                                } else {
+                                    If(x, List(out), List(Skip))
+                                }
+                            }
+                            case _ => ???
+                        }
+                        case _ => out
+                    }
+                    instr += out
+                })
 
             }
 
-            stats.foreach {
+            stats.foreach (stat => stat match {
                 case Declare(_, id, rhs) => rhs match {
                     // TODO: if a call, re-assign params instead of passing in
-                    case call@Call(ids, _) if (ids.last == func.fs._2) => modifyVars(LExpr(ids, None)(0,0), call)
-                    case _ => 
+                    case call@Call(ids, _) if (ids.last == func.fs._2) => modifyVars(Ident(id)(0,0), call)
+                    case _ => instr += stat
                 }
                 case AssignOrTypelessDeclare(lval, rval) => lval match {
                     case x: LValue => rval match {
                         case call@Call(ids, _) if (ids.last == func.fs._2) => modifyVars(x, call)
-                        case _ => 
+                        case _ => instr += stat
                     }
                 }
-                case If(_, x, y) => {
+                case If(cond, x, y) => {
                     // TODO
-                    val thenTable = table.getTable("if") match {
+                    val thenTable = table.getTable(s"_if${ifCount}") match {
                         case Some(x) => x 
                         case None => ???
                     } 
                     // TODO
-                    processStats(x)(thenTable)
-                    val elseTable = table.getTable("else") match {
+                    processStats(x, Some(cond, false))(thenTable)
+                    val elseTable = table.getTable(s"_else${ifCount}") match {
                         case Some(x) => x 
                         case None => ???
                     }
-                    processStats(y)(elseTable)
+                    processStats(y, Some(cond, true))(elseTable)
+                    ifCount += 1
                 }
                 case While(_, xs) => {
                     // TODO
-                    val child = table.getTable("while") match {
+                    val child = table.getTable(s"_while${whileCount}") match {
                         case Some(x) => x 
                         case None => ???
                     }
                     processStats(xs)(child)
+                    whileCount += 1
                 }
                 case Begin(xs) => {
                     // TODO
-                    val child = table.getTable("begin") match {
+                    val child = table.getTable(s"_begin${beginCount}") match {
                         case Some(x) => x 
                         case None => ???
                     }
                     processStats(xs)(child)
+                    beginCount += 1
                 }
                 case Return(expr) => expr match {
-                    case x: LValue => 
-                    case _ => 
+                    case x: LValue if modifiedVars.contains(x) => 
+                    case _ => instr += stat
                 }
                 case _ => 
-            }
+            })
+
+            // println(s"modified = $modifiedVars")
         }
 
         processStats(func.stats)
+
+        // println(instr)
 
         TypedFunc(
             func.annotations, 
