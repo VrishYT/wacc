@@ -21,5 +21,6 @@ begin
     }
 
     Car ford = new Car {new Wheel {new Tyre {}}} ;
-    int d = call ford.wheel.tyre.diameter(5)
+    int d = call ford.wheel.tyre.diameter(5) ;
+    exit d
 end
