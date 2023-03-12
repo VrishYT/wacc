@@ -167,7 +167,7 @@ object Parser {
   val _invalid_pointer = amend((attempt("*")) *> unexpected("pointer").explain(
     "WACC is not like C and does not use pointers"))
 
-  val param = TypedParam(types, _invalid_pointer <|> IDENT) <|> TypelessParam(_invalid_pointer <|> IDENT)
+  val param = attempt(TypedParam(types, _invalid_pointer <|> IDENT)) <|> TypelessParam(_invalid_pointer <|> IDENT)
 
   val paramList = sepBy(param, ",")
   
