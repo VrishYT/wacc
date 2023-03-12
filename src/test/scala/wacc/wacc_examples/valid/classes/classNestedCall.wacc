@@ -1,3 +1,10 @@
+# method within nested class accesses
+
+# Output:
+
+# Program:
+
+
 begin 
     class Car {
         Wheel wheel 
@@ -13,6 +20,6 @@ begin
         end
     }
 
-    Car ford = new Car {new Wheel {new Tyre {}}}
+    Car ford = new Car {new Wheel {new Tyre {}}} ;
     int d = call ford.wheel.tyre.diameter(5)
 end
