@@ -41,21 +41,21 @@ case class NewClass(class_id: String, vals: List[RValue])(val pos: (Int, Int)) e
         val out = gen.regs.allocate
         val instrs = Mov(Register(0), ImmInt(class_size)) +: (HeapAllocator.malloc ++ out.instr ++ 
                     Seq(
-                        Mov(out.getReg, Register(0)),
+                        Mov(out.getReg(), Register(0)),
                         Mov(Register(0), ImmInt(class_size)),
-                        Store(Register(0), Address(out.getReg, ImmInt(-4)))
+                        Store(Register(0), Address(out.getReg(), ImmInt(-4)))
                         ))
         val list = ListBuffer[Seq[Instruction]]()
         for (i <- 0 to vals.length -1){
             val offset = i * 4 
             val rvalInstr = vals(i).toAssembly(gen)(table)
-            val totalInstr = rvalInstr.instr ++ loadRval(constructor_types(i), vals(i), offset, out.getReg, rvalInstr.getOp)
+            val totalInstr = rvalInstr.instr ++ loadRval(constructor_types(i), vals(i), offset, out.getReg(), rvalInstr.getOp())
             list += totalInstr
         }
         
         val instrs2 = list.fold(Seq())(_ ++ _)
-        gen.regs.free(out.getReg)
-        return Assembly(out.getReg, instrs ++ instrs2)
+        gen.regs.free(out.getReg())
+        return Assembly(out.getReg(), instrs ++ instrs2)
     }
 
     def loadRval(t : Type, rval: RValue, offset: Int, out: Register, elemReg: Operand) : Seq[Instruction] = {

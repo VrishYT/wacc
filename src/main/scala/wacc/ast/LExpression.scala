@@ -196,7 +196,7 @@ case class ClassElem(ids: List[String])(val pos: (Int, Int)) extends LExpr {
           var elemOffset: Option[Int] = None
           var i = 0
           while (iterator.hasNext) {
-            if (iterator.next == y) {
+            if (iterator.next() == y) {
               elemOffset = Some(i*4)
             } else i += 1
           } 

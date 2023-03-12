@@ -11,7 +11,6 @@ object Parser {
   import parsley.combinator._
   import parsley.Parsley.lookAhead
   import parsley.errors.combinator._
-  import parsley.errors.patterns._
   import parsley.expr._
   import parsley.position._
   import wacc.ast._

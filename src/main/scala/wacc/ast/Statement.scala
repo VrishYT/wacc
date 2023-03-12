@@ -76,10 +76,10 @@ case class AssignOrTypelessDeclare(x: LValue, y: RValue) extends Stat {
                     RegAssembly(load.getReg(), Seq(Comment(s"class elem ${x.ids.mkString(".")}"), classAss) ++ load.instr)
                 }
                 val clsElemAss = toAssemblyStore()
-                val reg = Operands.opToScratch(rhsAssembly.getOp)
+                val reg = Operands.opToScratch(rhsAssembly.getOp())
                 val instr = y match {
-                    case CharLiteral(_) | BoolLiteral(_) => Seq(Store(reg.getReg(), clsElemAss.getReg, false, true)) 
-                    case _ => Seq(Store(reg.getReg(), Address(clsElemAss.getReg), false, false))
+                    case CharLiteral(_) | BoolLiteral(_) => Seq(Store(reg.getReg(), clsElemAss.getReg(), false, true)) 
+                    case _ => Seq(Store(reg.getReg(), Address(clsElemAss.getReg()), false, false))
                 }
                 return (clsElemAss.instr ++ reg.instr ++ rhsAssembly.instr ++ instr)
             } 
