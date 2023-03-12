@@ -58,13 +58,13 @@ object NewPair extends ParserBridge2[Expr, Expr, NewPair] {
 
 case class Call(id: List[String], args: List[Expr])(val pos: (Int, Int)) extends RValue {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
+        
         def callAssembly(ids : List[String], gen: CodeGenerator, instrs: ListBuffer[Instruction], currOp : Operand, classTable: Table) : Assembly = {
             ids match {
-                case x :: y :: Nil => {
-                    // this is the base case for the list of calls 
+                //base case for a function call that is within a class
+                case x :: y :: Nil => { 
                     val out = args.map(_.toAssembly(gen))
                     //find the id corresponding to the type of class the variable x represents
-                    println(s"x = $x, $y")
                     val classType = classTable.getType(x) match {
                         case Some(x: ClassType) => x.class_id
                         case None => ???
@@ -74,6 +74,7 @@ case class Call(id: List[String], args: List[Expr])(val pos: (Int, Int)) extends
                     val func = Func.callFunction(s"wacc_${classType}_${y}", args = currOp +: out.map(_.getOp()), gen = gen)
                     return Assembly(Register(0), out.map(_.instr).fold(Seq())(_ ++ _) ++ func)
                 }
+
                 case classRef :: rest => {
                     //find the id corresponding to the type of class the variable classRef represents
                     val newClassType = classTable.getSymbol(classRef) match {
@@ -83,20 +84,18 @@ case class Call(id: List[String], args: List[Expr])(val pos: (Int, Int)) extends
                         }
                         case None => ???
                     }
-                    // println(newClassType)
                     //find the corresponding table that represents the variables for the newClassType class
                     val newClassTable = gen.symbolTable.classes.get(newClassType) match {
                         case Some(x) => x
                         case None => ???
                     }
-                    println(newClassTable)
 
                     def getElemOffset: Int = {
                         val iterator = classTable.table.keysIterator
                         var elemOffset: Option[Int] = None
                         var i = 0
                         while (iterator.hasNext) {
-                            if (iterator.next == classRef) {
+                            if (iterator.next() == classRef) {
                             elemOffset = Some(i*4)
                             } else i += 1
                         } 
@@ -105,20 +104,12 @@ case class Call(id: List[String], args: List[Expr])(val pos: (Int, Int)) extends
                             case None => ??? 
                         }
                     }
-                    // val elems = table.keys
-                    // var elemOffset = 0
-                    // val i = 0
-                    // while (i >= 0 && i < elems.length - 1) {
-                    //     if (elems(i) == classRef){
-                    //         elemOffset = i*4
-                    //     }
-                    // }
 
                     val elemOffset = getElemOffset
                     //ensure that the correct variable that corresponds to a specific offset is loaded into our temporary variable
                     //the currOp will always hold the memory location of the current class we are dealing with
                     val op: RegAssembly = Operands.opToReg(currOp, gen.regs)
-                    instrs ++= (op.instr ++ Seq(Load(Register(12), Address(op.getReg, ImmInt(elemOffset)))))
+                    instrs ++= (op.instr ++ Seq(Load(Register(12), Address(op.getReg(), ImmInt(elemOffset)))))
                     return callAssembly(ids.tail, gen, instrs, Register(12), newClassTable)
                 }
             }
@@ -127,22 +118,11 @@ case class Call(id: List[String], args: List[Expr])(val pos: (Int, Int)) extends
         val list = ListBuffer[Instruction]()
         if (id.length > 1) {
             //if the length is greater than 1 then we want to get the register the class that is 
-            //instantiated in stored in, so we use get symbol
+            //instantiated in stored in, so we use getSymbol
             val classSymbol = table.getSymbol(id.head) match {
                 case Some(z : OpSymbol) => z
                 case None => ???
             }
-            // we also get the symbol so that we can find the correct type of the class and 
-            // pass in the correct class table that corresponds to the class we are dealing with
-            val classType = classSymbol.t match {
-                case x : ClassType => x.class_id
-                case _ => ???
-            }
-            // val classTable = gen.symbolTable.classes.get(classType) match {
-            //     case Some(x) => x
-            //     case None => ???
-            // }
-            //pass in the operand that relates to the instantiation of the class
             return callAssembly(id, gen, list, classSymbol.op, table)
         } else {
             val out = args.map(_.toAssembly(gen))
