@@ -113,7 +113,7 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
 
 
     val make = "make".!!
-    var examples = Paths.get("src/test/scala/wacc/wacc_examples/valid/advanced")
+    var examples = Paths.get("src/test/scala/wacc/wacc_examples/valid")
     Files.walk(examples).iterator().asScala.filter(_.getFileName.toString.endsWith(".wacc")).foreach(testFile(_))
 
 }
