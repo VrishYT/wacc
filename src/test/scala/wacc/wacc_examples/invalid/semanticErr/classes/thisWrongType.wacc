@@ -1,0 +1,19 @@
+# check this has correct typing
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+    class MyClass {
+        MyClass get() is
+            int x = this ;
+            return x
+        end
+    }
+    skip
+end

@@ -1,6 +1,9 @@
-# simple class definition program
+# simple class method usage 
 
 # Output:
+
+# Exit:
+# 5
 
 # Program:
 
@@ -13,5 +16,8 @@ begin
             return x
         end
     }
-    skip
+    
+    Point p = new Point {5, 2} ;
+    int x = call p.getX() ;
+    exit x
 end

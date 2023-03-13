@@ -63,6 +63,8 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
         val parentPath = path.getParent.toString
         val parent = parentPath.substring(parentPath.lastIndexOf("valid/") + 6) + "/"
 
+        println(s"Testing $path")
+
         getIO(path) match {
             case Some(expected) => {
                 test(parent + filename + " executed as expected") {
@@ -78,7 +80,7 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
 
                     val p = exec.run(new ProcessIO(
                         in => {
-                            expected._3.foreach(input => in.write(input.getBytes))
+                            expected._2.foreach(input => in.write(input.getBytes))
                             in.close
                         }, 
                         out ++= Source.fromInputStream(_).getLines, 
@@ -100,12 +102,16 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
                     Seq("rm", basename).!!
                     Seq("rm", basename + ".s").!!
 
+                    val outFormatted = out.map(_.replaceAll("0[xX][0-9a-fA-F]+", "#addrs#")).mkString
+                    val expectedFormatted = expected._3.mkString
+
                     assert(exit == expected._1)
-                    assert(out.mkString == expected._3.mkString)
+                    assert(outFormatted == expectedFormatted, 
+                        s"\n---In---\n${expected._2}\n\n---Out---\n$out\n\n---Expected---\n${expected._3}")
 
                 }
             }
-            case None => println(s"ignored file ${path.getFileName()}")
+            case None => println(s"Ignored file ${path.getFileName()}")
         }
 
 
@@ -113,7 +119,7 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
 
 
     val make = "make".!!
-    var examples = Paths.get("src/test/scala/wacc/wacc_examples/valid/advanced")
+    var examples = Paths.get("src/test/scala/wacc/wacc_examples/valid")
     Files.walk(examples).iterator().asScala.filter(_.getFileName.toString.endsWith(".wacc")).foreach(testFile(_))
 
 }

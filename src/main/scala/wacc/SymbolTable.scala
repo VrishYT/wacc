@@ -131,7 +131,14 @@ sealed abstract class Table extends TableEntry {
         beginCount += 1
     }
 
+    def containsRecursive(id: String): Boolean = this match {
+        case x: ChildTable => contains(id) || x.parent.containsRecursive(id)
+        case x: MethodTable => contains(id) || x.parent.containsRecursive(id)
+        case _ => contains(id)
+    }
+
     def contains(id: String): Boolean = table.contains(id)
+    def keys(): List[String] = table.keys.toList
 
     protected def get(id: String): Option[TableEntry] = {
 
@@ -156,7 +163,8 @@ sealed abstract class Table extends TableEntry {
             case x: OpSymbol => x.op
             case _ => this match {
                 case x: ChildTable => x.parent.getOp(id)
-            case _ => ???
+                case x: MethodTable => x.parent.getOp(id)
+                case _ => NoOperand(id)
             }
         }
         case _ => NoOperand(id)
@@ -212,7 +220,7 @@ case class ClassTable(val class_id : String, val types: Seq[Type]) extends Table
         case Some(x) => x match {
             case x: MethodTable => Some(x)
             case x => {
-                println(s"get $x")
+                // println(s"get $x")
                 None
             } 
         }
