@@ -216,6 +216,13 @@ object ChildTable {
 
 case class ClassTable(val class_id : String, val types: Seq[Type]) extends Table {
 
+    /* tracks the number of overloaded methods */
+    private val methodOverloadCounter = MapM[String, Int]()
+
+    def setOverload(id: String, count: Int): Unit = methodOverloadCounter(id) = count
+
+    def getOverloadCount(id: String): Option[Int] = methodOverloadCounter.get(id)
+
     def getMethodTable(id: String): Option[MethodTable] = super.get(id) match {
         case Some(x) => x match {
             case x: MethodTable => Some(x)

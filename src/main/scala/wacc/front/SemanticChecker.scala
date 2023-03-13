@@ -354,7 +354,7 @@ object SemanticChecker {
             ids match {
               case id :: Nil => {
                 lvalType match {
-                  case Some(_) =>
+                  case _: Some[_] =>
                   case None => ErrorLogger.err("Ambiguous call to '${id}', cannot return to typeless variable", func.pos) 
                 }
 
