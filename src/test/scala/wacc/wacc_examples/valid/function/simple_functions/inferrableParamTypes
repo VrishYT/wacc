@@ -1,0 +1,9 @@
+begin
+	int f(a, b, c) is
+        d = a + b;
+        exit(c);
+		return (b)
+	end
+	int x = call f(1, 2, 3);
+	println x
+end

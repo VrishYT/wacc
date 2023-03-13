@@ -1,0 +1,7 @@
+begin
+	int f(a) is
+		return 0 
+	end
+	int x = call f(1);
+	println x
+end
