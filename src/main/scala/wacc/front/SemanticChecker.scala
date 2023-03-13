@@ -15,12 +15,77 @@ object SemanticChecker {
     val errors = ArrayBuffer[TypeException]()
 
     /* lists of all statements and functions in program */
+    val classes = program.classes
     val statements = program.stats
     val functions = program.fs
 
     /* create a map for the global scope, containing function identifiers to return types */
     val vars = symbolTable.declare("main")
 
+    /* check if a variable already exists in scope, error if it does, and add it to the scope if it doesn't */
+    def declareVar(id: String, t: Type, vars: Table, pos: (Int, Int), isPrivate: Boolean = false): Unit = {
+      t match {
+        case ClassType(class_id) if (symbolTable.classes.contains(id)) => {
+          errors += new TypeException(message = s"Cannot declare variable '$id'\n - class '$class_id' is not defined", pos = Seq(pos))
+        }
+        case _ => {
+          if (!vars.add(id, Symbol(t, isPrivate))) errors += new TypeException(message = "Cannot redeclare variable '" + id + "'", pos = Seq(pos))
+        }
+      }
+
+    }
+    
+    /* Add each class to the symbol table */
+    classes.foreach(c => {
+
+      /* if class exists give a semantic error */
+      if (symbolTable.classes.contains(c.class_id)) {
+        errors += new TypeException(message = s"Cannot redeclare class '${c.class_id}'", pos = Seq(c.pos))
+      } else {
+        val types = c.decls.map(_.t)
+        val members = ClassTable(c.class_id, types)
+        symbolTable.classes(c.class_id) = members
+      }
+
+    })
+
+    /* Add attributes and functions to the symbol table */
+    classes.foreach(c => {
+      symbolTable.classes.get(c.class_id) match {
+        case Some(members) => {
+          /* declare attributes of a class */
+          c.decls.foreach(f => f.t match {
+            case ClassType(id) if (id == c.class_id) => {
+              errors += new TypeException(message = s"Cannot have instance of a class within a class", pos = Seq(f.pos))
+            }
+            case _ => declareVar(f.id, f.t, members, f.pos, f.isPrivate)
+          })
+
+          /* declare methods within a class */
+          c.funcs.foreach(func => {
+            // TODO: reduce code duplication with normal func defs
+            /* check if the functions already exists in the map */
+            if (members.contains(func.fs._2)) {
+              /* error if the function has been declared more than once */
+              errors += new TypeException(message = s"Cannot redeclare function '${func.fs._2}' in class '${c.class_id}'", pos = Seq(func.pos))
+            } else {
+              /* Add the function into the global scope */
+              if (func.args.distinct.size != func.args.size) errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
+              else {
+                val table = MethodTable(func.fs._2, func.args.toSeq.map(_.t), func.fs._1, func.isPrivate, members)
+                func.args.foreach(param => table.add(param.id, ParamSymbol(param.t)))
+                /* modify arguments to take a class instance as a parameter */
+                func.args.prepend(TypedParam(ClassType(c.class_id), "this")(0,0))
+                table.add("this", ParamSymbol(ClassType(c.class_id)))
+                members.addTable(func.fs._2, table)
+              }
+            }
+          })
+        }
+        case None => ???
+      }
+
+    })
     /* tracks the number of overloaded functions found per function id */
     val functionCount = MapM[String, Int]()
 
@@ -59,7 +124,7 @@ object SemanticChecker {
         errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
       } else {
         val uniqueFuncId = s"${i}_${func.fs._2}"
-        symbolTable.declare(uniqueFuncId, func.args, func.fs._1)
+        symbolTable.declare(uniqueFuncId, func.args.toSeq, func.fs._1)
         func.rename(uniqueFuncId)
       }
     }
@@ -81,27 +146,58 @@ object SemanticChecker {
       return true
     }
 
-    /* check if a variable already exists in scope, error if it does, and add it to the scope if it doesn't */
-    def declareVar(id: String, t: Type, vars: Table, pos: (Int, Int)): Unit = {
-      if (!vars.add(id, Symbol(t))) errors += new TypeException(message = "Cannot redeclare variable '" + id + "'", pos = Seq(pos))
-    }
-
-    /* checks for invalid semantics within a specific function */
-    def checkFunction(func: Func): Unit = {
-      symbolTable.get(func.fs._2) match {
-        case Some(x) => checkStatements(func.stats, x)
-        case None => errors += new TypeException(message = "Invalid function declaration", pos = Seq(func.pos))
-      }      
-    }
-
     /* return the type of an identifier from the parent and child scope maps */
-    def getTypeFromVars(id: String, vars: Table, pos: (Int, Int)): Type = vars.getType(id) match {
-      case Some(x) => x
-      case None => ErrorLogger.err("Variable " + id + " not found", pos)
+    def getTypeFromVars(id: String, vars: Table, pos: (Int, Int)): Type = {
+      def get(vars: Table): Option[Type] = vars.getType(id) match {
+        case x: Some[_] => x
+        case None => vars.getType("this") match {
+          case Some(x) => x match {
+            case ClassType(class_id) => symbolTable.classes.get(class_id) match {
+              case Some(x) => x.getType(id)
+              case None => ???
+            }
+          }
+          case None => vars match {
+            case x: MethodTable => if (id == "this") Some(ClassType(x.parent.class_id)) else get(x.parent)
+            case x: ChildTable => get(x.parent)
+            case _ => None
+          }
+        }
+      }
+      
+      get(vars) match {
+        case Some(x) => x
+        case None => ErrorLogger.err("Variable " + id + " not found", pos)
+      }
     }
 
     /* traverse a list of statements and error on semantic errors */
     def checkStatements(statements: List[Stat], vars: Table): Unit = {
+
+      def getClassType(ids: List[String], pos: (Int, Int)): Type = {
+
+        def get(ident: String, elems: List[String], table: Table): Type = getTypeFromVars(ident, table, pos) match {
+            case ClassType(class_id) => symbolTable.classes.get(class_id) match {
+              case Some(x) => elems match {
+                case Nil => ???
+                case id :: Nil => x.getSymbol(id) match {
+                  case Some(symbol) => {
+                    if (symbol.isPrivate) {
+                      ErrorLogger.err(s"cannot access private member '$id' of '$class_id'", pos)
+                    } else symbol.t
+                  }
+                  case None => ErrorLogger.err(s"elem $id does not exist in class $class_id", pos)
+                }
+                case id :: elems => get(id, elems, x)
+              }
+              case None => ErrorLogger.err(s"class $class_id does not exist", pos)
+            }
+          case _ => ErrorLogger.err(s"$ident is not an instance of a class", pos)
+        }
+
+        get(ids.head, ids.tail, vars)
+
+      }
 
       /* returns the type of the contents of a pairElem (fst(x) or snd(x), where x is passed in) */
       def getPairElemType(t: Type): Type = t match {
@@ -141,8 +237,41 @@ object SemanticChecker {
           /* if it's a pair element then get the type of x, which is in the form fst(y) or snd(y),
                     by calling getLValPairElem */
           case x: PairElem => getLValPairElem(x)
+
+          case classElem@ClassElem(ids) => {
+            getClassType(ids, classElem.pos)
+          }
+
           /* Default case - should be unreachable. */
           case _ => ErrorLogger.err("Unknown lvalue passed in", 1)
+        }
+      }
+
+      /* returns true if the lvalue isn't declared yet */
+      def isInferredTypeDefinition(lVal: LValue): Boolean = {
+        lVal match {
+
+          /* if its an identifier then check if its in the parent and child scope maps yet */
+          case (x@Ident(id)) =>  vars.getType(id) match {
+                                      case Some(x) => false
+                                      case None => true
+                               }
+          case _ => false
+        }
+      }
+
+      /* returns true if the lvalue has no type yet */
+      def isTypelessParam(lVal: LValue): Boolean = {
+        lVal match {
+
+          /* if its an identifier then check if it has a type in the parent and child scope maps yet*/
+          case (x@Ident(id)) =>  vars.getType(id) match {
+                                      case Some(x) => {
+                                        return x == NoType
+                                      }
+                                      case None => ???
+                               }
+          case _ => false
         }
       }
 
@@ -150,7 +279,6 @@ object SemanticChecker {
       def getRValType(rval: RValue, lvalType: Option[Type] = None): Type = {
 
         rval match {
-
           /* if it's a pair element then get the type of x, which is in the form fst(y) or snd(y),
                     by calling getLValPairElem */
           case x: PairElem => getLValPairElem(x)
@@ -164,7 +292,7 @@ object SemanticChecker {
               /* error if the types of all elements in the array are not the same */
               val head :: tail = xs
               val t = getRValType(head)
-              tail.foreach(exp => if (getRValType(exp) != t) ErrorLogger.err("Types in array not the same", getRValType(exp), t, array.pos))
+              tail.foreach(exp => if (getRValType(exp) != t) ErrorLogger.err("types in array not the same", getRValType(exp), t, array.pos))
 
               /* return ArrayType of the type of elements in the array */
               ArrayType(getRValType(xs.head))
@@ -182,9 +310,65 @@ object SemanticChecker {
             return new PairType(getPairElem(fst), getPairElem(snd))
           }
 
-          /* if it's a function call :  */
-          case (func@Call(id, args)) => {
+          case classElem@ClassElem(ids) => {
+            getClassType(ids, classElem.pos)
+          }
 
+          case newClass@NewClass(class_id, rvals) => {
+            val class_mems = symbolTable.classes.get(class_id) match {
+              case Some(x) => x
+              case None => ErrorLogger.err(s"invalid constructor for class ${class_id}\n  - class '${class_id}' does not exist", newClass.pos)
+            }
+
+            val class_types = class_mems match {
+              case z : ClassTable => z.types
+              case _ => ???
+            }
+
+            val size = class_mems.getSize
+            if (rvals.length != size){
+              ErrorLogger.err(s"invalid constructor for class ${class_id}\n  - missing arguments", newClass.pos)
+            }
+
+            // TODO: REPLACE FOR LOOP WITH FOREACH
+            for (i <- 0 to size - 1) {
+              val expectedType = class_types(i) 
+              val field = rvals(i)
+              val rValType = getRValType(field) 
+              if (expectedType != rValType) ErrorLogger.err(s"invalid constructor for class ${class_id}\n  - invalid type of argument", expectedType, rValType, field.pos)
+            }
+              
+            return new ClassType(class_id)
+          }
+
+
+          /* if it's a function call :  */
+          case (func@Call(ids, args)) => {
+            // if (ids.length == 1) {
+            //     /* get a list of its parameter types in order */
+            //   val funcVars = symbolTable.get(ids.head) match {
+            //     case Some(x) => x
+            //     case None => ErrorLogger.err(s"function '${ids}' is undefined", func.pos) 
+            //   }
+            //   val currentArgs = funcVars.paramTypes
+
+            //   /* error if the number of arguments is wrong */
+            //   if (args.length != currentArgs.length) ErrorLogger.err("invalid number of arguments for function '" + ids + "'. expected: " + currentArgs.length + ". actual: " + args.length, func.pos)
+
+            //   /* check each argument type passed in is the same as the corresponding parameter for this function */
+            //   for (i <- 0 to args.length - 1) {
+            //     val paramType = currentArgs(i)
+            //     val rType = getRValType(args(i))
+
+            //     /* error an argument type doesn't match the required parameter */
+            //     if (rType != paramType) ErrorLogger.err("invalid type for arg", rType, paramType, args(i).pos)
+            //   }
+
+            //   /* return the type of the function from the identifier maps */
+            //   return funcVars.returnType
+            // }
+            // return IntType
+            
             def checkOverloadedFunc(funcVars: FuncTable): Boolean = {
               val currentArgs = funcVars.paramTypes
 
@@ -205,50 +389,45 @@ object SemanticChecker {
               }
             }
 
-            /* error if function not defined */
-            val count = functionCount.get(id) match {
-              case Some(x) => x
-              case None => ErrorLogger.err("Function '${id}' is undefined", func.pos) 
+            ids match {
+              case id :: Nil => {
+                lvalType match {
+                  case Some(_) =>
+                  case None => ErrorLogger.err("Ambiguous call to '${id}', cannot return to typeless variable", func.pos) 
+                }
+
+                /* error if function not defined */
+                val count = functionCount.get(id) match {
+                  case Some(x) => x
+                  case None => ErrorLogger.err("Function '${id}' is undefined", func.pos) 
+                }
+
+                /* check every overloaded function for a match */
+                (0 until count).foreach(i => {
+                  val uniqueFuncId = s"${i}_${id}"
+                  val funcVars = symbolTable.get(uniqueFuncId) match {
+                    case Some(x) => x
+                    case None => ???
+                  }
+
+                  if (checkOverloadedFunc(funcVars)) {
+                    func.rename(uniqueFuncId)
+                    return funcVars.returnType
+                  }              
+                })
+
+                /* if none are valid, error */
+                ErrorLogger.err(s"invalid call to ${id}", func.pos)
+              }
+              case xs => {
+                // TODO: @rishi
+                return AnyType
+              }
             }
 
-            /* check every overloaded function for a match */
-            (0 until count).foreach(i => {
-              val uniqueFuncId = s"${i}_${id}"
-              val funcVars = symbolTable.get(uniqueFuncId) match {
-                case Some(x) => x
-                case None => ???
-              }
+            
 
-              if (checkOverloadedFunc(funcVars)) {
-                func.rename(uniqueFuncId)
-                return funcVars.returnType
-              }              
-            })
-
-            /* if none are valid, error */
-            ErrorLogger.err(s"invalid call to ${id}", func.pos)
-
-            // /* get a list of its parameter types in order */
-            // val funcVars = symbolTable.get(id) match {
-            //   case Some(x) => x
-            //   case None => ErrorLogger.err("Function '${id}' is undefined", func.pos) 
-            // }
-            // val currentArgs = funcVars.paramTypes
-
-            // /* error if the number of arguments is wrong */
-            // if (args.length != currentArgs.length) ErrorLogger.err("Invalid number of arguments for function '" + id + "'. expected: " + currentArgs.length + ". actual: " + args.length, func.pos)
-
-            // /* check each argument type passed in is the same as the corresponding parameter for this function */
-            // for (i <- 0 to args.length - 1) {
-            //   val paramType = currentArgs(i)
-            //   val rType = getRValType(args(i))
-
-            //   /* error an argument type doesn't match the required parameter */
-            //   if (rType != paramType) ErrorLogger.err("invalid type for arg", rType, paramType, args(i).pos)
-            // }
-
-            // /* return the type of the function from the identifier maps */
-            // return funcVars.returnType
+            
           }
 
           /* for an expression, match on the specific type of expression : */
@@ -326,7 +505,7 @@ object SemanticChecker {
                 })
                 ErrorLogger.err("invalid binary op type", rValType, types, exp.pos)
               }
-
+              
               /* check both operands are of correct type */
               val t1 = getType(exp1, op.input)
               val t2 = getType(exp2, op.input)
@@ -356,17 +535,34 @@ object SemanticChecker {
         }
 
         /* check assign statement */
-        case Assign(x, y) => {
+        case AssignOrTypelessDeclare(x, y) => {/* get type of left and right hand sides of the assign */
+
+          var rType: Type = NoType
+          var lType: Type = NoType
 
           /* error if the identifier being reassigned is a function. */
           x match {
-            case (ident@Ident(id)) if (symbolTable.contains(id) && !vars.contains(id)) => ErrorLogger.err("Cannot re-assign value for a function: " + id, ident.pos)
-            case _ =>
+            case (ident@Ident(id)) => {
+              if (symbolTable.contains(id) && !vars.contains(id)) {
+                ErrorLogger.err("Cannot re-assign value for a function: " + id, ident.pos)
+              } else if (isInferredTypeDefinition(x)) {
+                rType = getRValType(y, None)
+                lType = rType
+                declareVar(id, rType, vars, y.pos)
+              } else if (isTypelessParam(x)) {
+                rType = getRValType(y, None)
+                lType = rType
+                vars.updateRecursive(id, Symbol(rType))
+              } else {
+                lType = getLValType(x)
+                rType = getRValType(y, Some(lType))
+              }
+            }
+            case _ => {
+              lType = getLValType(x)
+              rType = getRValType(y, Some(lType))
+            }
           }
-
-          /* get type of left and right hand sides of the assign */
-          val lType = getLValType(x)
-          val rType = getRValType(y, Some(lType))
 
           /* error when attempting to assign an unknown type to another unknown type */
           if (lType == AnyType && rType == AnyType) ErrorLogger.err("invalid type for assign\n  cannot assign when both types are unknown", x.pos, y.pos)
@@ -399,11 +595,23 @@ object SemanticChecker {
         case Return(x) => {
           val rType = getRValType(x)
 
+          def getFuncTable(table: Table): FuncTable = table match {
+            case x: FuncTable if (x.id != "main") => x
+            case x: ChildTable => getFuncTable(x.parent)
+            case _ => ErrorLogger.err("invalid return call\n  cannot return outside a function body", x.pos)
+          }
+
           /* error if we are not inside of a function */
-          if (!vars.isInFunction) ErrorLogger.err("invalid return call\n  cannot return outside a function body", x.pos)
+          val funcTable = getFuncTable(vars)
 
           /* error if return type does not match return type of the current function being checked */
-          val funcType = vars.getReturnType
+          var funcType = funcTable.getReturnType
+
+          if (funcType == NoType) {
+            funcType = rType
+            funcTable.setReturnType(rType)
+          }
+
           if (rType != funcType) ErrorLogger.err("invalid type for return", rType, funcType, x.pos)
         }
 
@@ -469,7 +677,35 @@ object SemanticChecker {
     }
 
     /* check semantics of all statements in the program */
-    functions.foreach(func => checkFunction(func))
+    classes.foreach(c => symbolTable.classes.get(c.class_id) match {
+      case Some(members) => c.funcs.foreach(func => {
+        func.annotations.foreach(a => {
+          if (!a.verify(func)) {
+            errors += new TypeException(message = a.errorMsg, pos = Seq(func.pos))
+          }
+        })
+        members.getMethodTable(func.fs._2) match {
+          case Some(x) => checkStatements(func.stats, x)
+          case None => {
+            errors += new TypeException(message = s"invalid method declaration in '${c.class_id}'", pos = Seq(func.pos))
+          }
+        }
+      }) 
+      case None =>  
+    })
+
+    functions.foreach(func => {
+      func.annotations.foreach(a => {
+        if (!a.verify(func)) {
+          errors += new TypeException(message = a.errorMsg, pos = Seq(func.pos))
+        }
+      })
+      symbolTable.get(func.fs._2) match {
+        case Some(x) => checkStatements(func.stats, x)
+        case None => errors += new TypeException(message = "invalid function declaration", pos = Seq(func.pos))
+      }
+    })
+
     checkStatements(statements, vars)
 
     return errors

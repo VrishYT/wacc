@@ -1,0 +1,18 @@
+# should not be able to access an array directly from class elem
+
+# Output:
+# #syntax_error#
+
+# Exit:
+# 100
+
+# Program:
+
+begin
+    class Array {
+        int[] x
+    }
+    Array a = new Array { [0, 1, 2] } ;
+    int x = a.x[1] ;
+    exit x
+end

@@ -1,0 +1,17 @@
+# class contains instance of itself
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+    class MyClass {
+        private int x
+    }
+    MyClass x = new MyClass { 5 } ;
+    exit x.x
+end

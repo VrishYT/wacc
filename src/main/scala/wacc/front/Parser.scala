@@ -9,8 +9,8 @@ object Parser {
   import Lexing._
   import implicits.implicitSymbol
   import parsley.combinator._
+  import parsley.Parsley.lookAhead
   import parsley.errors.combinator._
-  import parsley.errors.patterns._
   import parsley.expr._
   import parsley.position._
   import wacc.ast._
@@ -41,13 +41,15 @@ object Parser {
   /*parsing of basic types such as boolean values, pair literal null and primitive types*/
   val BOOL_LIT = ("true" #> true <|> "false" #> false).label(
     "boolean literal").explain("booleans can either be true or false")
+  
+  lazy val PRIVATE = ("private" #> true <|> "public" #> false) <|> lookAhead(types) #> false
 
   val PAIR_LIT = (pos <**> ("null") #> PairLiteralNull).label("pair null type")
 
   val BASE_TYPE = base_type_desc("int") #> IntType <|>
     base_type_desc("string") #> StringType <|>
     base_type_desc("bool") #> BoolType <|>
-    base_type_desc("char") #> CharType
+    base_type_desc("char") #> CharType 
 
 
   /*labels method allows us to print the expected values when we throw an unexpected error*/
@@ -60,20 +62,23 @@ object Parser {
     labels("arithmetic operator", "logical operator",
       "comparison operator", "index (like \'xs[idx]\')")
 
-  /*ident or array elem checks if the text is only an ident or
+  /*ident or class elem or array elem checks if the text is only an ident or a class elem (<ident> (.<ident>)*)
       it is an array elem (it is followed by a [) and creates the corresponding AST node*/
-  val IDENT_OR_ARRAY_ELEM = IdentOrArrayElem(IDENT.label("identifier"), invalid_call *> option(
-    "[".label("index (like \'xs[idx]\')") *> sepBy(expr, "][") <* "]"))
+  val L_EXPR = LExpr(sepBy1("this" #> "this" <|> IDENT, ".").label("identifier/class elem"), invalid_call *> option(
+    "[".label("index (like \'xs[idx]\')") *> sepBy(expr, "][") <* "]")).guardAgainst {
+      case x if (!x.valid) => Seq("Cannot access the elements of an array within a class directly.")
+    }
 
   /*base elements of any expression, as the expression type is recursive*/
   private lazy val atom: Parsley[Expr] = "(".label("open parenthesis") *> expr <* ")" <|>
-    IDENT_OR_ARRAY_ELEM <|>
+    // attempt(CLASS_ELEM) <|>
+    L_EXPR <|>
     IntLiteral(INTEGER.hide).label("integer literal").explain(
       "all numbers are signed 32-bit integers") <|>
     CharLiteral(CHR_LIT) <|>
     StrLiteral(STR_LIT) <|>
     BoolLiteral(BOOL_LIT) <|>
-    PAIR_LIT
+    PAIR_LIT 
 
   /*operators in expression are given a precedence from tightest binding to loosest*/
   val operators: Parsley[Expr] = precedence[Expr](atom)(
@@ -107,32 +112,37 @@ object Parser {
 
   val ARRAY_TYPE: Parsley[Type] = chain.postfix(atom2, ArrayType <# array_type_desc("[]"))
 
-  lazy val types: Parsley[Type] = ARRAY_TYPE <|> BASE_TYPE <|> PAIR_TYPE
+  val CLASS_TYPE: Parsley[Type] = ClassType(IDENT <~ lookAhead(IDENT))
+
+  lazy val types: Parsley[Type] = ARRAY_TYPE <|> BASE_TYPE <|> PAIR_TYPE <|> CLASS_TYPE
 
   val ARG_LIST = sepEndBy(expr, ",")
 
   lazy val PAIR_ELEM = Fst(pair_op("fst") *> lvalue) <|> Snd(pair_op("snd") *> lvalue)
 
   /*defined parsing for r-values*/
-  lazy val rvalue: Parsley[RValue] = Call("call".label("function call") *> IDENT, "(" *> ARG_LIST <~ ")") <|>
+  lazy val rvalue: Parsley[RValue] = Call("call".label("function call") *> sepBy(IDENT, "."), "(" *> ARG_LIST <~ ")") <|> //TODO change for a list of idents
     expr <|>
     ARRAY_LITER <|>
     NewPair("newpair" *> "(" *> expr <~ ",", expr <~ ")") <|>
-    PAIR_ELEM
+    NewClass("new" *> IDENT, "{" *> sepBy(rvalue, ",") <~ "}") <|> // TODO: CHECK @PREESHA- braces instead of parentheses ???
+    PAIR_ELEM 
 
   /*defined parsing for l-values*/
-  lazy val lvalue: Parsley[LValue] = IDENT_OR_ARRAY_ELEM <|> PAIR_ELEM
+  lazy val lvalue: Parsley[LValue] = L_EXPR <|> PAIR_ELEM  
 
   /*created a parsing rule to avoid function declarations in the middle of a block*/
   val _invalid_declaration = amend(attempt((types *> IDENT <~ "(").hide) *> unexpected(
     "function declaration")).explain(
     "all functions must be declared at the top of main block")
+  
+  val declare = Declare(types, IDENT, "=" *> rvalue) 
 
   /*defined parsing for statements*/
   val stat: Parsley[Stat] = _invalid_declaration <|>
     ("skip" #> Skip) <|>
+    (AssignOrTypelessDeclare(attempt(lvalue <~ "=".label("assignment")), rvalue)) <|>
     (Declare(types, IDENT, "=" *> rvalue)) <|>
-    (Assign(lvalue, "=".label("assignment") *> rvalue)) <|>
     (Read("read" *> lvalue)) <|>
     (Free("free" *> expr)) <|>
     (Return("return" *> expr)) <|>
@@ -156,24 +166,38 @@ object Parser {
   val _invalid_pointer = amend((attempt("*")) *> unexpected("pointer").explain(
     "WACC is not like C and does not use pointers"))
 
-  val param = Param(types, _invalid_pointer <|> IDENT)
+  val param = TypedParam(types, _invalid_pointer <|> IDENT) <|> TypelessParam(_invalid_pointer <|> IDENT)
 
   val paramList = sepBy(param, ",")
+  
+  val annotation = "@" *> Annotation(IDENT)
+  
+  val annotationList = sepBy(annotation.guardAgainst {
+    case annotation if !annotation.isValid => Seq("unknown annotation") // TODO: improve error msg
+  }, pure(""))
 
   /*rule to pick on invalid function declarations with a missing type*/
-  val _invalid_function = amend((attempt(IDENT <~ "(").hide).verifiedFail(
-    "function declaration missing type"))
+  // val _invalid_function = amend((attempt(IDENT <~ "(").hide).verifiedFail(
+  //   "function declaration missing type"))
 
-  /*rule to parse on functions*/
-  val func = _invalid_function <|> Func(attempt(types <~> IDENT <~ "(".label(
-    "opening parenthesis")).label(
+  val func = attempt(TypedFunc(annotationList, PRIVATE, types <~> IDENT <~ "(".label(
+    "opening parenthesis").label(
+    "function declaration"), paramList <~ ")", "is" *> stats <* "end")) <|>
+    TypelessFunc(annotationList, PRIVATE, IDENT <~ "(".label(
+    "opening parenthesis").label(
     "function declaration"), paramList <~ ")", "is" *> stats <* "end")
+  
+  val funcList = sepEndBy(attempt(func).guardAgainst { case func if !func.validReturn => Seq("function is missing a return/exit on all exit paths")}, pure(""))
+
+  /*rule to parse on classes */
+  val field = attempt(Field(PRIVATE, types, IDENT <* notFollowedBy("(")))
+  val fieldList = sepBy(field, ",")
+  val class_ = Class(attempt("class" *> IDENT <~ "{"), fieldList, funcList <~ "}")
+  val classList = sepEndBy(class_, pure(""))
 
   /*rule to parse on programs, we check that at the end of the function body
     we have a return or an exit on all exit paths using the method valid return*/
-  val program_ = Program("begin" *> sepEndBy(func.guardAgainst {
-    case func if !func.validReturn => Seq("function is missing a return/exit on all exit paths")
-  }, pure("")), stats <* "end")
+  val program_ = Program("begin" *> classList, funcList, stats <* "end")
 
   val program = fully(program_)
 }

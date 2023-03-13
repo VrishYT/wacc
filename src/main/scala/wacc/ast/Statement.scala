@@ -3,6 +3,7 @@ package ast
 
 import wacc.back._
 import parsley.genericbridges._ 
+import scala.collection.mutable.{ListBuffer}
 
 /* statements as objects extending the sealed trait Stat */
 sealed trait Stat {
@@ -42,7 +43,7 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
 
 object Declare extends ParserBridge3[Type, String, RValue, Declare]
 
-case class Assign(x: LValue, y: RValue) extends Stat {
+case class AssignOrTypelessDeclare(x: LValue, y: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
         val rhsAssembly = y.toAssembly(gen).condToReg(gen.regs)
         val lval = x match {
@@ -62,8 +63,42 @@ case class Assign(x: LValue, y: RValue) extends Stat {
                 return (addrAssemb.instr ++ reg.instr ++ rhsAssembly.instr ++ 
                         Seq(Store(reg.getReg(), addrAssemb.getOp())))
             }
+            case x: ClassElem => {
+                def toAssemblyStore(): RegAssembly = {
+                    val classAss = Operands.opToReg(table.getOp(x.ids.head), Register(12))
+                    val classType = table.getType(x.ids.head) match {
+                        case Some(x : ClassType) => x.class_id
+                        case None => ???
+                    }
+                    val instrs = ListBuffer[Instruction]()
+                    instrs += classAss
+                    val load = x.toAssemblyLoad(gen, x.ids.tail, Register(12), classType, instrs, true)(table)
+                    RegAssembly(load.getReg(), Seq(Comment(s"class elem ${x.ids.mkString(".")}"), classAss) ++ load.instr)
+                }
+                val clsElemAss = toAssemblyStore()
+                val reg = Operands.opToScratch(rhsAssembly.getOp())
+                val instr = y match {
+                    case CharLiteral(_) | BoolLiteral(_) => Seq(Store(reg.getReg(), clsElemAss.getReg(), false, true)) 
+                    case _ => Seq(Store(reg.getReg(), Address(clsElemAss.getReg()), false, false))
+                }
+                return (clsElemAss.instr ++ reg.instr ++ rhsAssembly.instr ++ instr)
+            } 
+
             case _ => x.toAssembly(gen)
         }
+        
+        lval.getOp() match {
+            case NoOperand(id) => {
+                val opt = table.getType(id)
+                val t = opt match {
+                    case Some(x) => x
+                    case None => ???
+                }
+                return Declare(t, id, y).toAssembly(gen)
+            }
+            case _ =>
+        }
+
         y match {
             case _: ArrayElem => {
                 val out = gen.regs.allocate
@@ -71,20 +106,19 @@ case class Assign(x: LValue, y: RValue) extends Stat {
                     out.getReg(),
                     out.instr ++ rhsAssembly.instr ++ Seq(Mov(out.getReg(), rhsAssembly.getOp()))
                 )
-                return Assign.assDec(lval, reg, gen.regs)
+                return AssignOrTypelessDeclare.assDec(lval, reg, gen.regs)
             }
             case StrLiteral(string) => {
-                return Assign.assDec(lval, rhsAssembly, gen.regs)
+                return AssignOrTypelessDeclare.assDec(lval, rhsAssembly, gen.regs)
             }
             case _ => {
-                return Assign.assDec(lval, rhsAssembly, gen.regs)
+                return AssignOrTypelessDeclare.assDec(lval, rhsAssembly, gen.regs)
             }
         }
     }
 }
 
-
-object Assign extends ParserBridge2[LValue, RValue, Assign] {
+object AssignOrTypelessDeclare extends ParserBridge2[LValue, RValue, AssignOrTypelessDeclare] {
     def assDec(lval: Assembly, rval: Assembly, regs: RegisterAllocator)(implicit table: Table) : Seq[Instruction] = {
         val reg = Operands.opToReg(rval.getOp(), regs)
         val save = lval.getOp() match {
@@ -351,6 +385,51 @@ case class Print(x: Expr) extends Stat {
                 val ass = a.toAssembly(gen)
                 ass.instr ++ printValue(identType, ass.getOp(), gen)
             }
+
+            case c@ClassElem(ids) => {
+                def findType(ids: List[String], currTable: Table) : Type = {
+                    ids match {
+                        case y :: Nil => {
+                            val classType = currTable.getType(y) match {
+                                case Some(z) => z 
+                                case None => ???
+                            }
+                            return classType
+                        }
+                        case id :: rest => {
+                            val classType = currTable.getType(id) match {
+                                case Some(x) => x match {
+                                    case ClassType(id) => id
+                                    case _ => ???
+                                }
+                                case None => ???
+                            }
+                            val classTable = gen.symbolTable.classes.get(classType) match {
+                                case Some(x) => x
+                                case None => ???
+                            }
+                            return findType(rest, classTable)
+                        }
+                    }
+                }
+                
+                val classType = table.getType(ids.head) match {
+                    case Some(x) => {
+                        x match {
+                            case ClassType(id) => {
+                                gen.symbolTable.classes.get(id) match {
+                                    case Some(y) => findType(ids.tail, y)
+                                    case None => ???
+                                }
+                            }
+                            case _ => ???
+                        }
+                    }
+                    case None => ???
+                }
+                val ass = c.toAssembly(gen)
+                ass.instr ++ printValue(classType, ass.getOp(), gen)
+            }
             /*need to case match to print pair nulls accordingly*/
             case p@PairLiteralNull(_) => {
                 gen.postSections.addOne(PrintPointerSection)
@@ -421,7 +500,7 @@ case class Print(x: Expr) extends Stat {
                 )
             }
             
-            case PairType(_,_) | ArrayType(_) => {
+            case PairType(_,_) | ArrayType(_) | ClassType(_) => {
                 gen.postSections.addOne(PrintPointerSection)
                 return Seq(
                     Push(Register(0), Register(1), Register(2), Register(3)),

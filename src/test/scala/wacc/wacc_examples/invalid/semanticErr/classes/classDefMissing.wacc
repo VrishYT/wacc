@@ -1,4 +1,4 @@
-# assignment to undeclared variable
+# class instantiated doesn't exist
 
 # Output:
 # #semantic_error#
@@ -9,5 +9,5 @@
 # Program:
 
 begin
-  x = 10
+    MyClass x = new MyClass {}
 end

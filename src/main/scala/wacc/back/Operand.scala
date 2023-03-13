@@ -23,7 +23,7 @@ case class DataLabel(label: String) extends Operand {
 
 /*operand to represent memory address inside register, second argument 
 to shift along in memory*/
-case class Address(reg: Register, op: Operand) extends Operand {
+case class Address(reg: Register, op: Operand = ImmInt(0)) extends Operand {
     def arm11: String = "[" + reg.toString() + "," + op + "]"
     override def toString(): String = arm11
 }
@@ -37,6 +37,11 @@ case class ASR(reg: Register, op: Operand) extends Operand {
 /*logical shift left*/
 case class LSL(reg: Register, op: Operand) extends Operand {
     def arm11: String = reg.toString() + "," + " lsl " + op 
+    override def toString(): String = arm11
+}
+
+case class NoOperand(id: String) extends Operand {
+    def arm11: String = ""
     override def toString(): String = arm11
 }
 

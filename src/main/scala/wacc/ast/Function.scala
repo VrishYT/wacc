@@ -3,41 +3,23 @@ package ast
 
 import wacc.front.ParserBridge._
 import wacc.back._
+import scala.collection.mutable.ListBuffer
 
-/* function case class with position */
-case class Func(var fs: (Type, String), args: List[Param], stats: List[Stat])(val pos: (Int, Int)) {
+sealed abstract class Func(
+    val annotations: List[Annotation],
+    val isPrivate: Boolean,
+    var fs: (Type, String), 
+    val args: ListBuffer[Param], 
+    val stats: List[Stat]
+)(val pos: (Int, Int)) {
 
     def rename(newId: String): Unit = {
         val t = fs._1
         fs = (t, newId)
     }
 
-    def toAssembly(gen: CodeGenerator)(implicit table: FuncTable): Seq[Instruction] = {
-
-        gen.mem.size = 0.max(table.getSize - gen.regs.freeRegs.size)
-
-        (0 until args.length).foreach(i => {
-            val param = args(i)
-            gen.regs.link(param.id, Register(i + 1))
-            // println(s"link ${param.id} => r${i+1}")
-            // println(s"inUse: ${gen.regs.regsInUse}")
-            // println(s"free: ${gen.regs.freeRegs}")
-        })
-        
-        val instr = stats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
-
-        // println(s"table = ${table.getSize}\nfreeRegs = ${gen.regs.freeRegs.size}")
-        // println(s"inUse: ${gen.regs.regsInUse}")
-        // println(s"free: ${gen.regs.freeRegs}")
-
-        // println(s"stacksize = $stack")
-
-        return Func.generateFunction(s"wacc_${fs._2}", gen.mem.grow() +: instr, Func.FuncRegs:_*)
-    }
-
     /* define validReturn of a function, and match on the last statement : */
     def validReturn: Boolean = validReturn(stats)
-
     def validReturn(stats: List[Stat]): Boolean = stats.last match {
 
         /* return true if it's a return or exit */
@@ -62,12 +44,41 @@ case class Func(var fs: (Type, String), args: List[Param], stats: List[Stat])(va
             /* return valid once all eligible paths of control flow
                         have been checked */
             valid
-            }
+        }
     }
+
+    def toAssembly(gen: CodeGenerator, class_id: String = "")(implicit table: FuncTable): Seq[Instruction] = {
+
+        gen.mem.size = 0.max(table.getSize - gen.regs.freeRegs.size)
+
+        (0 until args.length).foreach(i => {
+            val param = args(i)
+            gen.regs.link(param.id, Register(i + 1))
+            // println(s"link ${param.id} => r${i+1}")
+            // println(s"inUse: ${gen.regs.regsInUse}")
+            // println(s"free: ${gen.regs.freeRegs}")
+        })
+
+        // println(s"*-Stats:-*\n$stats\n")
+        val modifiedStats = annotations.foldRight(stats)(_.process(_))
+        // println(s"*-Modified Stats:-*\n$modifiedStats")
+        
+        val instr = modifiedStats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
+
+        // println(s"table = ${table.getSize}\nfreeRegs = ${gen.regs.freeRegs.size}")
+        // println(s"inUse: ${gen.regs.regsInUse}")
+        // println(s"free: ${gen.regs.freeRegs}")
+
+        // println(s"stacksize = $stack")
+
+        val name = if (class_id == "") fs._2 else s"${class_id}_${fs._2}"
+
+        return Func.generateFunction(s"wacc_${name}", gen.mem.grow() +: instr, Func.FuncRegs:_*)
+    }
+
 }
 
-/* function and parameter companion objects with parser bridges */
-object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Func] {
+object Func {
 
     import scala.collection.mutable.{ListBuffer}
 
@@ -113,11 +124,50 @@ object Func extends ParserBridgePos3[(Type, String), List[Param], List[Stat], Fu
 
         return instr.toSeq
     }
+}
 
+/* function case class with position */
+case class TypedFunc(
+    override val annotations: List[Annotation],
+    override val isPrivate: Boolean, 
+    fs2: (Type, String), 
+    arguments: List[Param], 
+    override val stats: List[Stat]
+)(override val pos: (Int, Int)) extends Func(
+    annotations, isPrivate, fs2, ListBuffer.from(arguments), stats
+)(pos)
+
+/* function and parameter companion objects with parser bridges */
+object TypedFunc extends ParserBridgePos5[List[Annotation], Boolean, (Type, String), List[Param], List[Stat], Func] 
+
+/* function case class with position */
+case class TypelessFunc(
+    override val annotations: List[Annotation],
+    override val isPrivate: Boolean,
+    val name: String, 
+    arguments: List[Param], 
+    override val stats: List[Stat]
+)(override val pos: (Int, Int)) extends Func(
+    annotations, isPrivate, (NoType, name), ListBuffer.from(arguments), stats
+)(pos)
+
+/* function and parameter companion objects with parser bridges */
+object TypelessFunc extends ParserBridgePos5[List[Annotation], Boolean, String, List[Param], List[Stat], Func]
+
+trait Param {
+    val id: String
+    val pos: (Int, Int)
+    val t: Type
 }
 
 /* parameter case class with position */
-case class Param(t: Type, id: String)(val pos: (Int, Int))
+case class TypedParam(t: Type, id: String)(val pos: (Int, Int)) extends Param
 
-object Param extends ParserBridgePos2[Type, String, Param]
+object TypedParam extends ParserBridgePos2[Type, String, Param]
 
+/* typeless parameter case class with position */
+case class TypelessParam(id: String)(val pos: (Int, Int)) extends Param {
+    val t = NoType
+}
+
+object TypelessParam extends ParserBridgePos1[String, TypelessParam]

@@ -1,0 +1,23 @@
+# class contains instance of itself
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+    class Vector {
+        int magnitude,
+        Point point
+    }
+    class Point {
+        int x,
+        int y
+    }
+    Point p = new Point { 3, 5 } ;
+    Vector v = new Vector { 1, p } ;
+    exit v.point.y.value
+end

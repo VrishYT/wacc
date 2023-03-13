@@ -1,0 +1,17 @@
+# simple nested class definition
+
+# Output:
+
+# Program:
+
+begin
+    class Vector {
+        int magnitude,
+        Point point
+    }
+    class Point {
+        int x,
+        int y
+    }
+    skip
+end

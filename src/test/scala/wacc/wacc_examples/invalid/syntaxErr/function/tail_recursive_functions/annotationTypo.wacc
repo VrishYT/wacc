@@ -1,0 +1,13 @@
+begin
+    @tail_rec # this is a typo
+    int sumToFive(int x) is
+        if x == 5
+        then return x
+        else
+            int y = call sumToFive(x + 1) ;
+            return y 
+        fi
+    end
+    int x = call sumToFive(0) ;
+    exit x    
+end

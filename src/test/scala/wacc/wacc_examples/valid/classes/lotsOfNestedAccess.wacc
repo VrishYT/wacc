@@ -1,0 +1,30 @@
+# lots of nested class accesses
+
+# Output:
+
+# Exit:
+# 5
+
+# Program:
+
+begin
+    class A {
+        B b
+    }
+    class B {
+        C c
+    }
+    class C {
+        D d
+    }
+    class D {
+        E e
+    }
+    class E {
+        int x
+    }
+
+    A instance = new A {new B {new C {new D {new E { 5 }}}}} ;
+    exit instance.b.c.d.e.x
+
+end

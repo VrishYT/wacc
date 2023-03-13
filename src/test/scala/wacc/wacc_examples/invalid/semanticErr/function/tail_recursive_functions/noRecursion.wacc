@@ -1,0 +1,13 @@
+begin
+    @tailrec # this is not a recursive function so this is semenatically invalid
+    int sumToFive(int x) is
+        while (x != 5)
+        do 
+            x = x + 1 ;
+            println x
+        done ;
+        return x
+    end
+    int x = call sumToFive(0) ;
+    exit x    
+end

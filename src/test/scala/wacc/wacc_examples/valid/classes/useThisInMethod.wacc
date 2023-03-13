@@ -1,0 +1,20 @@
+# simple nested class definition, instantiation and usage
+
+# Output:
+
+# Exit:
+# 9 
+
+# Program:
+begin
+    class C {
+        int x
+
+        int f(int x) is
+            return this.x + x
+        end
+    }
+    C inst = new C {5};
+    int result = call inst.f(4);
+    exit result
+end

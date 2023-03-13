@@ -33,7 +33,8 @@ object Lexing {
   val keywords = Set("begin", "null", "end", "is", "skip", "read", "free",
     "return", "exit", "print", "println", "if", "then", "else",
     "fi", "while", "do", "done", "fst", "snd", "newpair", "call",
-    "int", "bool", "char", "string", "pair", "true", "false", "len", "ord", "chr")
+    "int", "bool", "char", "string", "pair", "true", "false", "len", "ord", "chr", 
+    "class", "new", "public", "private", "this")
 
   private val desc = LexicalDesc.plain.copy(
     /*lexer configurations for names*/

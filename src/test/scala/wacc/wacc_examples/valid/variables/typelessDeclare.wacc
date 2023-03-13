@@ -1,0 +1,9 @@
+# typeless declare
+
+# Output:
+
+# Program:
+
+begin
+  x = 10
+end

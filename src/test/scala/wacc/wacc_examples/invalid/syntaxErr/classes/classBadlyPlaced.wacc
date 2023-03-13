@@ -1,0 +1,18 @@
+# program has class before begin
+
+# Output:
+# #syntax_error#
+
+# Exit:
+# 100
+
+# Program:
+
+class MyClass {
+    int x,
+    int y
+}
+
+begin
+    MyClass x = new MyClass {4, 5}
+end

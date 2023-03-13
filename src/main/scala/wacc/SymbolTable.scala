@@ -1,6 +1,6 @@
 package wacc
 
-import scala.collection.mutable.{Map => MapM}
+import scala.collection.mutable.{LinkedHashMap => MapM}
 import back._
 import ast._
 
@@ -12,8 +12,7 @@ sealed abstract class Table extends TableEntry {
     var beginCount = 0 
     private var size = 0
 
-    def isInFunction: Boolean
-    def getReturnType: Type
+    def getReturnType: Type = AnyType
 
     val table = MapM[String, TableEntry]()
 
@@ -27,13 +26,13 @@ sealed abstract class Table extends TableEntry {
         beginCount = 0
     }
 
-    private def updateRecursive(id: String, symbol: Symbol): Unit = {
+    def updateRecursive(id: String, symbol: Symbol): Unit = {
 
         def updateParent(id: String, symbol: Symbol, table: Table): Unit = {
             if (table.contains(id)) table.table(id) = symbol
             else {
                 table match {
-                    case ChildTable(parent) => updateParent(id, symbol, parent)
+                    case x: ChildTable => updateParent(id, symbol, x.parent)
                     case _ => ??? 
                 }
             }
@@ -51,7 +50,7 @@ sealed abstract class Table extends TableEntry {
             })
             if (filtered.isEmpty) {
                 table match {
-                    case ChildTable(parent) => getFromParent(parent)
+                    case x: ChildTable => getFromParent(x.parent)
                     case _ => None
                 }
             } else if (filtered.size > 1) None
@@ -85,7 +84,7 @@ sealed abstract class Table extends TableEntry {
             })
             if (filtered.isEmpty) {
                 table match {
-                    case ChildTable(parent) => update(parent)
+                    case x: ChildTable => update(x.parent)
                     case _ => ???
                 }
             } else if (filtered.size > 1) ???
@@ -112,7 +111,7 @@ sealed abstract class Table extends TableEntry {
         return true
     }
 
-    private def addTable(id: String, vars: Table) = {
+    def addTable(id: String, vars: Table) = {
         table(id) = vars
     }
 
@@ -132,14 +131,21 @@ sealed abstract class Table extends TableEntry {
         beginCount += 1
     }
 
-    def contains(id: String): Boolean = table.contains(id)
+    def containsRecursive(id: String): Boolean = this match {
+        case x: ChildTable => contains(id) || x.parent.containsRecursive(id)
+        case x: MethodTable => contains(id) || x.parent.containsRecursive(id)
+        case _ => contains(id)
+    }
 
-    private def get(id: String): Option[TableEntry] = {
+    def contains(id: String): Boolean = table.contains(id)
+    def keys(): List[String] = table.keys.toList
+
+    protected def get(id: String): Option[TableEntry] = {
 
         def getFromParent(id: String, table: Table): Option[TableEntry] = table.table.get(id) match {
             case x: Some[_] => x
             case None => table match {
-                case ChildTable(parent) => getFromParent(id, parent)
+                case x: ChildTable => getFromParent(id, x.parent)
                 case _ => None
             }
         }
@@ -156,14 +162,15 @@ sealed abstract class Table extends TableEntry {
         case Some(x) => x match {
             case x: OpSymbol => x.op
             case _ => this match {
-                case ChildTable(parent) => parent.getOp(id)
-            case _ => ???
+                case x: ChildTable => x.parent.getOp(id)
+                case x: MethodTable => x.parent.getOp(id)
+                case _ => NoOperand(id)
             }
         }
-        case _ => ???
+        case _ => NoOperand(id)
     }
 
-    private def getSymbol(id: String): Option[Symbol] = get(id) match {
+    def getSymbol(id: String): Option[Symbol] = get(id) match {
         case Some(x) => x match {
             case x: Symbol => Some(x)
             case _ => None 
@@ -183,18 +190,56 @@ sealed abstract class Table extends TableEntry {
 
 }
 
-case class FuncTable(val id: String, val paramTypes: Seq[Type], val returnType: Type) extends Table {
-    override def isInFunction = id != "main"
+class FuncTable(val id: String, val paramTypes: Seq[Type], var returnType: Type, val isPrivate: Boolean) extends Table {
     override def getReturnType = returnType
-}
-case class ChildTable(val parent: Table) extends Table {
-    override def isInFunction = parent.isInFunction
-    override def getReturnType = parent.getReturnType
+    def setReturnType(t: Type): Unit = {
+        returnType = t
+    }
 }
 
-sealed class Symbol(val t: Type) extends TableEntry
+object FuncTable {
+    def apply(
+        id: String, 
+        paramTypes: Seq[Type], 
+        returnType: Type, 
+        isPrivate: Boolean = false
+    ): FuncTable = new FuncTable(id, paramTypes, returnType, isPrivate)
+}
+
+
+sealed class ChildTable(val parent: Table) extends Table {
+    override def getReturnType = parent.getReturnType
+}
+object ChildTable {
+    def apply(parent: Table): ChildTable = new ChildTable(parent)
+}
+
+case class ClassTable(val class_id : String, val types: Seq[Type]) extends Table {
+
+    def getMethodTable(id: String): Option[MethodTable] = super.get(id) match {
+        case Some(x) => x match {
+            case x: MethodTable => Some(x)
+            case x => {
+                // println(s"get $x")
+                None
+            } 
+        }
+        case None => None
+    }
+}
+
+case class MethodTable(
+    override val id: String, 
+    override val paramTypes: Seq[Type], 
+    t: Type, 
+    override val isPrivate: Boolean = false,
+    val parent: ClassTable
+) extends FuncTable(id, paramTypes, t, isPrivate)
+
+class Symbol(val t: Type, val isPrivate : Boolean = false) extends TableEntry 
 object Symbol {
-    def apply(t: Type): Symbol = new Symbol(t)
+    def apply(t: Type): Symbol = new Symbol(t, false)
+    def apply(t: Type, isPrivate: Boolean) = new Symbol(t, isPrivate)
 }
 
 case class ParamSymbol(override val t: Type) extends Symbol(t)
@@ -204,11 +249,14 @@ class SymbolTable {
 
     private val table = MapM[String, FuncTable]()
 
+    /* create global class table for storing all types of classes */
+    val classes = MapM[String, ClassTable]()
+
     override def toString(): String = table.mkString("\n")
 
     def declare(id: String): FuncTable = declare(id, Seq(), AnyType)
     def declare(id: String, params: Seq[Param], returnType: Type): FuncTable = {
-        val func = new FuncTable(id, params.map(_.t), returnType)
+        val func = FuncTable(id, params.map(_.t), returnType)
         table(id) = func
         params.foreach(param => func.add(param.id, ParamSymbol(param.t)))
         return func
