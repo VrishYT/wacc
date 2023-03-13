@@ -25,6 +25,9 @@ begin
     exit x    
 end
 
+# base = (x < 0, false, return x), (x == 5, false, return x)
+# calls = (x == 5, true, x = x + 1)
+
 # Should be treated as:
 # int sumToFive(int x) is
 #     while x != 5 # INVERT CONDITION

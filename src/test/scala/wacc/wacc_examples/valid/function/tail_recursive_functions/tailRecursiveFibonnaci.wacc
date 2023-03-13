@@ -28,6 +28,10 @@ begin
     exit x
 end
 
+# base = (n == 0, false, return a), (else, n == 1, false, return b)
+# calls = (else, n = n -1, a = b, b = a + b)
+
+
 # int fib(int n, int a, int b) is
 #     while true 
 #     do 

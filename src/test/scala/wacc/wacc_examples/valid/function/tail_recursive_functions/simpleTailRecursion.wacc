@@ -22,6 +22,9 @@ begin
     exit x    
 end
 
+# baseCases = (x == 5, false return x)
+# calls = (x == 5, true, x = x + 1)
+
 # Should be treated as:
 # int sumToFive(int x) is
 #     while x != 5 # INVERT CONDITION
@@ -36,6 +39,19 @@ end
 #     while true
 #     do 
 #         if (x == 5) return x
+#         else x = x + 1
+#     done ;
+#     return x
+# end
+
+# int sumToFive(int x) is
+#     while true
+#     do 
+#         if x == 5
+#         then return x
+#         else skip
+#         if x == 5
+#         then skip
 #         else x = x + 1
 #     done ;
 #     return x

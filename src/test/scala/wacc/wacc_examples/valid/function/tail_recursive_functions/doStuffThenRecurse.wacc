@@ -29,6 +29,10 @@ begin
     exit x    
 end
 
+# stats = (print, println)
+# base = (x == 5, false, return x)
+# calls = (x == 5, true, x = x + 1)
+
 # Should be treated as:
 # int sumToFive(int x) is
 #     while x != 5 # INVERT CONDITION
