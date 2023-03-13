@@ -63,24 +63,53 @@ object SemanticChecker {
 
           /* declare methods within a class */
           c.funcs.foreach(func => {
-            // TODO: reduce code duplication with normal func defs
-            /* check if the functions already exists in the map */
-            if (members.contains(func.fs._2)) {
-              /* error if the function has been declared more than once */
-              errors += new TypeException(message = s"Cannot redeclare function '${func.fs._2}' in class '${c.class_id}'", pos = Seq(func.pos))
-            } else {
-              /* Add the function into the global scope */
-              if (func.args.distinct.size != func.args.size) errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
-              else {
-                val table = MethodTable(func.fs._2, func.args.toSeq.map(_.t), func.fs._1, func.isPrivate, members)
-                func.args.foreach(param => table.add(param.id, ParamSymbol(param.t)))
-                /* modify arguments to take a class instance as a parameter */
-                func.args.prepend(TypedParam(ClassType(c.class_id), "this")(0,0))
-                table.add("this", ParamSymbol(ClassType(c.class_id)))
-                members.addTable(func.fs._2, table)
+            val funcId = func.fs._2
+
+            members.getOverloadCount(funcId) match {
+              case Some(count) => {
+                if (checkNonDuplicateMethod(func, count)) {
+                  storeMethod(func, count)
+                  symbolTable.setOverload(funcId, count + 1)
+                }
+              }
+              case None => {
+                storeMethod(func, 0)
+                members.setOverload(funcId, 1)
               }
             }
           })
+
+          def storeMethod(func: Func, i: Int): Unit = {
+            if (func.args.distinct.size != func.args.size) {
+              errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
+            } else {
+              val uniqueMethodId = s"${i}_${func.fs._2}"
+              val uniqueFuncId = s"${c.class_id}_${i}_${func.fs._2}"
+
+              val table = MethodTable(uniqueMethodId, func.args.toSeq.map(_.t), func.fs._1, func.isPrivate, members)
+              func.args.foreach(param => table.add(param.id, ParamSymbol(param.t)))
+              /* modify arguments to take a class instance as a parameter */
+              func.args.prepend(TypedParam(ClassType(c.class_id), "this")(0,0))
+              table.add("this", ParamSymbol(ClassType(c.class_id)))
+              members.addTable(uniqueMethodId, table)
+              func.rename(uniqueMethodId)
+            }
+          }
+
+          def checkNonDuplicateMethod(func: Func, count: Int): Boolean = {
+            (0 until count).foreach(i => {
+              val funcTable = members.getMethodTable(s"${i}_${func.fs._2}") match {
+                case Some(x) => x
+                case None => ???
+              }
+              /* error if the function has been declared more than once */
+              if (funcTable.returnType == func.fs._1 && funcTable.paramTypes == func.args.map(_.t)) {
+                errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
+                return false
+              }
+            })
+            return true
+          }
         }
         case None => ???
       }
