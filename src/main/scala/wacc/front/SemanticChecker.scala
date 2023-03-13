@@ -69,7 +69,7 @@ object SemanticChecker {
               case Some(count) => {
                 if (checkNonDuplicateMethod(func, count)) {
                   storeMethod(func, count)
-                  symbolTable.setOverload(funcId, count + 1)
+                  members.setOverload(funcId, count + 1)
                 }
               }
               case None => {
