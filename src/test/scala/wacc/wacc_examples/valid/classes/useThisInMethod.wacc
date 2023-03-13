@@ -1,3 +1,11 @@
+# simple nested class definition, instantiation and usage
+
+# Output:
+
+# Exit:
+# 9 
+
+# Program:
 begin
     class C {
         int x
