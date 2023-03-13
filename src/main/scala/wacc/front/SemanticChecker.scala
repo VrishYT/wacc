@@ -72,8 +72,11 @@ object SemanticChecker {
               /* Add the function into the global scope */
               if (func.args.distinct.size != func.args.size) errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
               else {
-                val table = MethodTable(func.fs._2, func.args.map(_.t), func.fs._1, func.isPrivate, members)
+                val table = MethodTable(func.fs._2, func.args.toSeq.map(_.t), func.fs._1, func.isPrivate, members)
                 func.args.foreach(param => table.add(param.id, ParamSymbol(param.t)))
+                /* modify arguments to take a class instance as a parameter */
+                func.args.prepend(TypedParam(ClassType(c.class_id), "this")(0,0))
+                table.add("this", ParamSymbol(ClassType(c.class_id)))
                 members.addTable(func.fs._2, table)
               }
             }
@@ -110,7 +113,7 @@ object SemanticChecker {
         errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
       } else {
         val uniqueFuncId = s"${i}_${func.fs._2}"
-        symbolTable.declare(uniqueFuncId, func.args, func.fs._1)
+        symbolTable.declare(uniqueFuncId, func.args.toSeq, func.fs._1)
         func.rename(uniqueFuncId)
       }
     }
@@ -136,21 +139,24 @@ object SemanticChecker {
     def getTypeFromVars(id: String, vars: Table, pos: (Int, Int)): Type = {
       def get(vars: Table): Option[Type] = vars.getType(id) match {
         case x: Some[_] => x
-        case None => None
-      }
-
-      vars match {
-        case x: MethodTable => get(x) match {
-          case Some(x) => x
-          case _ => get(x.parent) match {
-            case Some(x) => x
-            case None => ErrorLogger.err("Variable/Class attribute " + id + " not found", pos)
+        case None => vars.getType("this") match {
+          case Some(x) => x match {
+            case ClassType(class_id) => symbolTable.classes.get(class_id) match {
+              case Some(x) => x.getType(id)
+              case None => ???
+            }
+          }
+          case None => vars match {
+            case x: MethodTable => if (id == "this") Some(ClassType(x.parent.class_id)) else get(x.parent)
+            case x: ChildTable => get(x.parent)
+            case _ => None
           }
         }
-        case _ => get(vars) match {
-          case Some(x) => x
-          case None => ErrorLogger.err("Variable " + id + " not found", pos)
-        }
+      }
+      
+      get(vars) match {
+        case Some(x) => x
+        case None => ErrorLogger.err("Variable " + id + " not found", pos)
       }
     }
 
@@ -403,7 +409,8 @@ object SemanticChecker {
                 ErrorLogger.err(s"invalid call to ${id}", func.pos)
               }
               case xs => {
-                return IntType
+                // TODO: @rishi
+                return AnyType
               }
             }
 

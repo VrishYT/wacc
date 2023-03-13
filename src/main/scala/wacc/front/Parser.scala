@@ -11,7 +11,6 @@ object Parser {
   import parsley.combinator._
   import parsley.Parsley.lookAhead
   import parsley.errors.combinator._
-  import parsley.errors.patterns._
   import parsley.expr._
   import parsley.position._
   import wacc.ast._
@@ -65,7 +64,7 @@ object Parser {
 
   /*ident or class elem or array elem checks if the text is only an ident or a class elem (<ident> (.<ident>)*)
       it is an array elem (it is followed by a [) and creates the corresponding AST node*/
-  val L_EXPR = LExpr(sepBy1(IDENT, ".").label("identifier/class elem"), invalid_call *> option(
+  val L_EXPR = LExpr(sepBy1("this" #> "this" <|> IDENT, ".").label("identifier/class elem"), invalid_call *> option(
     "[".label("index (like \'xs[idx]\')") *> sepBy(expr, "][") <* "]")).guardAgainst {
       case x if (!x.valid) => Seq("Cannot access the elements of an array within a class directly.")
     }

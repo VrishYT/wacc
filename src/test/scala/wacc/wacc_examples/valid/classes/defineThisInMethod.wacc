@@ -1,0 +1,15 @@
+# simple use of this to refer class element in the function method 
+
+# Output:
+
+# Program:
+begin
+    class C {
+        int x
+
+        int f(int x) is
+            return this.x + x
+        end
+    }
+    skip
+end

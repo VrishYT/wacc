@@ -3,12 +3,13 @@ package ast
 
 import wacc.front.ParserBridge._
 import wacc.back._
+import scala.collection.mutable.ListBuffer
 
 sealed abstract class Func(
     val annotations: List[Annotation],
     val isPrivate: Boolean,
     var fs: (Type, String), 
-    val args: List[Param], 
+    val args: ListBuffer[Param], 
     val stats: List[Stat]
 )(val pos: (Int, Int)) {
 
@@ -70,7 +71,9 @@ sealed abstract class Func(
 
         // println(s"stacksize = $stack")
 
-        return Func.generateFunction(s"wacc_${fs._2}", gen.mem.grow() +: instr, Func.FuncRegs:_*)
+        val name = if (class_id == "") fs._2 else s"${class_id}_${fs._2}"
+
+        return Func.generateFunction(s"wacc_${name}", gen.mem.grow() +: instr, Func.FuncRegs:_*)
     }
 
 }
@@ -127,11 +130,11 @@ object Func {
 case class TypedFunc(
     override val annotations: List[Annotation],
     override val isPrivate: Boolean, 
-    val fs2: (Type, String), 
-    override val args: List[Param], 
+    fs2: (Type, String), 
+    arguments: List[Param], 
     override val stats: List[Stat]
 )(override val pos: (Int, Int)) extends Func(
-    annotations, isPrivate, fs2, args, stats
+    annotations, isPrivate, fs2, ListBuffer.from(arguments), stats
 )(pos)
 
 /* function and parameter companion objects with parser bridges */
@@ -142,10 +145,10 @@ case class TypelessFunc(
     override val annotations: List[Annotation],
     override val isPrivate: Boolean,
     val name: String, 
-    override val args: List[Param], 
+    arguments: List[Param], 
     override val stats: List[Stat]
 )(override val pos: (Int, Int)) extends Func(
-    annotations, isPrivate, (NoType, name), args, stats
+    annotations, isPrivate, (NoType, name), ListBuffer.from(arguments), stats
 )(pos)
 
 /* function and parameter companion objects with parser bridges */

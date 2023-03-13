@@ -1,3 +1,12 @@
+# lots of nested class accesses
+
+# Output:
+
+# Exit:
+# 5
+
+# Program:
+
 begin
     class A {
         B b
