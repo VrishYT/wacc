@@ -220,7 +220,7 @@ case class ClassTable(val class_id : String, val types: Seq[Type]) extends Table
         case Some(x) => x match {
             case x: MethodTable => Some(x)
             case x => {
-                println(s"get $x")
+                // println(s"get $x")
                 None
             } 
         }
