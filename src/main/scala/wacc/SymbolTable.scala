@@ -252,7 +252,14 @@ class SymbolTable {
     /* create global class table for storing all types of classes */
     val classes = MapM[String, ClassTable]()
 
+    /* tracks the number of overloaded functions found per function id */
+    private val funcOverloadCounter = MapM[String, Int]()
+
     override def toString(): String = table.mkString("\n")
+
+    def setOverload(id: String, count: Int): Unit = funcOverloadCounter(id) = count
+
+    def getOverloadCount(id: String): Option[Int] = funcOverloadCounter.get(id)
 
     def declare(id: String): FuncTable = declare(id, Seq(), AnyType)
     def declare(id: String, params: Seq[Param], returnType: Type): FuncTable = {
