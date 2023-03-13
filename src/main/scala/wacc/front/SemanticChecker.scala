@@ -380,17 +380,47 @@ object SemanticChecker {
               }
             }
 
+            def checkMethodCallType(id: String, classTable: ClassTable): Type = {
+              lvalType match {
+                case _: Some[_] =>
+                case None => ErrorLogger.err(s"Ambiguous call to '${id}', cannot return to typeless variable", func.pos) 
+              }
+
+              /* error if function not defined */
+              val count = classTable.getOverloadCount(id) match {
+                case Some(x) => x
+                case None => ErrorLogger.err(s"Function '${id}' is undefined in class '${classTable.class_id}'", func.pos) 
+              }
+
+              /* check every overloaded function for a match */
+              (0 until count).foreach(i => {
+                val uniqueFuncId = s"${i}_${id}"
+                val funcVars = classTable.getMethodTable(uniqueFuncId) match {
+                  case Some(x) => x
+                  case None => ???
+                }
+
+                if (checkOverloadedFunc(funcVars)) {
+                  func.rename(uniqueFuncId)
+                  return funcVars.returnType
+                }              
+              })
+
+              /* if none are valid, error */
+              ErrorLogger.err(s"invalid call to ${id}", func.pos)
+            }
+
             ids match {
               case id :: Nil => {
                 lvalType match {
                   case _: Some[_] =>
-                  case None => ErrorLogger.err("Ambiguous call to '${id}', cannot return to typeless variable", func.pos) 
+                  case None => ErrorLogger.err(s"Ambiguous call to '${id}', cannot return to typeless variable", func.pos) 
                 }
 
                 /* error if function not defined */
                 val count = symbolTable.getOverloadCount(id) match {
                   case Some(x) => x
-                  case None => ErrorLogger.err("Function '${id}' is undefined", func.pos) 
+                  case None => ErrorLogger.err(s"Function '${id}' is undefined", func.pos) 
                 }
 
                 /* check every overloaded function for a match */
@@ -410,9 +440,33 @@ object SemanticChecker {
                 /* if none are valid, error */
                 ErrorLogger.err(s"invalid call to ${id}", func.pos)
               }
+              case x :: funcId :: Nil => {
+                val classType = getTypeFromVars(x, vars, func.pos)
+                classType match {
+                  case ClassType(classId) => {
+                    symbolTable.classes.get(classId) match {
+                      case Some(members) => {
+                        return checkMethodCallType(funcId, members)
+                      }
+                      case None => ???
+                    }
+                  }
+                  case _ => ???
+                }
+              }
               case xs => {
-                // TODO: @rishi
-                return AnyType
+                val classType = getClassType(xs.init, func.pos)
+                classType match {
+                  case ClassType(classId) => {
+                    symbolTable.classes.get(classId) match {
+                      case Some(members) => {
+                        return checkMethodCallType(xs.last, members)
+                      }
+                      case None => ???
+                    }
+                  }
+                  case _ => ???
+                }
               }
             }
 
