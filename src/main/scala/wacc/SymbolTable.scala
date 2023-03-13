@@ -182,7 +182,7 @@ sealed abstract class Table extends TableEntry {
 
 }
 
-class FuncTable(val id: String, val paramTypes: Seq[Type], var returnType: Type, val isPrivate: Boolean) extends Table {
+class FuncTable(val id: String, val paramTypes: Seq[Type], var paramIdTypes: Map[String, Type], var returnType: Type, val isPrivate: Boolean) extends Table {
     override def getReturnType = returnType
     def setReturnType(t: Type): Unit = {
         returnType = t
@@ -192,10 +192,11 @@ class FuncTable(val id: String, val paramTypes: Seq[Type], var returnType: Type,
 object FuncTable {
     def apply(
         id: String, 
-        paramTypes: Seq[Type], 
+        paramTypes:  Seq[Type], 
+        paramIdTypes:  Map[String, Type],
         returnType: Type, 
         isPrivate: Boolean = false
-    ): FuncTable = new FuncTable(id, paramTypes, returnType, isPrivate)
+    ): FuncTable = new FuncTable(id, paramTypes, paramIdTypes, returnType, isPrivate)
 }
 
 
@@ -226,7 +227,7 @@ case class MethodTable(
     t: Type, 
     override val isPrivate: Boolean = false,
     val parent: ClassTable
-) extends FuncTable(id, paramTypes, t, isPrivate)
+) extends FuncTable(id, paramTypes, Map[String, Type](), t, isPrivate)
 
 class Symbol(val t: Type, val isPrivate : Boolean = false) extends TableEntry 
 object Symbol {
@@ -248,7 +249,7 @@ class SymbolTable {
 
     def declare(id: String): FuncTable = declare(id, Seq(), AnyType)
     def declare(id: String, params: Seq[Param], returnType: Type): FuncTable = {
-        val func = FuncTable(id, params.map(_.t), returnType)
+        val func = FuncTable(id, params.map(_.t), (params.map(_.id) zip params.map(_.t)).toMap, returnType)
         table(id) = func
         params.foreach(param => func.add(param.id, ParamSymbol(param.t)))
         return func

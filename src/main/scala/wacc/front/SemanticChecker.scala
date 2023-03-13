@@ -83,6 +83,7 @@ object SemanticChecker {
       }
 
     })
+
     /* tracks the number of overloaded functions found per function id */
     val functionCount = MapM[String, Int]()
 
@@ -113,6 +114,17 @@ object SemanticChecker {
         symbolTable.declare(uniqueFuncId, func.args, func.fs._1)
         func.rename(uniqueFuncId)
       }
+
+      symbolTable.get(func.fs._2) match {
+        case Some(x) => {
+          func.stats.foreach(stat => try {
+            tryInferParam(stat, x)
+          } catch {
+            case x: TypeException =>
+          })
+        }
+        case None => 
+      }
     }
 
     /* check a function is not a duplicate function */
@@ -123,7 +135,7 @@ object SemanticChecker {
           case None => ???
         }
         /* error if the function has been declared more than once */
-        if (funcTable.returnType == func.fs._1 && funcTable.paramTypes == func.args.map(_.t)) {
+        if (funcTable.returnType == func.fs._1 && (funcTable.paramIdTypes.values.toSeq) == func.args.map(_.t)) {
           errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
           return false
         }
@@ -153,6 +165,12 @@ object SemanticChecker {
         }
       }
     }
+
+    def getFuncTable(table: Table, rVal: RValue): FuncTable = table match {
+            case x: FuncTable if (x.id != "main") => x
+            case x: ChildTable => getFuncTable(x.parent, rVal)
+            case _ => ErrorLogger.err("invalid return call\n  cannot return outside a function body", rVal.pos)
+          }
 
     def getClassType(ids: List[String], pos: (Int, Int), vars: Table): Type = {
 
@@ -287,7 +305,7 @@ object SemanticChecker {
           for (i <- 0 to size - 1) {
             val expectedType = class_types(i) 
             val field = rvals(i)
-            val rValType = getRValType(vars, field) 
+            val rValType = getRValType(vars, field)
             if (expectedType != rValType) ErrorLogger.err(s"invalid constructor for class ${class_id}\n  - invalid type of argument", expectedType, rValType, field.pos)
           }
               
@@ -574,14 +592,8 @@ object SemanticChecker {
         case Return(x) => {
           val rType = getRValType(vars, x)
 
-          def getFuncTable(table: Table): FuncTable = table match {
-            case x: FuncTable if (x.id != "main") => x
-            case x: ChildTable => getFuncTable(x.parent)
-            case _ => ErrorLogger.err("invalid return call\n  cannot return outside a function body", x.pos)
-          }
-
           /* error if we are not inside of a function */
-          val funcTable = getFuncTable(vars)
+          val funcTable = getFuncTable(vars, x)
 
           /* error if return type does not match return type of the current function being checked */
           var funcType = funcTable.getReturnType
@@ -677,10 +689,12 @@ object SemanticChecker {
         rVal match {
 
           /* if its an identifier then check if it has a type in the parent and child scope maps yet*/
-          case (x@Ident(id)) =>  vars.getType(id) match {
+          case (y@Ident(id)) =>  vars.getType(id) match {
                                       case Some(x) => {
                                         if (x == NoType) {
                                           vars.updateRecursive(id, Symbol(rType))
+                                          val tbl = getFuncTable(vars, y)
+                                          tbl.paramIdTypes = tbl.paramIdTypes + (id -> rType)
                                         }
                                       }
                                       case None => 
@@ -723,6 +737,7 @@ object SemanticChecker {
 
       /* check return statement */
       case Return(x) => {
+        trySetRightTypelessParam(x, vars, getFuncTable(vars, x).getReturnType)
         checkParamRVal(x, vars)
       }
 
@@ -773,31 +788,20 @@ object SemanticChecker {
 
   checkStatements(statements, vars)
 
-  functions.foreach(func => symbolTable.get(func.fs._2) match {
-    case Some(x) => {
-      func.stats.foreach(stat => try {
-        tryInferParam(stat, x)
-      } catch {
-        case x: TypeException => 
-      })
-    }
-    case None => 
-  })
-
-  /*
+  
   functions.foreach(func => {
     func.args.foreach(param => {
       vars.getType(param.id) match {
         case Some(x) => {
           if (x == NoType) {
-            errors += new TypeException(message = "non-inferrable function patamter", pos = Seq(func.pos))
+            errors += new TypeException(message = "non-inferrable function paramter", pos = Seq(func.pos))
           }
         }
         case None =>
       }
     })
   })
-  */
+  
 
   return errors
   }
