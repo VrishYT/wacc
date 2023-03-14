@@ -300,10 +300,14 @@ object SemanticChecker {
           case (func@Call(ids, args)) => {
             if (ids.length == 1) {
               val id = ids.head
+
                 /* get a list of its parameter types in order */
-              val funcVars = symbolTable.get(id) match {
-                case Some(x) => x
-                case None => ErrorLogger.err(s"function '${id}' is undefined", func.pos) 
+              val funcVars = vars match {
+                case x: MethodTable => x
+                case _ => symbolTable.get(id) match {
+                  case Some(x) => x
+                  case None => ErrorLogger.err(s"function '${id}' is undefined", func.pos) 
+                }
               }
               val currentArgs = funcVars.paramTypes
 
@@ -322,10 +326,59 @@ object SemanticChecker {
               /* return the type of the function from the identifier maps */
               funcVars.returnType
             } else {
-              AnyType
-            }
-            
+              def getClassType(idents: List[String], classTable : ClassTable) : Type = {
+                idents match {
+                  case y :: Nil => classTable.getMethodTable(y) match {
+                    case Some(x) => {
+                      if (x.isPrivate) {
+                        ErrorLogger.err(s"private method ${x.id} is called from outside the class", func.pos)
+                      }
+                      val currentArgs = x.paramTypes
+                      /* error if the number of arguments is wrong */
+                      if (args.length != currentArgs.length) {
+                        ErrorLogger.err("invalid number of arguments for function '" + x.id + "'. expected: " + currentArgs.length + ". actual: " + args.length, func.pos)
+                      }
+
+                      /* check each argument type passed in is the same as the corresponding parameter for this function */
+                      for (i <- 0 to args.length - 1) {
+                        val paramType = currentArgs(i)
+                        val rType = getRValType(args(i))
+                        /* error an argument type doesn't match the required parameter */
+                        if (rType != paramType) ErrorLogger.err("invalid type for arg", rType, paramType, args(i).pos)
+                      }
+
+                      return x.returnType
+                    }
+                    case None => ErrorLogger.err(s"ident ${y} is not a method", func.pos)
+                  }
+                  
+                  case ident :: rest => classTable.getType(ident) match {
+                    case Some(x) => x match {
+                      case ClassType(class_id) => symbolTable.classes.get(class_id) match {
+                        case Some(y) => return getClassType(rest, y)
+                        case None => ErrorLogger.err(s"${class_id} is not a class", func.pos)
+                      }
+                      case _ => ErrorLogger.err(s"ident ${x} is not a class", func.pos)
+                    }
+                    case None => ErrorLogger.err(s"ident ${ident} is not a class", func.pos)
+                  }
+                }
+              }
+
+              val classType = getTypeFromVars(ids.head, vars, func.pos) match {
+                case ClassType(class_id) => class_id 
+                case _ => ErrorLogger.err(s"ident ${ids.head} is not a class", func.pos)
+              } 
+
+              val classTable = symbolTable.classes.get(classType) match {
+                case Some(x) => x
+                case None => ErrorLogger.err(s"class ${classType} has not been declared properly", func.pos)
+              }
+
+              getClassType(ids.tail, classTable)
           }
+
+        }
 
           /* for an expression, match on the specific type of expression : */
           case x: Expr => x match {
