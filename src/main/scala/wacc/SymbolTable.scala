@@ -182,7 +182,7 @@ sealed abstract class Table extends TableEntry {
 
 }
 
-class FuncTable(val id: String, val paramTypes: Seq[Type], var paramIdTypes: Map[String, Type], var returnType: Type, val isPrivate: Boolean) extends Table {
+class FuncTable(val id: String, val paramTypes: Seq[Type], val paramIdTypes: MapM[String, Type], var returnType: Type, val isPrivate: Boolean) extends Table {
     override def getReturnType = returnType
     def setReturnType(t: Type): Unit = {
         returnType = t
@@ -193,7 +193,7 @@ object FuncTable {
     def apply(
         id: String, 
         paramTypes:  Seq[Type], 
-        paramIdTypes:  Map[String, Type],
+        paramIdTypes:  MapM[String, Type],
         returnType: Type, 
         isPrivate: Boolean = false
     ): FuncTable = new FuncTable(id, paramTypes, paramIdTypes, returnType, isPrivate)
@@ -224,10 +224,11 @@ case class ClassTable(val class_id : String, val types: Seq[Type]) extends Table
 case class MethodTable(
     override val id: String, 
     override val paramTypes: Seq[Type], 
+    override val paramIdTypes: MapM[String, Type],
     t: Type, 
     override val isPrivate: Boolean = false,
     val parent: ClassTable
-) extends FuncTable(id, paramTypes, Map[String, Type](), t, isPrivate)
+) extends FuncTable(id, paramTypes, paramIdTypes, t, isPrivate)
 
 class Symbol(val t: Type, val isPrivate : Boolean = false) extends TableEntry 
 object Symbol {
@@ -249,7 +250,10 @@ class SymbolTable {
 
     def declare(id: String): FuncTable = declare(id, Seq(), AnyType)
     def declare(id: String, params: Seq[Param], returnType: Type): FuncTable = {
-        val func = FuncTable(id, params.map(_.t), (params.map(_.id) zip params.map(_.t)).toMap, returnType)
+        val pairs = ((params.map(_.id) zip params.map(_.t)))
+        val map = MapM[String, Type]()
+        pairs.foreach(pair => map(pair._1) = pair._2)
+        val func = FuncTable(id, params.map(_.t), map, returnType)
         table(id) = func
         params.foreach(param => func.add(param.id, ParamSymbol(param.t)))
         return func

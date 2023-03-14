@@ -8,6 +8,7 @@ object SemanticChecker {
   import wacc.ast._
 
   import scala.collection.mutable.{ArrayBuffer, Map => MapM}
+  import scala.collection.mutable.LinkedHashMap
 
   def typecheck(program: Program, symbolTable: SymbolTable): ArrayBuffer[TypeException] = {
 
@@ -72,7 +73,10 @@ object SemanticChecker {
               /* Add the function into the global scope */
               if (func.args.distinct.size != func.args.size) errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
               else {
-                val table = MethodTable(func.fs._2, func.args.map(_.t), func.fs._1, func.isPrivate, members)
+                val pairs = func.args.map(_.id) zip func.args.map(_.t)
+                val map = LinkedHashMap[String, Type]()
+                pairs.foreach(pair => map(pair._1) = pair._2)
+                val table = MethodTable(func.fs._2, func.args.map(_.t), map, func.fs._1, func.isPrivate, members)
                 func.args.foreach(param => table.add(param.id, ParamSymbol(param.t)))
                 members.addTable(func.fs._2, table)
               }
@@ -341,7 +345,7 @@ object SemanticChecker {
             // return IntType
             
           def checkOverloadedFunc(funcVars: FuncTable): Boolean = {
-            val currentArgs = funcVars.paramTypes
+            val currentArgs = funcVars.paramIdTypes.values.toSeq
 
             /* error if the number of arguments is wrong */
             if (args.length != currentArgs.length) return false
@@ -694,7 +698,7 @@ object SemanticChecker {
                                         if (x == NoType) {
                                           vars.updateRecursive(id, Symbol(rType))
                                           val tbl = getFuncTable(vars, y)
-                                          tbl.paramIdTypes = tbl.paramIdTypes + (id -> rType)
+                                          tbl.paramIdTypes(id) = rType
                                         }
                                       }
                                       case None => 
