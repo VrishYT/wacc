@@ -126,7 +126,11 @@ case class Call(id: List[String], args: List[Expr])(val pos: (Int, Int)) extends
             return callAssembly(id, gen, list, classSymbol.op, table)
         } else {
             val out = args.map(_.toAssembly(gen))
-            val func = Func.callFunction(s"wacc_${id.head}", args = out.map(_.getOp()), gen = gen)
+            val classRef = table match {
+                case x: MethodTable => "_" + x.parent.class_id
+                case _ => ""
+            }
+            val func = Func.callFunction(s"wacc${classRef}_${id.head}", args = out.map(_.getOp()), gen = gen)
             return Assembly(Register(0), out.map(_.instr).fold(Seq())(_ ++ _) ++ func)
         }
         
