@@ -5,7 +5,7 @@ import back._
 import ast._
 
 sealed trait TableEntry 
-sealed abstract class Table extends TableEntry {
+sealed abstract class Table(var id: String = "") extends TableEntry {
 
     var ifCount = 0
     var whileCount = 0
@@ -112,6 +112,7 @@ sealed abstract class Table extends TableEntry {
     }
 
     def addTable(id: String, vars: Table) = {
+        vars.id = id
         table(id) = vars
     }
 
@@ -190,7 +191,7 @@ sealed abstract class Table extends TableEntry {
 
 }
 
-class FuncTable(val id: String, val paramTypes: Seq[Type], var returnType: Type, val isPrivate: Boolean) extends Table {
+class FuncTable(funcId: String, val paramTypes: Seq[Type], var returnType: Type, val isPrivate: Boolean) extends Table(funcId) {
     override def getReturnType = returnType
     def setReturnType(t: Type): Unit = {
         returnType = t
@@ -214,7 +215,7 @@ object ChildTable {
     def apply(parent: Table): ChildTable = new ChildTable(parent)
 }
 
-case class ClassTable(val class_id : String, val types: Seq[Type]) extends Table {
+case class ClassTable(class_id: String, val types: Seq[Type]) extends Table(class_id) {
 
     /* tracks the number of overloaded methods */
     private val methodOverloadCounter = MapM[String, Int]()
@@ -236,12 +237,12 @@ case class ClassTable(val class_id : String, val types: Seq[Type]) extends Table
 }
 
 case class MethodTable(
-    override val id: String, 
+    funcId: String, 
     override val paramTypes: Seq[Type], 
     t: Type, 
     override val isPrivate: Boolean = false,
     val parent: ClassTable
-) extends FuncTable(id, paramTypes, t, isPrivate)
+) extends FuncTable(funcId, paramTypes, t, isPrivate)
 
 class Symbol(val t: Type, val isPrivate : Boolean = false) extends TableEntry 
 object Symbol {
