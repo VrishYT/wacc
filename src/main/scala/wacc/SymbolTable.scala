@@ -17,7 +17,7 @@ sealed abstract class Table(var id: String = "") extends TableEntry {
 
     val table = MapM[String, TableEntry]()
 
-    override def toString(): String = "\n" + table.filter(x => x._2.isInstanceOf[OpSymbol] || x._2.isInstanceOf[Table]).mkString("\n") + "\n ----"
+    override def toString(): String = "\n" + table.mkString("\n") + "\n ----"
 
     def getSize: Int = size
 
@@ -253,10 +253,10 @@ case class MethodTable(
     val parent: ClassTable
 ) extends FuncTable(funcId, paramTypes, t, isPrivate)
 
-class Symbol(val t: Type, val isPrivate : Boolean = false) extends TableEntry 
+class Symbol(val t: Type, val isPrivate : Boolean = false, var modified: Boolean = false) extends TableEntry 
 object Symbol {
     def apply(t: Type): Symbol = new Symbol(t, false)
-    def apply(t: Type, isPrivate: Boolean) = new Symbol(t, isPrivate)
+    def apply(t: Type, isPrivate: Boolean) = new Symbol(t, isPrivate, false)
 }
 
 case class ParamSymbol(override val t: Type) extends Symbol(t)
