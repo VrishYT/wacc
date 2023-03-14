@@ -70,9 +70,7 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
         // import scala.collection.mutable.{Map => MapM}
         import scala.collection.mutable.ListBuffer
 
-        // TODO
-
-        def processStats(stats: List[Stat])(implicit table: MapM[String, TableEntry], child: Table): List[Stat] = {
+        def processStats(stats: List[Stat])(implicit table: Table): List[Stat] = {
 
             var ifCount = 0
             var whileCount = 0
@@ -80,7 +78,7 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
 
             val out = ListBuffer[Stat]()
 
-            def isModified(id: Ident): Boolean = child.getSymbol(id.id) match {
+            def isModified(id: Ident): Boolean = table.getSymbol(id.id) match {
                 case Some(x) => x.modified
                 case _ => ???
             }
@@ -88,15 +86,24 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
             def modifyVars(id: Ident, call: Call): Unit = {
                 val callArgs = call.args
                 val funcArgs = func.args.map(_.id).filter(_ != "this")
-                child.getSymbol(id.id) match {
+                table.getSymbol(id.id) match {
                     case Some(x) => x.modified = true
-                    case _ => {
-                        println(s"id = $id")
-                        println(child)
-                        ???
-                    }
+                    case _ => ???
                 }
-                funcArgs.zip(callArgs).foreach(x => out += AssignOrTypelessDeclare(Ident(x._1)(0,0), x._2))
+                val renamed = MapM[String, String]()
+                funcArgs.zip(callArgs).foreach(x => {
+                    val newId = s"_${x._1}"
+                    renamed(x._1) = newId
+                    val symbol = table.getSymbol(x._1) match {
+                        case Some(x) => x
+                        case None => ???
+                    }
+                    table.add(newId, Symbol(symbol.t, symbol.isPrivate))
+                    out += AssignOrTypelessDeclare(Ident(newId)(id.pos), x._2)
+                })
+                renamed.foreach {
+                    case (k, v) => out += AssignOrTypelessDeclare(Ident(k)(id.pos), Ident(v)(id.pos))
+                } 
             }
 
             stats.foreach (stat => stat match {
@@ -116,63 +123,35 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
                     }
                 }
                 case If(cond, x, y) => {
-                    val thenChild = child.getTable(s"_if${ifCount}") match {
+                    val thenChild = table.getTable(s"_if${ifCount}") match {
                         case Some(x) => x
                         case None => ???
                     }
-                    val thenCloned = table.get(s"_if${ifCount}") match {
-                        case Some(x) => x match {
-                            case x: Table => x.table
-                            case _ => ???
-                        }
-                        case None => ???
-                    } 
-                    val thenStats = processStats(x)(thenCloned, thenChild)
-                    val elseChild = child.getTable(s"_else${ifCount}") match {
+                    val thenStats = processStats(x)(thenChild)
+                    val elseChild = table.getTable(s"_else${ifCount}") match {
                         case Some(x) => x
                         case None => ???
                     }
-                    val elseCloned = table.get(s"_else${ifCount}") match {
-                        case Some(x) => x match {
-                            case x: Table => x.table
-                            case _ => ???
-                        }
-                        case None => ???
-                    }
-                    val elseStats = processStats(y)(elseCloned, elseChild)
+                    val elseStats = processStats(y)(elseChild)
                     ifCount += 1
                     out += If(cond, thenStats, elseStats)
                 }
                 case While(cond, xs) => {
-                    val childTable = child.getTable(s"_while${whileCount}") match {
+                    val child = table.getTable(s"_while${whileCount}") match {
                         case Some(x) => x
                         case None => ???
                     }
-                    val cloned = table.get(s"_while${whileCount}") match {
-                        case Some(x) => x match {
-                            case x: Table => x.table
-                            case _ => ???
-                        }
-                        case None => ???
-                    }
-                    val newStats = processStats(xs)(cloned, childTable)
+                    val newStats = processStats(xs)(child)
                     whileCount += 1
                     out += While(cond, newStats)
                 }
                 case Begin(xs) => {
-                    val childTable = child.getTable(s"_begin${beginCount}") match {
+                    val child = table.getTable(s"_begin${beginCount}") match {
                         case Some(x) => x
                         case None => ???
                     }
-                    val cloned = table.get(s"_begin${beginCount}") match {
-                        case Some(x) => x match {
-                            case x: Table => x.table
-                            case _ => ???
-                        }
-                        case None => ???
-                    }
                     beginCount += 1
-                    out += Begin(processStats(xs)(cloned, childTable))
+                    out += Begin(processStats(xs)(child))
                 }
                 case Return(expr) => expr match {
                     case x: Ident if isModified(x) => out += Continue(0,0)
@@ -183,20 +162,53 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
             out.toList
         }        
         
-        println(funcTable)
+        // println(funcTable)
         val table = funcTable.table.clone()
-        funcTable.table.clear()
-        val whileTable = ChildTable(funcTable)
-        whileTable.table ++= table.map(entry => entry._2 match {
-            case x: ChildTable => {
-                val clone = ChildTable(whileTable)
-                clone.table ++= x.table
-                (entry._1, clone)
-            }
-            case _ => entry
+        funcTable.table.filterInPlace((k, v) => v match {
+            case _: OpSymbol => true
+            case _ => false
         })
+        val whileTable = ChildTable(funcTable)
         funcTable.addWhile(whileTable)
-        val stats = processStats(func.stats)(table, whileTable)
+        println(s"=${table.filter(_._2.isInstanceOf[ChildTable])}")
+
+        def updateParents(table: MapM[String, TableEntry], parent: Table, function: Boolean = false): Unit = table.foreach { 
+            case (id, entry) => entry match {
+                case x: ChildTable => {
+                    val clone = ChildTable(parent)
+                    clone.id = id
+                    clone.table ++= x.table
+                    parent.table(id) = clone
+                    updateParents(x.table, clone)
+                }
+                case _: OpSymbol if (function) => 
+                case x => parent.table(id) = x  
+            }
+            case _ => ???
+        }
+
+        updateParents(table, whileTable, true)
+
+        // table.foreach(entry => entry._2 match {
+        //     case x: ChildTable => {
+        //         val clone = ChildTable(whileTable)
+        //         clone.id = entry._1
+        //         println(s"${entry._1} has parent ${whileTable.id}")
+        //         clone.table ++= x.table
+        //         whileTable.table(entry._1) = clone
+        //     }
+        //     case _: OpSymbol => 
+        //     case _ => whileTable.table(entry._1) = entry._2
+        // })
+        // println(s"=${funcTable.table.filter(_._2.isInstanceOf[ChildTable])}")
+        // println(s"=${table.filter(_._2.isInstanceOf[ChildTable])}")
+        // println("**")
+        // println(whileTable.parent)
+        // println("**")
+        // println("++----------------------------")
+        // println(whileTable)
+        // println("++----------------------------")
+        val stats = processStats(func.stats)(whileTable)
         
         // println(whileTable)
         // println(funcTable)
