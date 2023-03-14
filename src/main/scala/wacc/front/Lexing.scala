@@ -34,7 +34,8 @@ object Lexing {
     "return", "exit", "print", "println", "if", "then", "else",
     "fi", "while", "do", "done", "fst", "snd", "newpair", "call",
     "int", "bool", "char", "string", "pair", "true", "false", "len", "ord", "chr", 
-    "class", "new", "public", "private", "this")
+    "class", "new", "public", "private", "this",
+    "break", "continue")
 
   private val desc = LexicalDesc.plain.copy(
     /*lexer configurations for names*/

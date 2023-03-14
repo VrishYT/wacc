@@ -1,0 +1,30 @@
+# call to overloaded method within class
+
+# Output:
+# 16
+# 20
+
+# Program:
+
+
+begin
+    class Grid {
+        Square square 
+    }
+
+    class Square {
+        int area(int x) is
+            return x * x
+        end
+
+        int area(int x, int y) is
+            return x * y
+        end
+    }
+
+    Grid ford = new Grid {new Square {}} ;
+    int d = call ford.square.area(4) ;
+    println d ;
+    int e = call ford.square.area(4, 5) ;
+    println e
+end

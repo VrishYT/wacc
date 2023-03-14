@@ -1,0 +1,19 @@
+# simple break in if inside while loop
+
+# Output:
+
+# Exit:
+# 5
+
+# Program:
+
+begin
+  int x = 0 ;
+  while true do
+    if x == 5
+    then break
+    else x = x + 1
+    fi
+  done ;
+  exit x 
+end

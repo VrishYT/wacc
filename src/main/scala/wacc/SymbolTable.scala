@@ -5,12 +5,13 @@ import back._
 import ast._
 
 sealed trait TableEntry 
-sealed abstract class Table extends TableEntry {
+sealed abstract class Table(var id: String = "") extends TableEntry {
 
     var ifCount = 0
     var whileCount = 0
     var beginCount = 0 
     private var size = 0
+    var whileLabels: Option[(String, String)] = None
 
     def getReturnType: Type = AnyType
 
@@ -24,6 +25,14 @@ sealed abstract class Table extends TableEntry {
         ifCount = 0
         whileCount = 0
         beginCount = 0
+    }
+
+    def getWhileLabels: Option[(String, String)] = whileLabels match {
+        case x: Some[_] => x
+        case None => this match {
+            case x: ChildTable => x.parent.getWhileLabels
+            case _ => ???
+        }
     }
 
     def updateRecursive(id: String, symbol: Symbol): Unit = {
@@ -112,6 +121,7 @@ sealed abstract class Table extends TableEntry {
     }
 
     def addTable(id: String, vars: Table) = {
+        vars.id = id
         table(id) = vars
     }
 
@@ -190,7 +200,7 @@ sealed abstract class Table extends TableEntry {
 
 }
 
-class FuncTable(val id: String, val paramTypes: Seq[Type], var returnType: Type, val isPrivate: Boolean) extends Table {
+class FuncTable(funcId: String, val paramTypes: Seq[Type], var returnType: Type, val isPrivate: Boolean) extends Table(funcId) {
     override def getReturnType = returnType
     def setReturnType(t: Type): Unit = {
         returnType = t
@@ -214,7 +224,14 @@ object ChildTable {
     def apply(parent: Table): ChildTable = new ChildTable(parent)
 }
 
-case class ClassTable(val class_id : String, val types: Seq[Type]) extends Table {
+case class ClassTable(class_id: String, val types: Seq[Type]) extends Table(class_id) {
+
+    /* tracks the number of overloaded methods */
+    private val methodOverloadCounter = MapM[String, Int]()
+
+    def setOverload(id: String, count: Int): Unit = methodOverloadCounter(id) = count
+
+    def getOverloadCount(id: String): Option[Int] = methodOverloadCounter.get(id)
 
     def getMethodTable(id: String): Option[MethodTable] = super.get(id) match {
         case Some(x) => x match {
@@ -229,12 +246,12 @@ case class ClassTable(val class_id : String, val types: Seq[Type]) extends Table
 }
 
 case class MethodTable(
-    override val id: String, 
+    funcId: String, 
     override val paramTypes: Seq[Type], 
     t: Type, 
     override val isPrivate: Boolean = false,
     val parent: ClassTable
-) extends FuncTable(id, paramTypes, t, isPrivate)
+) extends FuncTable(funcId, paramTypes, t, isPrivate)
 
 class Symbol(val t: Type, val isPrivate : Boolean = false) extends TableEntry 
 object Symbol {
@@ -252,7 +269,14 @@ class SymbolTable {
     /* create global class table for storing all types of classes */
     val classes = MapM[String, ClassTable]()
 
+    /* tracks the number of overloaded functions found per function id */
+    private val funcOverloadCounter = MapM[String, Int]()
+
     override def toString(): String = table.mkString("\n")
+
+    def setOverload(id: String, count: Int): Unit = funcOverloadCounter(id) = count
+
+    def getOverloadCount(id: String): Option[Int] = funcOverloadCounter.get(id)
 
     def declare(id: String): FuncTable = declare(id, Seq(), AnyType)
     def declare(id: String, params: Seq[Param], returnType: Type): FuncTable = {
