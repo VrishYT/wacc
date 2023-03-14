@@ -1,0 +1,20 @@
+# class contains instance of itself
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+    class MyClass {
+        private int f(int x) is 
+            return x + 1
+        end
+    }
+    MyClass x = new MyClass {} ;
+    int result = call x.f(5);
+    exit result
+end
