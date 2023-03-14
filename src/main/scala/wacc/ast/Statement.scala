@@ -542,15 +542,13 @@ case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
             case None => ???
         }
         thenTable.resetCounts()
-        gen.mem.size = stack(thenTable)
-        val thenBlock = gen.mem.grow() +: x.map(_.toAssembly(gen)(thenTable)).foldLeft(Seq[Instruction]())(_ ++ _) :+ gen.mem.shrink()
+        val thenBlock = x.map(_.toAssembly(gen)(thenTable)).foldLeft(Seq[Instruction]())(_ ++ _)
         val elseTable = table.getTable(s"_else${table.ifCount}") match {
             case Some(x) => x
             case None => ???
         }
         elseTable.resetCounts()
-        gen.mem.size  = stack(elseTable)
-        val elseBlock = gen.mem.grow() +: y.map(_.toAssembly(gen)(elseTable)).foldLeft(Seq[Instruction]())(_ ++ _) :+ gen.mem.shrink()
+        val elseBlock = y.map(_.toAssembly(gen)(elseTable)).foldLeft(Seq[Instruction]())(_ ++ _)
 
         val thenLabel = gen.labels.generate()
         val endLabel = gen.labels.generate()
@@ -590,7 +588,6 @@ case class While(p: Expr, x: List[Stat]) extends Stat {
             case Some(x) => x
             case None => ???
         }
-        gen.mem.size = 0.max(childTable.getSize - gen.regs.freeRegs.size)
         childTable.resetCounts()
         val block = x.map(_.toAssembly(gen)(childTable)).foldLeft(Seq[Instruction]())(_ ++ _)
 
@@ -609,7 +606,7 @@ case class While(p: Expr, x: List[Stat]) extends Stat {
 
         table.whileCount += 1
 
-        return gen.mem.grow() +: ((Label(startLabel) +: cond.instr) ++ branch ++ block ++ Seq(Branch(startLabel), Label(endLabel))) :+ gen.mem.shrink()
+        return ((Label(startLabel) +: cond.instr) ++ branch ++ block ++ Seq(Branch(startLabel), Label(endLabel)))
     }
 }
 
@@ -622,7 +619,6 @@ case class Begin(xs: List[Stat]) extends Stat {
             case Some(x) => x
             case None => ???
         }
-        gen.mem.size = 0.max(childTable.getSize - gen.regs.freeRegs.size)
         childTable.resetCounts()
         val instr = xs.map(_.toAssembly(gen)(childTable)).fold(Seq())(_ ++ _)
         table.beginCount += 1
@@ -634,7 +630,7 @@ case class Begin(xs: List[Stat]) extends Stat {
             }
             case _ =>  
         })
-        return gen.mem.grow() +: instr :+ gen.mem.shrink()
+        return instr
     }
 }
 

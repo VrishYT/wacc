@@ -18,7 +18,13 @@ sealed abstract class Table extends TableEntry {
 
     override def toString(): String = "\n" + table.filter(x => x._2.isInstanceOf[OpSymbol] || x._2.isInstanceOf[Table]).mkString("\n") + "\n ----"
 
-    def getSize: Int = size
+    def getSize(): Int = {
+        val sum = table.map(_._2 match {
+            case z: ChildTable => z.getSize()
+            case _ => 0
+        }).sum
+        return sum + size
+    }
 
     def resetCounts(): Unit = {
         ifCount = 0
