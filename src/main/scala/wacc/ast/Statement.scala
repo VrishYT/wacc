@@ -3,6 +3,7 @@ package ast
 
 import wacc.back._
 import parsley.genericbridges._ 
+import front.ParserBridge._
 import scala.collection.mutable.{ListBuffer}
 
 /* statements as objects extending the sealed trait Stat */
@@ -11,7 +12,15 @@ sealed trait Stat {
 }
 
 case object Skip extends Stat with ParserBridge0[Stat] {
-    def toAssembly(gen: CodeGenerator)(implicit table: Table) = Seq[Instruction]()
+    def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = Seq()
+}
+
+case class Break(val pos: (Int, Int)) extends Stat with ParserBridgePos0[Stat] {
+    def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = Seq()
+}
+
+case class Continue(val pos: (Int, Int)) extends Stat with ParserBridgePos0[Stat] {
+    def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = Seq()
 }
 
 case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
