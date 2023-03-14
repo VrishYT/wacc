@@ -1,0 +1,18 @@
+# continue in if but outside while loop
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+  int x = 0 ;
+  if x == 0
+  then continue
+  else skip
+  fi ;
+  exit x 
+end

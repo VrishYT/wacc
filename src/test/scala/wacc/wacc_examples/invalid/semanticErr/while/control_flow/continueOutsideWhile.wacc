@@ -1,0 +1,15 @@
+# continue outside while loop
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+  int x = 0 ;
+  continue ;
+  exit x 
+end

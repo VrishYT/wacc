@@ -1,0 +1,24 @@
+# simple continue in while loop
+
+# NO_EXEC
+
+# Output:
+# 0
+# 1
+# 2
+# 3
+# 4
+
+# Exit:
+# -5
+
+# Program:
+
+begin
+  int x = 0 ;
+  while x > 1 do
+    continue ; 
+    x = x + 1
+  done ;
+  exit x 
+end
