@@ -1,0 +1,7 @@
+begin
+  f() is
+    return 1
+  end
+  int x = call f() ;
+  println x
+end
