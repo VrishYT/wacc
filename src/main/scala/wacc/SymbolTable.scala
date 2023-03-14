@@ -11,6 +11,7 @@ sealed abstract class Table(var id: String = "") extends TableEntry {
     var whileCount = 0
     var beginCount = 0 
     private var size = 0
+    var whileLabels: Option[(String, String)] = None
 
     def getReturnType: Type = AnyType
 
@@ -24,6 +25,14 @@ sealed abstract class Table(var id: String = "") extends TableEntry {
         ifCount = 0
         whileCount = 0
         beginCount = 0
+    }
+
+    def getWhileLabels: Option[(String, String)] = whileLabels match {
+        case x: Some[_] => x
+        case None => this match {
+            case x: ChildTable => x.parent.getWhileLabels
+            case _ => ???
+        }
     }
 
     def updateRecursive(id: String, symbol: Symbol): Unit = {
