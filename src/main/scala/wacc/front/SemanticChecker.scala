@@ -90,7 +90,7 @@ object SemanticChecker {
               val pairs = func.args.map(_.id) zip func.args.map(_.t)
               val map = LinkedHashMap[String, Type]()
               pairs.foreach(pair => map(pair._1) = pair._2)
-              val table = MethodTable(uniqueMethodId, func.args.map(_.t).toSeq, map, func.fs._1, func.isPrivate, members)
+              val table = MethodTable(uniqueMethodId, map, func.fs._1, func.isPrivate, members)
 
               func.args.foreach(param => table.add(param.id, ParamSymbol(param.t)))
               /* modify arguments to take a class instance as a parameter */
@@ -108,7 +108,7 @@ object SemanticChecker {
                 case None => ???
               }
               /* error if the function has been declared more than once */
-              if (funcTable.returnType == func.fs._1 && funcTable.paramTypes == func.args.map(_.t)) {
+              if (funcTable.returnType == func.fs._1 && (funcTable.paramIdTypes.values.toSeq) == func.args.map(_.t)) {
                 errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
                 return false
               }
@@ -156,7 +156,7 @@ object SemanticChecker {
             case None => ???
           }
           /* error if the function has been declared more than once */
-          if (funcTable.returnType == func.fs._1 && funcTable.paramTypes == func.args.map(_.t)) {
+          if (funcTable.returnType == func.fs._1 && (funcTable.paramIdTypes.values.toSeq) == func.args.map(_.t)) {
             errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
             return false
           }
