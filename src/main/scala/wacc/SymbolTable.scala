@@ -156,7 +156,7 @@ sealed abstract class Table extends TableEntry {
             case x: OpSymbol => x.op
             case _ => this match {
                 case x: ChildTable => x.parent.getOp(id)
-            case _ => ???
+            case _ => NoOperand(id)
             }
         }
         case _ => NoOperand(id)
