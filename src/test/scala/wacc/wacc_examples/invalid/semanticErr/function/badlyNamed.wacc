@@ -1,10 +1,10 @@
 # function return type and name are conflated
 
 # Output:
-# #syntax_error#
+# #semantic_error#
 
 # Exit:
-# 100
+# 200
 
 # Program:
 

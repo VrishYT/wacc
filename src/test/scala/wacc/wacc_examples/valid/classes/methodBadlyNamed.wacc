@@ -1,10 +1,7 @@
 # program has invalid method name - return type and name are conflated
 
 # Output:
-# #syntax_error#
-
-# Exit:
-# 100
+#
 
 # Program:
 

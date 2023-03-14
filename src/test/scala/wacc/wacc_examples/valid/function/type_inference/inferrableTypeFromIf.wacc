@@ -1,0 +1,21 @@
+# a simple function definition and call, where third parameter inferred by if condition
+
+# Output:
+# 1
+#
+
+# Program:
+
+
+
+begin
+  int f(a, b, c) is
+    if c then
+            return a
+        else
+            return b
+    fi
+  end
+  int x = call f(1, 3, true) ;
+  println x
+end
