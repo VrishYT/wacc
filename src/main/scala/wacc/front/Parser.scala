@@ -43,7 +43,7 @@ object Parser {
   val BOOL_LIT = ("true" #> true <|> "false" #> false).label(
     "boolean literal").explain("booleans can either be true or false")
   
-  lazy val PRIVATE = ("private" #> true <|> "public" #> false) <|> lookAhead(types) #> false
+  lazy val PRIVATE = ("private" #> true <|> "public" #> false) <|> lookAhead(IDENT <|> types) #> false 
 
   val PAIR_LIT = (pos <**> ("null") #> PairLiteralNull).label("pair null type")
 
