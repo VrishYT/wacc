@@ -131,6 +131,20 @@ object SemanticChecker {
       }
     }
 
+    
+  functions.foreach(func => {
+    func.args.foreach(param => {
+      vars.getType(param.id) match {
+        case Some(x) => {
+          if (x == NoType) {
+            errors += new TypeException(message = "non-inferrable function paramter", pos = Seq(func.pos))
+          }
+        }
+        case None =>
+      }
+    })
+  })
+
     /* check a function is not a duplicate function */
     def checkNonDuplicateFunction(func: Func, count: Int): Boolean = {
       (0 until count).foreach(i => {
@@ -355,7 +369,12 @@ object SemanticChecker {
               val rType = getRValType(vars, args(i))
 
               /* error an argument type doesn't match the required parameter */
-              if (rType != paramType) return false
+              if (rType != paramType) {
+                if (paramType == NoType) {
+                  ErrorLogger.err("Uninferrable parameter type", args(i).pos) 
+                }
+                return false
+              }
             }
 
             return lvalType match {
@@ -789,22 +808,9 @@ object SemanticChecker {
       case None => errors += new TypeException(message = "invalid function declaration", pos = Seq(func.pos))
     }
   })
-
-  checkStatements(statements, vars)
-
   
-  functions.foreach(func => {
-    func.args.foreach(param => {
-      vars.getType(param.id) match {
-        case Some(x) => {
-          if (x == NoType) {
-            errors += new TypeException(message = "non-inferrable function paramter", pos = Seq(func.pos))
-          }
-        }
-        case None =>
-      }
-    })
-  })
+  
+  checkStatements(statements, vars)
   
 
   return errors
