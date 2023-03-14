@@ -173,7 +173,7 @@ object SemanticChecker {
             }
           }
           case None => vars match {
-            case x: MethodTable => if (id == "this") Some(ClassType(x.parent.class_id)) else get(x.parent)
+            case x: MethodTable => if (id == "this") Some(ClassType(x.parent.id)) else get(x.parent)
             case x: ChildTable => get(x.parent)
             case _ => None
           }
@@ -187,7 +187,7 @@ object SemanticChecker {
     }
 
     /* traverse a list of statements and error on semantic errors */
-    def checkStatements(statements: List[Stat], vars: Table): Unit = {
+    def checkStatements(statements: List[Stat], vars: Table, isWhile: Boolean): Unit = {
 
       def getClassType(ids: List[String], pos: (Int, Int)): Type = {
 
@@ -389,7 +389,7 @@ object SemanticChecker {
               /* error if function not defined */
               val count = classTable.getOverloadCount(id) match {
                 case Some(x) => x
-                case None => ErrorLogger.err(s"Function '${id}' is undefined in class '${classTable.class_id}'", func.pos) 
+                case None => ErrorLogger.err(s"Function '${id}' is undefined in class '${classTable.id}'", func.pos) 
               }
 
               /* check every overloaded function for a match */
@@ -565,6 +565,9 @@ object SemanticChecker {
       /* checks each statement */
       def checkStatement(statement: Stat): Unit = statement match {
 
+        case x: Break => if (!isWhile) ErrorLogger.err("cannot use control-flow statment 'break' outside of while loop", x.pos)
+        case x: Continue => if (!isWhile) ErrorLogger.err("cannot use control-flow statment 'continue' outside of while loop", x.pos)
+
         /* check declare statement */
         case Declare(t, id, rhs) => {
           val rType = getRValType(rhs, Some(t))
@@ -680,9 +683,9 @@ object SemanticChecker {
 
           /* check semantics of both branches of if statement */
           val thenVars = ChildTable(vars)
-          checkStatements(xs, thenVars)
+          checkStatements(xs, thenVars, isWhile)
           val elseVars = ChildTable(vars)
-          checkStatements(ys, elseVars)
+          checkStatements(ys, elseVars, isWhile)
           vars.addIf(thenVars, elseVars)
         }
 
@@ -695,14 +698,14 @@ object SemanticChecker {
 
           /* check semantics of loop body's statements */
           val child = ChildTable(vars)
-          checkStatements(xs, child)
+          checkStatements(xs, child, true)
           vars.addWhile(child)
         }
 
         /* check begin statement, by checking the semantics of its body's statements */
         case Begin(xs) => {
           val child = ChildTable(vars)
-          checkStatements(xs, child)
+          checkStatements(xs, child, isWhile)
           vars.addBegin(child)
         }
 
@@ -727,7 +730,7 @@ object SemanticChecker {
           }
         })
         members.getMethodTable(func.fs._2) match {
-          case Some(x) => checkStatements(func.stats, x)
+          case Some(x) => checkStatements(func.stats, x, false)
           case None => {
             errors += new TypeException(message = s"invalid method declaration in '${c.class_id}'", pos = Seq(func.pos))
           }
@@ -743,12 +746,12 @@ object SemanticChecker {
         }
       })
       symbolTable.get(func.fs._2) match {
-        case Some(x) => checkStatements(func.stats, x)
+        case Some(x) => checkStatements(func.stats, x, false)
         case None => errors += new TypeException(message = "invalid function declaration", pos = Seq(func.pos))
       }
     })
 
-    checkStatements(statements, vars)
+    checkStatements(statements, vars, false)
 
     return errors
   }
