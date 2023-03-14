@@ -1,0 +1,17 @@
+begin
+    class ParentClass{
+        MyClass myclass
+    }
+    class MyClass {
+        private int f(int x) is 
+            return x + 1
+        end
+        private int g(int x) is 
+            int y = call f(x); 
+            return y + 2
+        end
+    }
+    ParentClass x = new ParentClass{new MyClass {}} ;
+    int result = call x.myclass.g(5);
+    exit result
+end
