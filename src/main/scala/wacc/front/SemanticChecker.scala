@@ -7,7 +7,7 @@ object SemanticChecker {
   import error._
   import wacc.ast._
 
-  import scala.collection.mutable.{ArrayBuffer, Map => MapM}
+  import scala.collection.mutable.ArrayBuffer
   import scala.collection.mutable.LinkedHashMap
 
   def typecheck(program: Program, symbolTable: SymbolTable): ArrayBuffer[TypeException] = {
@@ -85,7 +85,7 @@ object SemanticChecker {
               errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
             } else {
               val uniqueMethodId = s"${i}_${func.fs._2}"
-              val uniqueFuncId = s"${c.class_id}_${i}_${func.fs._2}"
+              // val uniqueFuncId = s"${c.class_id}_${i}_${func.fs._2}"
 
               val pairs = func.args.map(_.id) zip func.args.map(_.t)
               val map = LinkedHashMap[String, Type]()
@@ -348,7 +348,7 @@ object SemanticChecker {
             case _ => ???
           }
 
-          val size = class_mems.getSize
+          val size = class_mems.getSize()
           if (rvals.length != size){
             ErrorLogger.err(s"invalid constructor for class ${class_id}\n  - missing arguments", newClass.pos)
           }

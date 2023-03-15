@@ -236,8 +236,8 @@ case class ClassElem(ids: List[String])(val pos: (Int, Int)) extends LExpr {
         val elemOffset = getElemOffset(newClassTable, ids.head)
         val temp = gen.regs.allocate
         instrs ++= Seq(
-                  Load(temp.getReg, Address(accumReg, ImmInt(elemOffset))), 
-                  Load(accumReg, Address(temp.getReg, ImmInt(0))))
+                  Load(temp.getReg(), Address(accumReg, ImmInt(elemOffset))), 
+                  Load(accumReg, Address(temp.getReg(), ImmInt(0))))
         return toAssemblyLoad(gen, ids.tail, accumReg, newClassType, instrs)
       }
     }
