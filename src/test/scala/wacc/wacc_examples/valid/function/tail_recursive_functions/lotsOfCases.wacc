@@ -1,0 +1,191 @@
+# Lots of recursive calls and base cases
+
+# Output:
+# x = 0
+# acc = 0
+# n = 10
+# b = false
+# x = 1
+# acc = 0
+# n = 9
+# b = false
+# x = 2
+# acc = 1
+# n = 8
+# b = false
+# x = 3
+# acc = 3
+# n = 7
+# b = false
+# x = 4
+# acc = 6
+# n = 6
+# b = false
+# x = 5
+# acc = 10
+# n = 5
+# b = false
+# x = 6
+# acc = 15
+# n = 4
+# b = false
+# x = 7
+# acc = 21
+# n = 3
+# b = false
+# x = 8
+# acc = 28
+# n = 2
+# b = false
+# x = 9
+# acc = 36
+# n = 1
+# b = false
+# x = 10
+# acc = 45
+# n = 0
+# b = false
+# x = 9
+# acc = 55
+# n = -1
+# b = false
+# x = 10
+# acc = 64
+# n = -2
+# b = false
+# x = 11
+# acc = 74
+# n = -3
+# b = false
+# x = 12
+# acc = 85
+# n = -4
+# b = false
+# x = 13
+# acc = 97
+# n = -5
+# b = false
+# x = 14
+# acc = 110
+# n = -6
+# b = false
+# x = 15
+# acc = 124
+# n = -7
+# b = false
+# x = 16
+# acc = 139
+# n = -8
+# b = false
+# x = 17
+# acc = 155
+# n = -9
+# b = false
+# x = 18
+# acc = 172
+# n = -10
+# b = false
+# x = 19
+# acc = 190
+# n = -11
+# b = false
+# x = 20
+# acc = 209
+# n = -12
+# b = false
+# acc >= (x * 10)
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+    @tailrec
+    int idek(int x, int acc, int n, bool b) is
+        print "x = " ;
+        println x ;
+        print "acc = " ;
+        println acc ;
+        print "n = " ;
+        println n ;
+        print "b = " ;
+        println b ;
+        if b
+        then return acc
+        else skip
+        fi ;
+        if n != 0
+        then 
+            if acc > (x * 10)
+            then
+                println "acc >= (x * 10)" ; 
+                return acc
+            else 
+                int y = call idek(x + 1, acc + x, n - 1, b) ;
+                return y
+            fi
+        else 
+            if x == 15
+            then
+                println "x == 15" ;
+                return acc
+            else skip
+            fi 
+        fi ;
+        int y = call idek(x - 1, acc + x, n - 1, x == n) ;
+        return y
+    end
+    int x = call idek(0, 0, 10, false) ;
+    exit x    
+end
+
+# calls = {
+#     (n != 0, false && acc > (x * 10), true) => x = x + 1, acc = acc + x, n = n - 1, b = b
+#     (b, true && n != 0, true && x == 15, true) => x = x - 1, acc = acc + x, n = n - 1, b = x == n
+# }
+
+# int idek(int x, int acc, int n, bool b) is
+#     while true do
+#         print "x = " ;
+#         println x ;
+#         print "acc = " ;
+#         println acc ;
+#         print "n = " ;
+#         println n ;
+#         print "b = " ;
+#         println b ;
+#         if b
+#         then return acc
+#         else skip
+#         fi ;
+#         if n != 0
+#         then
+#             if acc > (x * 10)
+#             then
+#                 println "acc >= (x * 10)" ; 
+#                 return acc
+#             else
+#             # replace recursive call 
+#                 x = x + 1 ;
+#                 acc = acc + x ;
+#                 n = n - 1 ; 
+#                 b = b ; # could be optimized by removing
+#                 continue # add statement for continue
+#             fi 
+#         else 
+#             if x == 15
+#             then
+#                 println "x == 15" ;
+#                 return acc
+#             else skip
+#             fi 
+#         fi ;
+#         x = x - 1 ;
+#         acc = acc + x ;
+#         n = n - 1 ;
+#         b = x == n ;
+#         continue
+#     done ;
+#     return acc # should be unreachable
+# end

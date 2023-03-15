@@ -1,0 +1,24 @@
+# Recursive call, then print result, then return recursed value - breaks tail-recursion
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+    @tailrec
+    int sumToFive(int x) is
+        if x == 5
+        then return x
+        else
+            int y = call sumToFive(x + 1) ;
+            println y ;
+            return y 
+        fi
+    end
+    int x = call sumToFive(0) ;
+    exit x    
+end

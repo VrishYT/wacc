@@ -1,0 +1,28 @@
+# Very simple tail recursive function
+
+# Output:
+# 
+
+# Exit:
+# 5
+
+# Program:
+
+begin
+    @tailrec
+    int sumToFive(int x) is
+        int y = 0 ;
+        if x == 5
+        then return x
+        else
+            y = call sumToFive(x + 1) 
+        fi ;
+        return y
+    end
+    int x = call sumToFive(0) ;
+    exit x    
+end
+
+# stats = (y = 0)
+# base = (x == 5, false, return x)
+# calls = (x == 5, true, x = x + 1)

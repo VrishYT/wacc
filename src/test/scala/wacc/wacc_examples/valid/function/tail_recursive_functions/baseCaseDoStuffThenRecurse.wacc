@@ -1,0 +1,32 @@
+# Base case, do stuff, then recurse
+
+# Output:
+# 0
+# 1
+# 2
+# 3
+# 4
+
+# Exit:
+# 5
+
+# Program:
+
+begin
+    @tailrec
+    int sumToFive(int x) is
+        if x == 5
+        then return x
+        else skip
+        fi ;
+        println x ;
+        int y = call sumToFive(x + 1) ;
+        return y 
+    end
+    int x = call sumToFive(0) ;
+    exit x    
+end
+
+# base = (x == 5, false, return x)
+# stats = println
+# call = (else, x = x + 1)

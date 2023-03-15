@@ -5,18 +5,25 @@ import back._
 import ast._
 
 sealed trait TableEntry 
-sealed abstract class Table extends TableEntry {
+sealed abstract class Table(var id: String = "") extends TableEntry {
 
     var ifCount = 0
     var whileCount = 0
     var beginCount = 0 
     private var size = 0
+    var whileLabels: Option[(String, String)] = None
 
     def getReturnType: Type = AnyType
 
     val table = MapM[String, TableEntry]()
 
-    override def toString(): String = "\n" + table.filter(x => x._2.isInstanceOf[OpSymbol] || x._2.isInstanceOf[Table]).mkString("\n") + "\n ----"
+    override def toString(): String = {
+        val str = this match {
+            case x: ChildTable => s"(p: ${x.parent.id}, @${Integer.toHexString(x.parent.hashCode())}) "
+            case _ => ""
+        }
+        s"\n@${Integer.toHexString(hashCode())} = $whileLabels => $str$table"
+    }
 
     def getSize: Int = size
 
@@ -24,6 +31,14 @@ sealed abstract class Table extends TableEntry {
         ifCount = 0
         whileCount = 0
         beginCount = 0
+    }
+
+    def getWhileLabels: Option[(String, String)] = whileLabels match {
+        case x: Some[_] => x
+        case None => this match {
+            case x: ChildTable => x.parent.getWhileLabels
+            case _ => ???
+        }
     }
 
     def updateRecursive(id: String, symbol: Symbol): Unit = {
@@ -112,6 +127,7 @@ sealed abstract class Table extends TableEntry {
     }
 
     def addTable(id: String, vars: Table) = {
+        vars.id = id
         table(id) = vars
     }
 
@@ -190,7 +206,7 @@ sealed abstract class Table extends TableEntry {
 
 }
 
-class FuncTable(val id: String, val paramIdTypes: MapM[String, Type], var returnType: Type, val isPrivate: Boolean) extends Table {
+class FuncTable(funcId: String, val paramIdTypes: MapM[String, Type], var returnType: Type, val isPrivate: Boolean) extends Table(funcId) {
     override def getReturnType = returnType
     def setReturnType(t: Type): Unit = {
         returnType = t
@@ -214,7 +230,7 @@ object ChildTable {
     def apply(parent: Table): ChildTable = new ChildTable(parent)
 }
 
-case class ClassTable(val class_id : String, val types: Seq[Type]) extends Table {
+case class ClassTable(class_id: String, val types: Seq[Type]) extends Table(class_id) {
 
     /* tracks the number of overloaded methods */
     private val methodOverloadCounter = MapM[String, Int]()
@@ -236,17 +252,17 @@ case class ClassTable(val class_id : String, val types: Seq[Type]) extends Table
 }
 
 case class MethodTable(
-    override val id: String, 
+    funcId: String, 
     override val paramIdTypes: MapM[String, Type],
     t: Type, 
     override val isPrivate: Boolean = false,
     val parent: ClassTable
-) extends FuncTable(id, paramIdTypes, t, isPrivate)
+) extends FuncTable(funcId, paramIdTypes, t, isPrivate)
 
-class Symbol(val t: Type, val isPrivate : Boolean = false) extends TableEntry 
+class Symbol(val t: Type, val isPrivate : Boolean = false, var modified: Boolean = false) extends TableEntry 
 object Symbol {
     def apply(t: Type): Symbol = new Symbol(t, false)
-    def apply(t: Type, isPrivate: Boolean) = new Symbol(t, isPrivate)
+    def apply(t: Type, isPrivate: Boolean) = new Symbol(t, isPrivate, false)
 }
 
 case class ParamSymbol(override val t: Type) extends Symbol(t)

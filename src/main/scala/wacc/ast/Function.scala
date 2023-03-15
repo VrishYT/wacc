@@ -60,10 +60,15 @@ sealed abstract class Func(
         })
 
         // println(s"*-Stats:-*\n$stats\n")
-        val modifiedStats = annotations.foldRight(stats)(_.process(_))
+        val modified = annotations.foldRight(this)(_.process(_))
         // println(s"*-Modified Stats:-*\n$modifiedStats")
+
+        // println(table)
+        // println(modified.stats.mkString("\n"))
+
+        table.resetCounts()
         
-        val instr = modifiedStats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
+        val instr = modified.stats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
 
         // println(s"table = ${table.getSize}\nfreeRegs = ${gen.regs.freeRegs.size}")
         // println(s"inUse: ${gen.regs.regsInUse}")

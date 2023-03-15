@@ -21,7 +21,6 @@ case class Program(classes : List[Class], fs: List[Func], stats: List[Stat]) {
         //maps functions into assembly
         val fsOut = fs.map(func => {
             val table = getFuncTable(func.fs._2)
-            table.resetCounts()
             val out = func.toAssembly(gen)(table)
             gen.regs.reset()
             out

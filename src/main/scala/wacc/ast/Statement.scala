@@ -3,6 +3,7 @@ package ast
 
 import wacc.back._
 import parsley.genericbridges._ 
+import front.ParserBridge._
 import scala.collection.mutable.{ListBuffer}
 
 /* statements as objects extending the sealed trait Stat */
@@ -11,7 +12,21 @@ sealed trait Stat {
 }
 
 case object Skip extends Stat with ParserBridge0[Stat] {
-    def toAssembly(gen: CodeGenerator)(implicit table: Table) = Seq[Instruction]()
+    def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = Seq()
+}
+
+case class Break(val pos: (Int, Int)) extends Stat with ParserBridgePos0[Stat] {
+    def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = table.getWhileLabels match {
+        case Some(x) => Seq(Branch(x._2))
+        case _ => ???
+    }
+}
+
+case class Continue(val pos: (Int, Int)) extends Stat with ParserBridgePos0[Stat] {
+    def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = table.getWhileLabels match {
+        case Some(x) => Seq(Branch(x._1))
+        case _ => ???
+    }
 }
 
 case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
@@ -68,7 +83,7 @@ case class AssignOrTypelessDeclare(x: LValue, y: RValue) extends Stat {
                     val classAss = Operands.opToReg(table.getOp(x.ids.head), Register(12))
                     val classType = table.getType(x.ids.head) match {
                         case Some(x : ClassType) => x.class_id
-                        case None => ???
+                        case _ => ???
                     }
                     val instrs = ListBuffer[Instruction]()
                     instrs += classAss
@@ -410,6 +425,7 @@ case class Print(x: Expr) extends Stat {
                             }
                             return findType(rest, classTable)
                         }
+                        case _ => ???
                     }
                 }
                 
@@ -537,6 +553,7 @@ case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
         /*each block is a scope in itself and therefore needs the stack to grow for that block and shrink once execute */
 
         val cond = p.toAssembly(gen)
+        // println(table.ifCount)
         val thenTable = table.getTable(s"_if${table.ifCount}") match {
             case Some(x) => x
             case None => ???
@@ -559,6 +576,8 @@ case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
 
         return If.generateIf(cond, thenLabel, thenBlock, elseBlock, endLabel)
     }
+
+    // override def toString(): String = s"if ($p)\nthen\n${x.mkString("\n")}\nelse\n${x.mkString("\n")}"
     
 }
 
@@ -580,22 +599,26 @@ object If extends ParserBridge3[Expr, List[Stat], List[Stat], If] {
         elseBlock ++ Seq(Branch(endLabel), Label(thenLabel)) ++ 
         thenBlock :+ Label(endLabel)
     }
+
 }
 
 case class While(p: Expr, x: List[Stat]) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
         
         val cond = p.toAssembly(gen)
+        // println(table.whileCount)
         val childTable = table.getTable(s"_while${table.whileCount}") match {
             case Some(x) => x
             case None => ???
         }
         gen.mem.size = 0.max(childTable.getSize - gen.regs.freeRegs.size)
         childTable.resetCounts()
-        val block = x.map(_.toAssembly(gen)(childTable)).foldLeft(Seq[Instruction]())(_ ++ _)
 
         val startLabel = gen.labels.generate()
         val endLabel = gen.labels.generate()
+        childTable.whileLabels = Some((startLabel, endLabel))
+
+        val block = x.map(_.toAssembly(gen)(childTable)).foldLeft(Seq[Instruction]())(_ ++ _)
         var branch: Seq[Instruction] = if (cond.cond == Condition.AL) Seq() else Seq(Branch(endLabel, Condition.invert(cond.cond)))
         cond.op match {
             case Some(x) => x match {

@@ -1,0 +1,17 @@
+# simple break in while loop
+
+# Output:
+
+# Exit:
+# 0
+
+# Program:
+
+begin
+  int x = 0 ;
+  while true do
+    break ; 
+    x = x + 1
+  done ;
+  exit x 
+end

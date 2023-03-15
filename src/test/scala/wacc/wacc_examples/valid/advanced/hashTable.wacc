@@ -293,8 +293,8 @@ begin
 	pair(int, pair)[] table = [null, null, null, null, null, null, null, null, null, null, null, null, null] ;
 	bool junk = call init(table) ;
 	
-	bool continue = true ;
-	while continue do
+	bool continue_ = true ;
+	while continue_ do
 		char choice = call printMenu() ;
 		if choice == 'a' then
 			bool result = call handleMenuInsert(table)
@@ -310,7 +310,7 @@ begin
 			bool result = call handleMenuRemoveAll(table)
 		else if choice == 'g' then
 			println "Goodbye Human" ;
-			continue = false
+			continue_ = false
 		else
 			# Should not happen.
 			print "Error: unknown choice (" ;

@@ -63,11 +63,11 @@ class ExecutionTest extends AnyFunSuite with BeforeAndAfter with TimeLimitedTest
         val parentPath = path.getParent.toString
         val parent = parentPath.substring(parentPath.lastIndexOf("valid/") + 6) + "/"
 
-        println(s"Testing $path")
-
         getIO(path) match {
             case Some(expected) => {
                 test(parent + filename + " executed as expected") {
+
+                    println(s"Testing $path")
 
                     val compilation = Seq("./compile", path.toString).!!
                     val basename = path.getFileName.toString.replace(".wacc", "")
