@@ -17,7 +17,13 @@ sealed abstract class Table(var id: String = "") extends TableEntry {
 
     val table = MapM[String, TableEntry]()
 
-    override def toString(): String = "\n" + table.mkString("\n") + "\n ----"
+    override def toString(): String = {
+        val str = this match {
+            case x: ChildTable => s"(p: ${x.parent.id}, @${Integer.toHexString(x.parent.hashCode())}) "
+            case _ => ""
+        }
+        s"\n@${Integer.toHexString(hashCode())} = $whileLabels => $str$table"
+    }
 
     def getSize: Int = size
 
