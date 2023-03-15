@@ -171,7 +171,7 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
         })
         val whileTable = ChildTable(funcTable)
         funcTable.addWhile(whileTable)
-        println(s"=${table.filter(_._2.isInstanceOf[ChildTable])}")
+        // println(s"=${table.filter(_._2.isInstanceOf[ChildTable])}")
 
         def updateParents(table: MapM[String, TableEntry], parent: Table, function: Boolean = false): Unit = table.foreach { 
             case (id, entry) => entry match {

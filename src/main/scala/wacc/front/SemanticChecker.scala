@@ -783,11 +783,11 @@ object SemanticChecker {
           /* if its an identifier then check if it has a type in the parent and child scope maps yet*/
           case (y@Ident(id)) => vars.getType(id) match {
             case Some(x) => {
-              println(s"this is the right id: ${id}")
-              println(s"it should have the type NoType: ${x}")
+              // println(s"this is the right id: ${id}")
+              // println(s"it should have the type NoType: ${x}")
               if (x == NoType) {
                 vars.updateRecursive(id, Symbol(rType))
-                println(s"it should now be different: ${vars.getType(id)}")
+                // println(s"it should now be different: ${vars.getType(id)}")
                 val tbl = getFuncTable(vars, y)
                 tbl.paramIdTypes(id) = rType
               }
