@@ -130,7 +130,8 @@ case class Call(var id: List[String], args: List[Expr])(val pos: (Int, Int)) ext
             }
             return callAssembly(id, gen, list, classSymbol.op, table)
         } else {
-            val out = args.map(_.toAssembly(gen))
+            val out = args.map(_.toAssembly(gen).condToReg(gen.regs))
+            // println(s"call ${id.mkString(".")}(${args.mkString(",")})")
             val func = Func.callFunction(s"wacc_${id.head}", args = out.map(_.getOp()), gen = gen)
             return Assembly(Register(0), out.map(_.instr).fold(Seq())(_ ++ _) ++ func)
         }
