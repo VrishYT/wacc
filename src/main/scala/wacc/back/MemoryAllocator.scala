@@ -18,7 +18,7 @@ class MemoryAllocator {
 
     /*when register is reallocated, ensures that the data is stored in memory*/
     def store(id: String, reg: Register): Assembly = {
-        val operand = Address(FP, ImmInt(-count * 4))
+        val operand = Address(FP, ImmInt(-(count + 1) * 4))
         count += 1
         return Assembly(operand, Seq(Store(reg, operand)))
     }

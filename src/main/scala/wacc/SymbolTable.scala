@@ -25,7 +25,13 @@ sealed abstract class Table(var id: String = "") extends TableEntry {
         s"\n@${Integer.toHexString(hashCode())} = $whileLabels => $str$table"
     }
 
-    def getSize: Int = size
+    def getSize(): Int = {
+        val sum = table.map(_._2 match {
+            case z: ChildTable => z.getSize()
+            case _ => 0
+        }).sum
+        return sum + size
+    }
 
     def resetCounts(): Unit = {
         ifCount = 0
@@ -206,7 +212,7 @@ sealed abstract class Table(var id: String = "") extends TableEntry {
 
 }
 
-class FuncTable(funcId: String, val paramTypes: Seq[Type], var returnType: Type, val isPrivate: Boolean) extends Table(funcId) {
+class FuncTable(funcId: String, val paramIdTypes: MapM[String, Type], var returnType: Type, val isPrivate: Boolean) extends Table(funcId) {
     override def getReturnType = returnType
     def setReturnType(t: Type): Unit = {
         returnType = t
@@ -216,10 +222,10 @@ class FuncTable(funcId: String, val paramTypes: Seq[Type], var returnType: Type,
 object FuncTable {
     def apply(
         id: String, 
-        paramTypes: Seq[Type], 
+        paramIdTypes:  MapM[String, Type],
         returnType: Type, 
         isPrivate: Boolean = false
-    ): FuncTable = new FuncTable(id, paramTypes, returnType, isPrivate)
+    ): FuncTable = new FuncTable(id, paramIdTypes, returnType, isPrivate)
 }
 
 
@@ -253,11 +259,11 @@ case class ClassTable(class_id: String, val types: Seq[Type]) extends Table(clas
 
 case class MethodTable(
     funcId: String, 
-    override val paramTypes: Seq[Type], 
+    override val paramIdTypes: MapM[String, Type],
     t: Type, 
     override val isPrivate: Boolean = false,
     val parent: ClassTable
-) extends FuncTable(funcId, paramTypes, t, isPrivate)
+) extends FuncTable(funcId, paramIdTypes, t, isPrivate)
 
 class Symbol(val t: Type, val isPrivate : Boolean = false, var modified: Boolean = false) extends TableEntry 
 object Symbol {
@@ -286,7 +292,10 @@ class SymbolTable {
 
     def declare(id: String): FuncTable = declare(id, Seq(), AnyType)
     def declare(id: String, params: Seq[Param], returnType: Type): FuncTable = {
-        val func = FuncTable(id, params.map(_.t), returnType)
+        val pairs = ((params.map(_.id) zip params.map(_.t)))
+        val map = MapM[String, Type]()
+        pairs.foreach(pair => map(pair._1) = pair._2)
+        val func = FuncTable(id, map, returnType)
         table(id) = func
         params.foreach(param => func.add(param.id, ParamSymbol(param.t)))
         return func

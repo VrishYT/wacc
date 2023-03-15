@@ -42,7 +42,7 @@ object Parser {
   val BOOL_LIT = ("true" #> true <|> "false" #> false).label(
     "boolean literal").explain("booleans can either be true or false")
   
-  lazy val PRIVATE = ("private" #> true <|> "public" #> false) <|> lookAhead(types) #> false
+  lazy val PRIVATE = ("private" #> true <|> "public" #> false) <|> lookAhead(IDENT <|> types) #> false 
 
   val PAIR_LIT = (pos <**> ("null") #> PairLiteralNull).label("pair null type")
 
@@ -168,7 +168,7 @@ object Parser {
   val _invalid_pointer = amend((attempt("*")) *> unexpected("pointer").explain(
     "WACC is not like C and does not use pointers"))
 
-  val param = TypedParam(types, _invalid_pointer <|> IDENT) <|> TypelessParam(_invalid_pointer <|> IDENT)
+  val param = attempt(TypedParam(types, _invalid_pointer <|> IDENT)) <|> TypelessParam(_invalid_pointer <|> IDENT)
 
   val paramList = sepBy(param, ",")
   

@@ -83,7 +83,7 @@ class MemoryAllocatorTests extends flatspec.AnyFlatSpec with GivenWhenThen {
     val op = assembly.getOp
 
     /* Check that store returned the expected Opcode */
-    assert(op == Address(FP, ImmInt(-currCount * 4)))
+    assert(op == Address(FP, ImmInt(-(currCount + 1) * 4)))
     /* Check that there is only one instruction in the sequence returned by store */
     assert(instrs.size == 1)
 
@@ -93,7 +93,7 @@ class MemoryAllocatorTests extends flatspec.AnyFlatSpec with GivenWhenThen {
     /* Check that the instruction returned by store is a Store Instruction from the
        stored register into the frame point -count * 4, (where count is the allocator's
        count before the store). */
-    assert(instr == Store(reg, Address(FP, ImmInt(-currCount * 4))))
+    assert(instr == Store(reg, Address(FP, ImmInt(-(currCount + 1) * 4))))
 
   }
 
@@ -119,7 +119,7 @@ class MemoryAllocatorTests extends flatspec.AnyFlatSpec with GivenWhenThen {
     val op = assembly.getOp
 
     /* Check that store returned the expected Opcode */
-    assert(op == Address(FP, ImmInt(-currCount * 4)))
+    assert(op == Address(FP, ImmInt(-(currCount + 1) * 4)))
     /* Check that there is only one instruction in the sequence returned by store */
     assert(instrs.size == 1)
 
@@ -128,7 +128,7 @@ class MemoryAllocatorTests extends flatspec.AnyFlatSpec with GivenWhenThen {
     /* Check that the instruction returned by the store is a Store Instruction from the
        stored register into the frame point -count * 4, (where count is the allocator's
        count before the store). */
-    assert(instr == Store(reg, Address(FP, ImmInt(-currCount * 4))))
+    assert(instr == Store(reg, Address(FP, ImmInt(-(currCount + 1) * 4))))
 
   }
 
@@ -147,7 +147,7 @@ class MemoryAllocatorTests extends flatspec.AnyFlatSpec with GivenWhenThen {
 
     /* Check that the opcode returned by the store provides the expected string for 
        the initial count (0) */
-    assert(op.toString == "[fp,#0]")
+    assert(op.toString == "[fp,#-4]")
 
     /* Check that there is only one instruction in the sequence returned by store */
     assert(instrs.size == 1)
@@ -160,7 +160,7 @@ class MemoryAllocatorTests extends flatspec.AnyFlatSpec with GivenWhenThen {
 
     /* Check that the string built arm11 instruction is the expected string for the 
        given register and initial count */
-    assert(sb.toString == "\tstr r1, [fp,#0]\n")
+    assert(sb.toString == "\tstr r1, [fp,#-4]\n")
   }
 
   "A memory allocator" should "return a valid string for a store instruction, after multiple stores" in {
@@ -176,7 +176,7 @@ class MemoryAllocatorTests extends flatspec.AnyFlatSpec with GivenWhenThen {
     /* Get count before next store is called */
     val currCount = memory.getCount
     /* Calculate the expected ImmInt value of the returned address from the next store */
-    val imm = -currCount * 4
+    val imm = -(currCount + 1) * 4
 
     val reg = Register(1)
 

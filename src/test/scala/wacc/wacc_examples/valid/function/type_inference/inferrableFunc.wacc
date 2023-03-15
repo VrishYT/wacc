@@ -1,0 +1,15 @@
+# a simple typeless function call inferrable by its assignment type
+
+# Output:
+# 1
+#
+
+# Program:
+
+begin
+  f() is
+    return 1
+  end
+  int x = call f() ;
+  println x
+end

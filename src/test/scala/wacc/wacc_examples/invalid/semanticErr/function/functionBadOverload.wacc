@@ -1,0 +1,26 @@
+# attempt to redefine an overloaded varaint of a function
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+	int foo() is
+		return 0
+	end
+  
+  int foo(int x) is
+    return 1
+  end
+
+  int foo(int y) is
+    return 2
+  end
+
+  int x = call foo();
+  println x
+end
