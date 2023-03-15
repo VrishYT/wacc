@@ -1,0 +1,27 @@
+# typeless variables inferred outside of function
+
+# Output:
+# 4
+#
+
+# Program:
+
+
+
+begin
+  int f(x) is
+    y = 9;
+    if x then
+      if x then
+        y = 5
+      else
+        y = 0
+      fi
+    else
+      y = 9
+    fi;
+    return y
+  end
+  int z = call f(true);
+  println z
+end

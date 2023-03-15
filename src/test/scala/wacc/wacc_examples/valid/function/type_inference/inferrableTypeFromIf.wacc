@@ -11,9 +11,9 @@
 begin
   int f(a, b, c) is
     if c then
-            return a
-        else
-            return b
+      return a
+    else
+      return b
     fi
   end
   int x = call f(1, 3, true) ;
