@@ -49,7 +49,7 @@ sealed abstract class Func(
 
     def toAssembly(gen: CodeGenerator, class_id: String = "")(implicit table: FuncTable): Seq[Instruction] = {
 
-        gen.mem.size = 0.max(table.getSize - gen.regs.freeRegs.size)
+        gen.mem.size = 0.max(table.getSize() - gen.regs.freeRegs.size)
 
         (0 until args.length).foreach(i => {
             val param = args(i)

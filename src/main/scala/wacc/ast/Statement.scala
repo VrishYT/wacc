@@ -548,7 +548,7 @@ object Println extends ParserBridge1[Expr, Println]
 case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
 
-        def stack(table: Table): Int = 0.max(table.getSize - gen.regs.freeRegs.size)
+        // def stack(table: Table): Int = 0.max(table.getSize() - gen.regs.freeRegs.size)
         
         /*each block is a scope in itself and therefore needs the stack to grow for that block and shrink once execute */
 

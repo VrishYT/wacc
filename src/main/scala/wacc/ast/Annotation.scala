@@ -3,13 +3,14 @@
 package wacc
 package ast
 
+import annotation.unused
 import parsley.genericbridges.ParserBridge1
 import scala.collection.mutable.{LinkedHashMap => MapM}
 
 sealed abstract class Annotation(val errorMsg: String) {
     def isValid: Boolean = true
     def verify(func: Func): Boolean = false
-    def process(func: Func)(implicit funcTable: FuncTable): Func = func
+    def process(func: Func)(implicit @unused funcTable: FuncTable): Func = func
 }
 
 object Annotation extends ParserBridge1[String, Annotation] {
