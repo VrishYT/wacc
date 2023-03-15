@@ -299,6 +299,8 @@ object SemanticChecker {
     /* return the type of an rvalue. */
     def getRValType(vars: Table, rval: RValue, lvalType: Option[Type] = None): Type = {
 
+      checkParamRVal(rval, vars)
+
       rval match {
         /* if it's a pair element then get the type of x, which is in the form fst(y) or snd(y),
            by calling getLValPairElem */
@@ -790,9 +792,7 @@ object SemanticChecker {
         }
       }
 
-    def tryInferParam(statement: Stat, vars: Table): Unit = {
-
-      def checkParamRVal(rVal: RValue, vars: Table): Unit = {
+    def checkParamRVal(rVal: RValue, vars: Table): Unit = {
         /* for an expression, match on the specific type of expression : */
           rVal match {
               /* for an array element with index : */
@@ -819,6 +819,8 @@ object SemanticChecker {
               case _ => 
         }
       }
+
+    def tryInferParam(statement: Stat, vars: Table): Unit = {
 
       statement match {
 
