@@ -25,7 +25,13 @@ sealed abstract class Table(var id: String = "") extends TableEntry {
         s"\n@${Integer.toHexString(hashCode())} = $whileLabels => $str$table"
     }
 
-    def getSize: Int = size
+    def getSize(): Int = {
+        val sum = table.map(_._2 match {
+            case z: ChildTable => z.getSize()
+            case _ => 0
+        }).sum
+        return sum + size
+    }
 
     def resetCounts(): Unit = {
         ifCount = 0
