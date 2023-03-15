@@ -132,11 +132,9 @@ object SemanticChecker {
           symbolTable.declare(uniqueFuncId, func.args.toSeq, func.fs._1)
           func.rename(uniqueFuncId)
         }
-        // println(s"this is the right funcID: ${uniqueFuncId}")
 
         symbolTable.get(uniqueFuncId) match {
           case Some(x) => {
-            // println(s"this is the right table: ${x}")
             func.stats.foreach(stat => try {
               tryInferParam(stat, x)
             } catch {
@@ -780,11 +778,8 @@ object SemanticChecker {
           /* if its an identifier then check if it has a type in the parent and child scope maps yet*/
           case (y@Ident(id)) => vars.getType(id) match {
             case Some(x) => {
-              println(s"this is the right id: ${id}")
-              println(s"it should have the type NoType: ${x}")
               if (x == NoType) {
                 vars.updateRecursive(id, Symbol(rType))
-                println(s"it should now be different: ${vars.getType(id)}")
                 val tbl = getFuncTable(vars, y)
                 tbl.paramIdTypes(id) = rType
               }
@@ -826,6 +821,17 @@ object SemanticChecker {
       }
 
       statement match {
+
+        case Declare(t, id, rhs) => {
+          
+          checkParamRVal(rhs, vars)
+        }
+
+        /* check assign statement */
+        case AssignOrTypelessDeclare(x, y) => {/* get type of left and right hand sides of the assign */
+          
+          checkParamRVal(y, vars)
+        }
 
         /* check return statement */
         case Return(x) => {
