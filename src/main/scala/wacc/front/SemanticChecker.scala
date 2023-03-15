@@ -203,6 +203,7 @@ object SemanticChecker {
               case Some(x) => x.getType(id)
               case None => ???
             }
+            case _ => ??? 
           }
           case None => vars match {
             case x: MethodTable => if (id == "this") Some(ClassType(x.parent.id)) else get(x.parent)
