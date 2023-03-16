@@ -23,7 +23,9 @@ begin
         end
     }
 
-    Car ford = new Car {new Wheel {new Tyre {}}} ;
+    Tyre t = new Tyre {} ;
+    Wheel w = new Wheel { t } ;
+    Car ford = new Car { w } ;
     int d = call ford.wheel.tyre.diameter(5) ;
     exit d
 end

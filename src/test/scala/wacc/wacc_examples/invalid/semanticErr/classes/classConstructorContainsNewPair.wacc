@@ -1,0 +1,14 @@
+# create new pair within class contructor
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+    class A { pair(int, int) p }
+    A instance = new A { newpair(5, 10) }
+end

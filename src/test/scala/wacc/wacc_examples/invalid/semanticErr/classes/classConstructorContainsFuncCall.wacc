@@ -1,0 +1,17 @@
+# call function within class contructor
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+    class A { int i }
+    int five() is
+        return 5
+    end
+    A instance = new A { call five() }
+end

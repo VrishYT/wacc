@@ -1,0 +1,15 @@
+# create new class within class contructor
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+    class A { B b }
+    class B { }
+    A instance = new A { new B {} }
+end
