@@ -121,7 +121,7 @@ object Parser {
   lazy val PAIR_ELEM = Fst(pair_op("fst") *> lvalue) <|> Snd(pair_op("snd") *> lvalue)
 
   /*defined parsing for r-values*/
-  lazy val rvalue: Parsley[RValue] = Call("call".label("function call") *> sepBy(IDENT, "."), "(" *> ARG_LIST <~ ")") <|> //TODO change for a list of idents
+  lazy val rvalue: Parsley[RValue] = Call("call".label("function call") *> sepBy("this" #> "this" <|> IDENT, "."), "(" *> ARG_LIST <~ ")") <|> //TODO change for a list of idents
     expr <|>
     ARRAY_LITER <|>
     NewPair("newpair" *> "(" *> expr <~ ",", expr <~ ")") <|>
