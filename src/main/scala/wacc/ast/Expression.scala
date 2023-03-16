@@ -44,7 +44,7 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
 
     def len(expr: Assembly): Assembly = {
       val out = Operands.opToReg(expr.getOp(), gen.regs)
-      return Assembly(out.getReg(), expr.instr ++ out.instr ++ Seq(Load(out.getReg(), Address(out.getReg(), ImmInt(-4)))))
+      return Assembly(Register(12), expr.instr ++ out.instr ++ Seq(Load(Register(12), Address(out.getReg(), ImmInt(-4)))))
     }
 
     val expr = x.toAssembly(gen)
