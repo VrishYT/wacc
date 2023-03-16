@@ -298,7 +298,7 @@ object SemanticChecker {
 
     
     /* return the type of an rvalue. */
-    def getRValType(vars: Table, rval: RValue, lval: (Boolean, Option[Type]) = (false, None)): Type = {
+    def getRValType(vars: Table, rval: RValue, lval: (Boolean, Option[Type]) = (false, None), prevRVal: Option[Call] = None): Type = {
 
       checkParamRVal(rval, vars)
 
@@ -389,21 +389,8 @@ object SemanticChecker {
                   case Some(x) => x
                   case None => {
                     // println("check class")
-                    return getRValType(vars, Call("this" +: ids, args)(func.pos), lval)
+                    return getRValType(vars, Call("this" +: ids, args)(func.pos), lval, Some(func))
                   }
-                    // vars match {
-                    //   case x: MethodTable => symbolTable.classes.get(x.parent.id) match {
-                    //     case Some(x) => x.getOverloadCount(id) match {
-                    //       case Some(x) => x
-                    //       case None => ErrorLogger.err(s"Method '${id}' is undefined in class '${x.id}'", func.pos) 
-                    //     }
-                    //     case None => ???
-                    //   }
-                    //   case c => {
-                    //     println(s"${c.getClass} => $c")
-                    //     ErrorLogger.err(s"Function '${id}' is undefined", func.pos)
-                    //   }
-                    // } 
                 }
                 case Right(x) => x.getOverloadCount(id) match {
                   case Some(x) => x
@@ -426,16 +413,6 @@ object SemanticChecker {
                         case None => ???
                       }
                       case None => ???
-                      // vars match {
-                      //   case x: MethodTable => symbolTable.classes.get(x.parent.id) match {
-                      //     case Some(x) => x.getMethodTable(uniqueFuncId) match {
-                      //       case Some(x) => x
-                      //       case None => ???
-                      //     }
-                      //     case None => ???
-                      //   }
-                      //   case _ => ???
-                      // } 
                     }
                   }
                   case Right(x) => x.getMethodTable(uniqueFuncId) match {
@@ -449,6 +426,10 @@ object SemanticChecker {
 
                 if (verify._1) {
                   func.rename(uniqueFuncId)
+                  prevRVal match {
+                    case Some(prevFunc) => prevFunc.rename(uniqueFuncId)
+                    case None => 
+                  }
                   return funcVars.returnType
                 } else {
                   verify._2 match {
