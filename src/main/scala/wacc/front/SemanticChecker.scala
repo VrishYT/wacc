@@ -353,11 +353,12 @@ object SemanticChecker {
             ErrorLogger.err(s"invalid constructor for class ${class_id}\n  - missing arguments", newClass.pos)
           }
 
-          // TODO: REPLACE FOR LOOP WITH FOREACH
           for (i <- 0 to size - 1) {
             val expectedType = class_types(i) 
-            val field = rvals(i)
-            // TODO: only alllow expr
+            val field = rvals(i) match {
+              case x: Expr => x
+              case x => ErrorLogger.err(s"invalid constructor for class ${class_id}\n  - invalid type of argument: arguments must be an expression\n  - if an argument is a function/method call, pair element or new object (array, pair or class instance), declare a new variable first", x.pos)
+            }
             val rValType = getRValType(vars, field)
             if (expectedType != rValType) ErrorLogger.err(s"invalid constructor for class ${class_id}\n  - invalid type of argument", expectedType, rValType, field.pos)
           }
@@ -415,7 +416,6 @@ object SemanticChecker {
                 }
 
                 val verify = checkOverloadedFunc(funcVars)
-                println(verify)
 
                 if (verify._1) {
                   func.rename(uniqueFuncId)
@@ -431,8 +431,6 @@ object SemanticChecker {
           }
           
           def checkOverloadedFunc(funcVars: FuncTable): (Boolean, Option[String]) = {
-
-            println(s"${funcVars.id}")
 
             val currentArgs = funcVars.paramIdTypes.values.toSeq
 

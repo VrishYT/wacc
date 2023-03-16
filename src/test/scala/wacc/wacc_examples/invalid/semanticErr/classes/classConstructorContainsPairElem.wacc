@@ -1,0 +1,15 @@
+# access pair elem within class contructor
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+    class A { int i }
+    pair(int, int) p = newpair(5, 10) ;
+    A instance = new A { fst p }
+end
