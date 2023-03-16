@@ -1,0 +1,15 @@
+# typeless declarations can be made with function calls
+
+# Output:
+# 3
+
+# Program:
+
+begin
+	int f() is
+		return 3
+	end
+  y = call f() ;
+  println y
+end
+	

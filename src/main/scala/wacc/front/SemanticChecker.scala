@@ -298,7 +298,7 @@ object SemanticChecker {
 
     
     /* return the type of an rvalue. */
-    def getRValType(vars: Table, rval: RValue, lvalType: Option[Type] = None): Type = {
+    def getRValType(vars: Table, rval: RValue, lval: (Boolean, Option[Type]) = (false, None)): Type = {
 
       checkParamRVal(rval, vars)
 
@@ -389,7 +389,7 @@ object SemanticChecker {
                   case Some(x) => x
                   case None => {
                     // println("check class")
-                    return getRValType(vars, Call("this" +: ids, args)(func.pos), lvalType)
+                    return getRValType(vars, Call("this" +: ids, args)(func.pos), lval)
                   }
                     // vars match {
                     //   case x: MethodTable => symbolTable.classes.get(x.parent.id) match {
@@ -480,15 +480,10 @@ object SemanticChecker {
               if (rType != paramType || paramType == NoType) return (false, None)
             }
 
-            val matches = lvalType match {
-              case Some(x) => {
-                // println(s"$x = ${funcVars.returnType}")
-                x == funcVars.returnType
-              }
-              case None => {
-                // println("lvaltype")
-                false
-              }
+            val matches = lval._2 match {
+              case Some(x) => x == funcVars.returnType
+              /* if lval._1 is true, this is a typeless declare, so takes the first match on arguments */
+              case None => lval._1
             }
 
             if (matches && funcVars.isPrivate) {
@@ -675,7 +670,7 @@ object SemanticChecker {
 
         /* check declare statement */
         case Declare(t, id, rhs) => {
-          val rType = getRValType(vars, rhs, Some(t))
+          val rType = getRValType(vars, rhs, (false, Some(t)))
 
           /* error if the left type is not the same as the right type */
           if (rType != t) ErrorLogger.err("invalid type for declare", rType, t, rhs.pos)
@@ -696,21 +691,21 @@ object SemanticChecker {
               if (symbolTable.contains(id) && !vars.contains(id)) {
                 ErrorLogger.err("Cannot re-assign value for a function: " + id, ident.pos)
               } else if (isInferredTypeDefinition(x)) {
-                rType = getRValType(vars, y, None)
+                rType = getRValType(vars, y, (true, None))
                 lType = rType
                 declareVar(id, rType, vars, y.pos)
               } else if (isTypelessParam(x)) {
-                rType = getRValType(vars, y, None)
+                rType = getRValType(vars, y, (false, None))
                 lType = rType
                 vars.updateRecursive(id, Symbol(rType))
               } else {
                 lType = getLValType(x, vars)
-                rType = getRValType(vars, y, Some(lType))
+                rType = getRValType(vars, y, (false, Some(lType)))
               }
             }
             case _ => {
               lType = getLValType(x, vars)
-              rType = getRValType(vars, y, Some(lType))
+              rType = getRValType(vars, y, (false, Some(lType)))
             }
           }
 
