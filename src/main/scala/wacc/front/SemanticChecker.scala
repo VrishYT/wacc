@@ -132,11 +132,9 @@ object SemanticChecker {
           symbolTable.declare(uniqueFuncId, func.args.toSeq, func.fs._1)
           func.rename(uniqueFuncId)
         }
-        // println(s"this is the right funcID: ${uniqueFuncId}")
 
         symbolTable.get(uniqueFuncId) match {
           case Some(x) => {
-            // println(s"this is the right table: ${x}")
             func.stats.foreach(stat => try {
               tryInferParam(stat, x)
             } catch {
@@ -301,6 +299,8 @@ object SemanticChecker {
     
     /* return the type of an rvalue. */
     def getRValType(vars: Table, rval: RValue, lvalType: Option[Type] = None): Type = {
+
+      checkParamRVal(rval, vars)
 
       rval match {
         /* if it's a pair element then get the type of x, which is in the form fst(y) or snd(y),
@@ -859,9 +859,7 @@ object SemanticChecker {
         }
       }
 
-    def tryInferParam(statement: Stat, vars: Table): Unit = {
-
-      def checkParamRVal(rVal: RValue, vars: Table): Unit = {
+    def checkParamRVal(rVal: RValue, vars: Table): Unit = {
         /* for an expression, match on the specific type of expression : */
           rVal match {
               /* for an array element with index : */
@@ -889,7 +887,20 @@ object SemanticChecker {
         }
       }
 
+    def tryInferParam(statement: Stat, vars: Table): Unit = {
+
       statement match {
+
+        case Declare(t, id, rhs) => {
+          
+          checkParamRVal(rhs, vars)
+        }
+
+        /* check assign statement */
+        case AssignOrTypelessDeclare(x, y) => {/* get type of left and right hand sides of the assign */
+          
+          checkParamRVal(y, vars)
+        }
 
         /* check return statement */
         case Return(x) => {

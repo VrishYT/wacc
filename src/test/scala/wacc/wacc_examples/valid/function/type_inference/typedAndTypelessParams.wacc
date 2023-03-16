@@ -1,0 +1,18 @@
+# a simple function definition and call, with both typed and typeless parameters
+
+# Output:
+# 3
+#
+
+# Program:
+
+
+
+begin
+  int f(a, int b, c) is
+    int d = a + c;
+    return b
+  end
+  int x = call f(1, 3, 4) ;
+  println x
+end

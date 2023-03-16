@@ -1,0 +1,23 @@
+# typeless variables inferred outside of function
+
+# Output:
+# 4
+#
+
+# Program:
+
+
+
+begin
+  x = 1 + 3;
+  if true then
+    if false then
+        y = 5
+    else
+        y = 0
+    fi
+  else
+    y = 9
+  fi;
+  println x
+end
