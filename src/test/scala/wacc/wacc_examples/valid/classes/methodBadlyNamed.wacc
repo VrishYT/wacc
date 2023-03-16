@@ -5,6 +5,8 @@
 
 # Program:
 
+# TODO: rename file to typeless method
+
 begin
     class MyClass {
         int x

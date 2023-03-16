@@ -1,6 +1,14 @@
+# class contains tail recursive method
+
+# Output:
+
+# Exit:
+# 14
+
+# Program:
+
 begin
     class Square {
-        @tailrec
         int sumToFive(int x) is
             if x == 5
             then return x
