@@ -27,7 +27,7 @@ case class Program(classes : List[Class], fs: List[Func], stats: List[Stat]) {
         })
         val mainTable = getFuncTable("main")
         mainTable.resetCounts()
-        gen.mem.size = 0.max(mainTable.getSize - gen.regs.freeRegs.size)
+        gen.mem.size = 0.max(mainTable.getSize() - gen.regs.freeRegs.size)
         val main = gen.mem.grow() +: stats.map(_.toAssembly(gen)(mainTable)).fold(Seq())(_ ++ _) :+ gen.mem.shrink()
 
         return (Seq(Section(".global main"), Label("main"), 

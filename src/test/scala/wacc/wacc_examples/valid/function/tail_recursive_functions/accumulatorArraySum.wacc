@@ -1,0 +1,14 @@
+begin
+    @tailrec
+    int arraySum(int[] x, int size, int sum) is
+        if size == 0
+        then return sum 
+        else 
+            int y = call arraySum(x, size - 1, sum + x[size - 1]);
+            return y
+        fi
+    end
+    int[] arr = [2, 55, 1, 7];
+    int x = call arraySum(arr, len arr, 0) ;
+    exit x 
+end 
