@@ -37,11 +37,12 @@ case class NewClass(class_id: String, vals: List[RValue])(val pos: (Int, Int)) e
             case None => ???
         }
         val constructor_types = classTable.types
-        val class_size = constructor_types.length * 4
+        val class_size = (constructor_types.length + 1) * 4
         val out = gen.regs.allocate
         val instrs = Mov(Register(0), ImmInt(class_size)) +: (HeapAllocator.malloc ++ out.instr ++ 
                     Seq(
                         Mov(out.getReg(), Register(0)),
+                        Add(out.getReg(), out.getReg(), ImmInt(4)),
                         Mov(Register(0), ImmInt(class_size)),
                         Store(Register(0), Address(out.getReg(), ImmInt(-4)))
                         ))
