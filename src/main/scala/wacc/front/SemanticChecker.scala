@@ -371,21 +371,39 @@ object SemanticChecker {
         /* if it's a function call :  */
         case (func@Call(ids, args)) => {
 
+          def getParentClass(table: Table): Option[ClassTable] = table match {
+            case x: ClassTable => Some(x)
+            case x: ChildTable => getParentClass(x.parent)
+            case x: MethodTable => getParentClass(x.parent)
+            case _ => None
+          }
+
+          // println(s"call ${ids.mkString(".")}(${args.mkString(",")})")
+          // println(vars)
+
           def getFuncType(id: String, table: Either[SymbolTable, ClassTable]): Type = {
+
               /* error if function not defined */
               val count: Int = table match {
                 case Left(x) => x.getOverloadCount(id) match {
                   case Some(x) => x
-                  case None => vars match {
-                    case x: MethodTable => symbolTable.classes.get(x.parent.id) match {
-                      case Some(x) => x.getOverloadCount(id) match {
-                        case Some(x) => x
-                        case None => ErrorLogger.err(s"Method '${id}' is undefined in class '${x.id}'", func.pos) 
-                      }
-                      case None => ???
-                    }
-                    case _ => ErrorLogger.err(s"Function '${id}' is undefined", func.pos)
-                  } 
+                  case None => {
+                    // println("check class")
+                    return getRValType(vars, Call("this" +: ids, args)(func.pos), lvalType)
+                  }
+                    // vars match {
+                    //   case x: MethodTable => symbolTable.classes.get(x.parent.id) match {
+                    //     case Some(x) => x.getOverloadCount(id) match {
+                    //       case Some(x) => x
+                    //       case None => ErrorLogger.err(s"Method '${id}' is undefined in class '${x.id}'", func.pos) 
+                    //     }
+                    //     case None => ???
+                    //   }
+                    //   case c => {
+                    //     println(s"${c.getClass} => $c")
+                    //     ErrorLogger.err(s"Function '${id}' is undefined", func.pos)
+                    //   }
+                    // } 
                 }
                 case Right(x) => x.getOverloadCount(id) match {
                   case Some(x) => x
@@ -393,22 +411,32 @@ object SemanticChecker {
                 }
               }
 
+              // println(count)
+
               /* check every overloaded function for a match */
               (0 until count).foreach(i => {
+                // println(i)
                 val uniqueFuncId = s"${i}_${id}"
                 val funcVars = table match {
                   case Left(x) => x.get(uniqueFuncId) match {
                     case Some(x) => x
-                    case None => vars match {
-                      case x: MethodTable => symbolTable.classes.get(x.parent.id) match {
-                        case Some(x) => x.getMethodTable(uniqueFuncId) match {
-                          case Some(x) => x
-                          case None => ???
-                        }
+                    case None => getParentClass(vars) match {
+                      case Some(x) => x.getMethodTable(uniqueFuncId) match {
+                        case Some(x) => x
                         case None => ???
                       }
-                      case _ => ???
-                    } 
+                      case None => ???
+                      // vars match {
+                      //   case x: MethodTable => symbolTable.classes.get(x.parent.id) match {
+                      //     case Some(x) => x.getMethodTable(uniqueFuncId) match {
+                      //       case Some(x) => x
+                      //       case None => ???
+                      //     }
+                      //     case None => ???
+                      //   }
+                      //   case _ => ???
+                      // } 
+                    }
                   }
                   case Right(x) => x.getMethodTable(uniqueFuncId) match {
                     case Some(x) => x
@@ -417,15 +445,20 @@ object SemanticChecker {
                 }
 
                 val verify = checkOverloadedFunc(funcVars)
+                // println(verify)
 
                 if (verify._1) {
                   func.rename(uniqueFuncId)
                   return funcVars.returnType
-                } else verify._2 match {
-                  case Some(x) => ErrorLogger.err(s"invalid call to ${id}\n  - $x", func.pos)
-                  case _ =>
+                } else {
+                  verify._2 match {
+                    case Some(x) => ErrorLogger.err(s"invalid call to ${id}\n  - $x", func.pos)
+                    case _ =>
+                  }
                 }              
               })
+
+              // println("no")
 
               /* if none are valid, error */
               ErrorLogger.err(s"invalid call to ${id}\n  - no function with same return/parameter arguments", func.pos)
@@ -448,21 +481,23 @@ object SemanticChecker {
             }
 
             val matches = lvalType match {
-              case Some(x) => x == funcVars.returnType
-              case None => false
+              case Some(x) => {
+                // println(s"$x = ${funcVars.returnType}")
+                x == funcVars.returnType
+              }
+              case None => {
+                // println("lvaltype")
+                false
+              }
             }
 
             if (matches && funcVars.isPrivate) {
 
-              def getClassParentId(table: Table): String = table match {
-                case x: ClassTable => x.id
-                case x: ChildTable => getClassParentId(x.parent)
-                case x: MethodTable => getClassParentId(x.parent)
-                case _ => return "_\\invalid"
-              }
-
               val isValid = funcVars match {
-                case x: MethodTable => getClassParentId(vars) == x.parent.id
+                case x: MethodTable => getParentClass(vars) match {
+                  case Some(p) => p.id == x.parent.id
+                  case _ => false
+                }
                 case _ => false
               }
 
@@ -472,18 +507,40 @@ object SemanticChecker {
           }
 
           ids match {
-            case id :: Nil => getFuncType(id, Left(symbolTable))
+            case id :: Nil => {
+              // println("case 1")
+              val t = getFuncType(id, Left(symbolTable))
+              // println(t)
+              t
+            }
             case _ => { 
+              // println("case 2")
               val t = ids match {
-                case instance :: method :: Nil => getTypeFromVars(instance, vars, func.pos) 
-                case _ => getClassType(ids.init, func.pos, vars)
+                case instance :: method :: Nil => instance match {
+                  case "this" => getParentClass(vars) match {
+                    case Some(x) => ClassType(x.id)
+                    case None => ErrorLogger.err(s"invalid call\n  - '${ids.last}' is not a function/method", func.pos)
+                  }
+                  case _ => getTypeFromVars(instance, vars, func.pos) 
+                }
+                case _ => {
+                  // println("case 2.2")
+                  getClassType(ids.init, func.pos, vars)
+                }
               } 
+              // println(ids)
+              // println(t)
               t match {
                 case x: ClassType => symbolTable.classes.get(x.class_id) match {
-                  case Some(classTable) => getFuncType(ids.last, Right(classTable))
+                  case Some(classTable) => {
+                    // println(classTable)
+                    val t = getFuncType(ids.last, Right(classTable))
+                    // println(s"t => $t")
+                    t
+                  }
                   case _ => ???
                 }
-                case _ => ErrorLogger.err(s"invalid call\n  - ${ids.mkString(".")} is not a function/method", func.pos)
+                case _ => ErrorLogger.err(s"invalid call\n  - '${ids.mkString(".")}' is not a function/method", func.pos)
               }
             }
           }
