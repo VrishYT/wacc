@@ -22,8 +22,10 @@ begin
         end
     }
 
-    Car ford = new Car {new Wheel {new Tyre {}}} ;
-    Wheel michelin = new Wheel {new Tyre {}} ; 
+    Tyre t1 = new Tyre {} ;
+    Car ford = new Car {new Wheel {t1}} ;
+    Tyre t2 = new Tyre {} ;
+    Wheel michelin = new Wheel {t2} ; 
     int d = call ford.wheel.tyre.diameter(12) ;
     println d ;
     ford.wheel = michelin ;
