@@ -28,7 +28,14 @@ case class CharLiteral(x: Char)(val pos: (Int, Int)) extends Expr {
 
 case class StrLiteral(str: String)(val pos: (Int, Int)) extends Expr {
   override def toAssembly(gen: CodeGenerator)(implicit table: Table) : Assembly = {
-    val label = gen.text.add(str)
+    val label = gen.text.add(str.flatMap {
+        case '\b' => "\\b"
+        case '\f' => "\\f"
+        case '\n' => "\\n"
+        case '\r' => "\\r"
+        case '\t' => "\\t"
+        case c => s"$c"
+    })
     Assembly(DataLabel(label))
   }
 }
