@@ -4,6 +4,7 @@ package wacc
 package ast
 
 import annotation.unused
+import front.error._
 import parsley.genericbridges.ParserBridge1
 import scala.collection.mutable.{LinkedHashMap => MapM}
 
@@ -88,8 +89,10 @@ case object TailRecursiveAnnotation extends Annotation("Invalid annotation '@tai
 
         // import scala.collection.mutable.{Map => MapM}
         import scala.collection.mutable.ListBuffer
+        var foundBaseCase = false
 
         def processStats(stats: List[Stat])(implicit table: Table): List[Stat] = {
+
 
             var ifCount = 0
             var whileCount = 0
@@ -174,14 +177,19 @@ case object TailRecursiveAnnotation extends Annotation("Invalid annotation '@tai
                 }
                 case Return(expr) => expr match {
                     case x: Ident if isModified(x) => out += Continue(0,0)
-                    case _ => out += stat
+                    case _ => {
+                        foundBaseCase |= true
+                        out += stat
+                    }
                 }
-                case _ => out += stat
+                case _ => {
+                    foundBaseCase |= true
+                    out += stat
+                }
             })
             out.toList
         }        
         
-        // println(funcTable)
         val table = funcTable.table.clone()
         funcTable.table.filterInPlace((k, v) => v match {
             case _: OpSymbol => true
@@ -189,7 +197,6 @@ case object TailRecursiveAnnotation extends Annotation("Invalid annotation '@tai
         })
         val whileTable = ChildTable(funcTable)
         funcTable.addWhile(whileTable)
-        // println(s"=${table.filter(_._2.isInstanceOf[ChildTable])}")
 
         def updateParents(table: MapM[String, TableEntry], parent: Table, function: Boolean = false): Unit = table.foreach { 
             case (id, entry) => entry match {
@@ -208,31 +215,10 @@ case object TailRecursiveAnnotation extends Annotation("Invalid annotation '@tai
 
         updateParents(table, whileTable, true)
 
-        // table.foreach(entry => entry._2 match {
-        //     case x: ChildTable => {
-        //         val clone = ChildTable(whileTable)
-        //         clone.id = entry._1
-        //         println(s"${entry._1} has parent ${whileTable.id}")
-        //         clone.table ++= x.table
-        //         whileTable.table(entry._1) = clone
-        //     }
-        //     case _: OpSymbol => 
-        //     case _ => whileTable.table(entry._1) = entry._2
-        // })
-        // println(s"=${funcTable.table.filter(_._2.isInstanceOf[ChildTable])}")
-        // println(s"=${table.filter(_._2.isInstanceOf[ChildTable])}")
-        // println("**")
-        // println(whileTable.parent)
-        // println("**")
-        // println("++----------------------------")
-        // println(whileTable)
-        // println("++----------------------------")
         val stats = processStats(func.stats)(whileTable)
-        
-        // println(whileTable)
-        // println(funcTable)
 
-        // println(stats)
+        if (!foundBaseCase) ErrorLogger.warn("Possible infinite recusion. Could not detect a base case.", func.pos._1)
+            
 
         TypedFunc(
             func.annotations, 
