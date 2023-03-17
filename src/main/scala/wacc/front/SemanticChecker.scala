@@ -38,7 +38,6 @@ object SemanticChecker {
     
     /* Add each class to the symbol table */
     classes.foreach(c => {
-
       /* if class exists give a semantic error */
       if (symbolTable.classes.contains(c.class_id)) {
         errors += new TypeException(message = s"Cannot redeclare class '${c.class_id}'", pos = Seq(c.pos))
@@ -336,8 +335,11 @@ object SemanticChecker {
         }
 
         case newClass@NewClass(class_id, rvals) => {
-          val class_mems = symbolTable.classes.get(class_id) match {
-            case Some(x) => x
+          val class_mems : ClassTable = symbolTable.classes.get(class_id) match {
+            case Some(x) => {
+              x.useCount += 1
+              x
+            }
             case None => ErrorLogger.err(s"invalid constructor for class ${class_id}\n  - class '${class_id}' does not exist", newClass.pos)
           }
 
@@ -383,14 +385,14 @@ object SemanticChecker {
               /* error if function not defined */
               val count: Int = table match {
                 case Left(x) => x.getOverloadCount(id) match {
-                  case Some(x) => x
+                  case Some(x) => x 
                   case None => {
                     // println("check class")
                     return getRValType(vars, Call("this" +: ids, args)(func.pos), lval, Some(func))
                   }
                 }
                 case Right(x) => x.getOverloadCount(id) match {
-                  case Some(x) => x
+                  case Some(x) => x // 
                   case None => ErrorLogger.err(s"Method '${id}' is undefined in class '${x.id}'", func.pos) 
                 }
               }
@@ -403,17 +405,26 @@ object SemanticChecker {
                 val uniqueFuncId = s"${i}_${id}"
                 val funcVars = table match {
                   case Left(x) => x.get(uniqueFuncId) match {
-                    case Some(x) => x
+                    case Some(x) => {
+                      x.useCount += 1
+                      x
+                    }
                     case None => getParentClass(vars) match {
                       case Some(x) => x.getMethodTable(uniqueFuncId) match {
-                        case Some(x) => x
+                        case Some(x) => {
+                          x.useCount += 1
+                          x
+                        }
                         case None => ???
                       }
                       case None => ???
                     }
                   }
                   case Right(x) => x.getMethodTable(uniqueFuncId) match {
-                    case Some(x) => x
+                    case Some(x) => {
+                      x.useCount += 1
+                      x
+                    }
                     case None => ???
                   }
                 }

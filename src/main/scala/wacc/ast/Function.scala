@@ -4,6 +4,7 @@ package ast
 import wacc.front.ParserBridge._
 import wacc.back._
 import scala.collection.mutable.ListBuffer
+import wacc.front.error.{ErrorLogger}
 
 sealed abstract class Func(
     val annotations: List[Annotation],
@@ -12,6 +13,8 @@ sealed abstract class Func(
     val args: ListBuffer[Param], 
     val stats: List[Stat]
 )(val pos: (Int, Int)) {
+
+    val id = fs._2
 
     def rename(newId: String): Unit = {
         val t = fs._1
@@ -48,6 +51,10 @@ sealed abstract class Func(
     }
 
     def toAssembly(gen: CodeGenerator, class_id: String = "")(implicit table: FuncTable): Seq[Instruction] = {
+
+        if (table.useCount == 0){
+            ErrorLogger.warn(s"${id} has not been called in the code", pos._1)
+        }
 
         (0 until args.length).foreach(i => {
             val param = args(i)
