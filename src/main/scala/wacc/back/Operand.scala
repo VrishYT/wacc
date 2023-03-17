@@ -48,7 +48,6 @@ case class NoOperand(id: String) extends Operand {
 object Operands {
     /*assigns a specific register to our operand*/
     def opToReg(op: Operand, dest: Register): Instruction = {
-        // println(s"op $op => $dest")
         op match {
             case x: Address => Load(dest, x)
             case x: DataLabel => Load(dest, x)
@@ -65,7 +64,6 @@ object Operands {
     def opToReg(op: Operand, regs: RegisterAllocator)(implicit table: Table): RegAssembly = op match {
         case x: Register if (regs.isAllocated(x)) => RegAssembly(x)
         case x: Register if (x.i != 0) => {
-            // println(s"use $x")
             regs.use(x)
             RegAssembly(x)
         }

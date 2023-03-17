@@ -207,15 +207,5 @@ case object FreeClassSection extends DataSection {
             Pop(PC)
         )
     )
-
-    // _freeclass:
-    // assume r1 = address of instance to free
-    // int no_members = ldr [r1, #-4]
-    // int i = 0
-    // while i < no_members:
-    //     int offset = i * #4 (do i care about int overflow)
-    //     r0 = ldr [r1, offset]
-    //     free 
-    //     i = i + 1
 }
 
