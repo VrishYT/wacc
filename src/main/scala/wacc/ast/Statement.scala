@@ -572,12 +572,9 @@ object Println extends ParserBridge1[Expr, Println]
 case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
 
-        // def stack(table: Table): Int = 0.max(table.getSize() - gen.regs.freeRegs.size)
-        
         /*each block is a scope in itself and therefore needs the stack to grow for that block and shrink once execute */
 
         val cond = p.toAssembly(gen)
-        // println(table.ifCount)
         val thenTable = table.getTable(s"_if${table.ifCount}") match {
             case Some(x) => x
             case None => ???
@@ -599,8 +596,6 @@ case class If(p: Expr, x: List[Stat], y: List[Stat]) extends Stat {
         return If.generateIf(cond, thenLabel, thenBlock, elseBlock, endLabel)
     }
 
-    // override def toString(): String = s"if ($p)\nthen\n${x.mkString("\n")}\nelse\n${x.mkString("\n")}"
-    
 }
 
 object If extends ParserBridge3[Expr, List[Stat], List[Stat], If] {
@@ -628,7 +623,6 @@ case class While(p: Expr, x: List[Stat]) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
         
         val cond = p.toAssembly(gen)
-        // println(table.whileCount)
         val childTable = table.getTable(s"_while${table.whileCount}") match {
             case Some(x) => x
             case None => ???

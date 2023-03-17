@@ -15,7 +15,6 @@ sealed trait LExpr extends Expr with LValue {
 /* expressions extending left expressions */
 case class Ident(id: String)(val pos: (Int, Int)) extends LExpr {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
-      // println(id)
       table.getOp(id) match {
         case x@NoOperand(id) => {
           if (table.containsRecursive("this")) ClassElem(List("this", id))(pos).toAssembly(gen)
@@ -30,8 +29,6 @@ object Ident extends ParserBridgePos1[String, Ident]
 
 case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LExpr {
     
-  // ARGUMENT 1: ptr, ARGUMENT 2: index, FOR _arrLoad
-  // ARGUMENT 1: ptr, ARGUMENT 2: index, ARGUMENT 3: value, FOR _arrStore
   def getInnerType(t: Type, xs: Seq[Expr]): Type = {
     if (xs.isEmpty) t
     else t match {
@@ -94,7 +91,6 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
     val arrayAss = Operands.opToReg(table.getOp(id), gen.regs)
     val xsInit = xs.init
 
-    // if array is 1D, only store is required
     if (xsInit.isEmpty) {
       return RegAssembly(
         Register(0),
@@ -102,7 +98,6 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
       )
     }
 
-    // else, use accumulator and include load instructions
     val accReg = Register(8)
     if (charType) {
       gen.postSections.addOne(ArrayLoadBSection)
@@ -150,8 +145,6 @@ case class ArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LE
   
 object ArrayElem extends ParserBridgePos2[String, List[Expr], ArrayElem]
   
-// case class IdentOrArrayElem(id: String, xs: List[Expr])(val pos: (Int, Int)) extends LExpr
-
 /* identifier or array elements with parser bridge */
 object LExpr extends ParserBridgePos2[List[String], Option[List[Expr]], LExpr] {
     def apply(ids: List[String], xs: Option[List[Expr]])(pos: (Int, Int)): LExpr = xs match {
@@ -165,7 +158,6 @@ object LExpr extends ParserBridgePos2[List[String], Option[List[Expr]], LExpr] {
         }
     }
 }
-
 
 case class ClassElem(ids: List[String])(val pos: (Int, Int)) extends LExpr {
   override def toAssembly(gen: CodeGenerator)(implicit table: Table): RegAssembly = {

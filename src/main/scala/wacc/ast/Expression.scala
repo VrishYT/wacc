@@ -67,7 +67,6 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
       case Ord | Chr => x match {
         case _: Ident => {
           val reg = gen.regs.allocate
-          // println(s"allocated ${reg.getReg()} for ident")
           gen.regs.free(reg.getReg())
           RegAssembly(reg.getReg(), expr.instr ++ reg.instr :+ Mov(reg.getReg(), expr.getOp()))
         }
@@ -105,22 +104,16 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
 
   override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
 
-    // println(s"*--x $op y--*\n")
-    // println(x + "\n")
-    // println(y + "\n")
-
     def binaryOpToAssembly(out: Register, x: Register, y: Operand): Seq[Instruction] = op match {
       case ast.Mul => {
         gen.postSections.addOne(PrintStringSection)
         gen.postSections.addOne(IntegerOverflow)
         val temp = Register(12)
-        // println("optoreg")
         val op = Operands.opToReg(y, gen.regs)
         y match {
           case _: LExpr => 
           case _ => gen.regs.free(op.getReg())
         }
-        // println("after optoreg")
         op.instr ++ Seq(
           SMull(out, temp, x, op.getReg()),
           Cmp(temp, ASR(out, ImmInt(31))),
@@ -199,11 +192,9 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
         val out = x match {
           case _: Ident => {
             val reg = gen.regs.allocate
-            // println(s"allocated ${reg.getReg()} for ident")
             reg
           }
           case x => {
-            // println(x)
             RegAssembly(r1)
           }
         }
@@ -217,10 +208,8 @@ case class BinaryOpExpr(op: BinaryOp, x: Expr, y: Expr)(val pos: (Int, Int), val
           }
           case x => x
         }
-        // println(s"regOut = ${out.getReg()}")
         val assembly = Assembly(out.getReg(), expr2.instr ++ expr1.instr ++ reg.instr ++ out.instr ++ binaryOpToAssembly(out.getReg(), r1, op2))
         gen.regs.free(out.getReg())
-        // println("---")
         assembly
       }
     }

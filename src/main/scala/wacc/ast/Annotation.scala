@@ -68,7 +68,7 @@ case object TailRecursiveAnnotation extends Annotation("Invalid annotation '@tai
                     if (tailCallVar == null) {
                         tailCallVar = tailVarSaved
                     } else if (tailVarSaved != null) {
-                        ??? // TODO
+                        ???
                     }
                     if (thenBranch || elseBranch) return true
                 }
@@ -86,7 +86,6 @@ case object TailRecursiveAnnotation extends Annotation("Invalid annotation '@tai
     
     override def process(func: Func)(implicit funcTable: FuncTable): Func = {
 
-        // import scala.collection.mutable.{Map => MapM}
         import scala.collection.mutable.ListBuffer
 
         def processStats(stats: List[Stat])(implicit table: Table): List[Stat] = {
@@ -207,32 +206,7 @@ case object TailRecursiveAnnotation extends Annotation("Invalid annotation '@tai
         }
 
         updateParents(table, whileTable, true)
-
-        // table.foreach(entry => entry._2 match {
-        //     case x: ChildTable => {
-        //         val clone = ChildTable(whileTable)
-        //         clone.id = entry._1
-        //         println(s"${entry._1} has parent ${whileTable.id}")
-        //         clone.table ++= x.table
-        //         whileTable.table(entry._1) = clone
-        //     }
-        //     case _: OpSymbol => 
-        //     case _ => whileTable.table(entry._1) = entry._2
-        // })
-        // println(s"=${funcTable.table.filter(_._2.isInstanceOf[ChildTable])}")
-        // println(s"=${table.filter(_._2.isInstanceOf[ChildTable])}")
-        // println("**")
-        // println(whileTable.parent)
-        // println("**")
-        // println("++----------------------------")
-        // println(whileTable)
-        // println("++----------------------------")
         val stats = processStats(func.stats)(whileTable)
-        
-        // println(whileTable)
-        // println(funcTable)
-
-        // println(stats)
 
         TypedFunc(
             func.annotations, 
