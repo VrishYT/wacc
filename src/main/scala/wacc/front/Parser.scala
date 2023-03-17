@@ -147,8 +147,8 @@ object Parser {
     ("skip" #> Skip) <|>
     (pos <**> "continue" #> Continue) <|>
     (pos <**> "break" #> Break) <|>
-    (AssignOrTypelessDeclare(annotationList, attempt(lvalue <~ "=".label("assignment")), rvalue)) <|>
-    (Declare(annotationList, types, IDENT, "=" *> rvalue)) <|>
+    attempt(AssignOrTypelessDeclare(annotationList, attempt(lvalue <~ "=".label("assignment")), rvalue)) <|>
+    attempt(Declare(annotationList, types, IDENT, "=" *> rvalue)) <|>
     (Read("read" *> lvalue)) <|>
     (Free("free" *> expr)) <|>
     (Return("return" *> expr)) <|>
