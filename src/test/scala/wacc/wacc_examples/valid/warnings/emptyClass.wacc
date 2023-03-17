@@ -1,0 +1,10 @@
+# empty class
+
+# Output:
+
+# Program:
+
+begin
+    class C { }  
+    skip
+end

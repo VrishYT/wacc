@@ -1,0 +1,12 @@
+# cannot infer type
+
+# Output:
+
+# Program:
+
+begin
+    f(a) is
+        return 0
+    end
+    skip
+end

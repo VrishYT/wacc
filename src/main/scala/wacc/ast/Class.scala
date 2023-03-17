@@ -10,17 +10,17 @@ case class Field(isPrivate: Boolean, t: Type, id: String)(val pos: (Int, Int))
 
 object Field extends ParserBridgePos3[Boolean, Type, String, Field]
 
-case class Class(class_id: String, decls: List[Field], funcs: List[Func])(val pos: (Int, Int)){
+case class Class(annotations: List[Annotation], class_id: String, decls: List[Field], funcs: List[Func])(val pos: (Int, Int)){
     def toAssembly(gen: CodeGenerator): Seq[Instruction] = {
         val classUseCount = gen.symbolTable.classes.get(class_id) match {
             case Some(x) => x.useCount
             case None => ???
         }
-        if (classUseCount == 0){
-            ErrorLogger.warn(s"${class_id} is never used", pos._1)
+        if (classUseCount == 0 && !(gen.suppressWarns || annotations.contains(SupressWarnsAnnotation))) {
+            ErrorLogger.warn(s"Class '${class_id}' is never used", pos._1)
         }
-        if (decls.isEmpty && funcs.isEmpty){
-            ErrorLogger.warn(s"${class_id} is an empty class", pos._1)
+        if (decls.isEmpty && funcs.isEmpty && !(gen.suppressWarns || annotations.contains(SupressWarnsAnnotation))) {
+            ErrorLogger.warn(s"Class '${class_id}' is an empty class", pos._1)
         }
         val func_instr = funcs.map(f => {
             val table: MethodTable = gen.symbolTable.classes.get(class_id) match {
@@ -39,7 +39,7 @@ case class Class(class_id: String, decls: List[Field], funcs: List[Func])(val po
     }
 }
 
-object Class extends ParserBridgePos3[String, List[Field], List[Func], Class]
+object Class extends ParserBridgePos4[List[Annotation], String, List[Field], List[Func], Class]
 
 case class NewClass(class_id: String, vals: List[RValue])(val pos: (Int, Int)) extends RValue {
     override def toAssembly(gen: CodeGenerator)(implicit table : Table): Assembly = {

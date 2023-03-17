@@ -7,9 +7,19 @@ import front.ParserBridge._
 import scala.collection.mutable.{ListBuffer}
 import wacc.front.error.{ErrorLogger}
 
+
 /* statements as objects extending the sealed trait Stat */
 sealed trait Stat {
     def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction]
+
+    def getPos(): (Int, Int) = {
+        val pos = (this match {
+            case Declare(_, _, _, x)                => x.pos
+            case AssignOrTypelessDeclare(_, x, _)   => x.pos
+            case _ => (-1, -1)
+        })
+        (pos._1, 0)
+    }
 }
 
 case object Skip extends Stat with ParserBridge0[Stat] {
@@ -30,14 +40,14 @@ case class Continue(val pos: (Int, Int)) extends Stat with ParserBridgePos0[Stat
     }
 }
 
-case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
+case class Declare(annotations: List[Annotation], t: Type, id: String, rhs: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
         val symbol = table.getSymbol(id) match {
             case Some(x) => x
             case None => ???
         }
-        if (symbol.refCount == 0) {
-            ErrorLogger.warn(s"variable ${id} is not used anywhere in the code", rhs.pos._1)
+        if (symbol.refCount == 0 && !(gen.suppressWarns || annotations.contains(SupressWarnsAnnotation))) {
+            ErrorLogger.warn(s"Variable ${id} is not used", rhs.pos._1)
         } 
         val assembly = rhs.toAssembly(gen).condToReg(gen.regs)
         val instr = rhs match {
@@ -64,9 +74,9 @@ case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
     }
 }
 
-object Declare extends ParserBridge3[Type, String, RValue, Declare]
+object Declare extends ParserBridge4[List[Annotation], Type, String, RValue, Declare]
 
-case class AssignOrTypelessDeclare(x: LValue, y: RValue) extends Stat {
+case class AssignOrTypelessDeclare(annotations: List[Annotation], x: LValue, y: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
         val rhsAssembly = y.toAssembly(gen).condToReg(gen.regs)
         val lval = x match {
@@ -117,7 +127,7 @@ case class AssignOrTypelessDeclare(x: LValue, y: RValue) extends Stat {
                     case Some(x) => x
                     case None => ???
                 }
-                return Declare(t, id, y).toAssembly(gen)
+                return Declare(annotations, t, id, y).toAssembly(gen)
             }
             case _ =>
         }
@@ -141,7 +151,7 @@ case class AssignOrTypelessDeclare(x: LValue, y: RValue) extends Stat {
     }
 }
 
-object AssignOrTypelessDeclare extends ParserBridge2[LValue, RValue, AssignOrTypelessDeclare] {
+object AssignOrTypelessDeclare extends ParserBridge3[List[Annotation], LValue, RValue, AssignOrTypelessDeclare] {
     def assDec(lval: Assembly, rval: Assembly, regs: RegisterAllocator)(implicit table: Table) : Seq[Instruction] = {
         val reg = Operands.opToReg(rval.getOp(), regs)
         val save = lval.getOp() match {

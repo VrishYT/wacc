@@ -9,22 +9,40 @@ import scala.collection.mutable.{LinkedHashMap => MapM}
 
 sealed abstract class Annotation(val errorMsg: String) {
     def isValid: Boolean = true
+
+    def verify(c: Class): Boolean = false
+    def verify(statement: Stat): Boolean = false
     def verify(func: Func): Boolean = false
-    def process(func: Func)(implicit @unused funcTable: FuncTable): Func = func
+    def verify(program: Program): Boolean = false
+
+    def process(c: Class)(implicit @unused table: ClassTable): Class = c
+    def process(func: Func)(implicit @unused table: FuncTable): Func = func
+    def process(program: Program)(implicit @unused table: SymbolTable): Program = program
+    def process(statement: Stat)(implicit @unused table: Table): Stat = statement
 }
 
 object Annotation extends ParserBridge1[String, Annotation] {
     def apply(id: String): Annotation = id match {
         case "tailrec" => TailRecursiveAnnotation
+        case "nowarn" => SupressWarnsAnnotation
         case _ => UnknownAnnotation
     }
 }
 
-case object UnknownAnnotation extends Annotation("Unknown annotation - shouldn't have ever reached this???") {
+case object UnknownAnnotation extends Annotation("Unknown annotation") {
     override def isValid: Boolean = false
 }
 
-case object TailRecursiveAnnotation extends Annotation("Function is not tail-recursive\n - cannot optimize with \'@tailrec\' annotation") {
+case object SupressWarnsAnnotation extends Annotation("always valid") {
+
+    override def verify(c: Class): Boolean = true
+    override def verify(program: Program): Boolean = true
+    override def verify(statement: Stat): Boolean = true
+    override def verify(func: Func): Boolean = true
+
+}
+
+case object TailRecursiveAnnotation extends Annotation("Invalid annotation '@tailrec'\n - this is not a tail-recursive function/method") {
 
     override def verify(func: Func): Boolean = {
         import scala.annotation.nowarn
@@ -32,11 +50,11 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
         @nowarn def verifyBranch(stats: List[Stat]): Boolean = {
             def matchId(ids: List[String], funcId: String): Boolean = ids.last == funcId.substring(funcId.indexOf("_") + 1)
             stats.foreach {
-                case Declare(_, id, rhs) => rhs match {
+                case Declare(_, _, id, rhs) => rhs match {
                     case Call(ids, _) if (matchId(ids, func.fs._2)) => tailCallVar = Ident(id)(0,0) 
                     case _ => 
                 }
-                case AssignOrTypelessDeclare(lval, rval) => rval match {
+                case AssignOrTypelessDeclare(_, lval, rval) => rval match {
                     case Call(ids, _) if (matchId(ids, func.fs._2)) => lval match {
                         case x: Ident => tailCallVar = x
                         case _ => 
@@ -100,21 +118,21 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
                         case None => ???
                     }
                     table.add(newId, Symbol(symbol.t, symbol.isPrivate))
-                    out += Declare(symbol.t, newId, x._2)
+                    out += Declare(List(), symbol.t, newId, x._2)
                 })
                 renamed.foreach {
-                    case (k, v) => out += AssignOrTypelessDeclare(Ident(k)(id.pos), Ident(v)(id.pos))
+                    case (k, v) => out += AssignOrTypelessDeclare(List(), Ident(k)(id.pos), Ident(v)(id.pos))
                 } 
             }
 
             stats.foreach (stat => stat match {
-                case Declare(_, id, rhs) => rhs match {
+                case Declare(_, _, id, rhs) => rhs match {
                     case call@Call(ids, _) if (ids.last == func.fs._2) => {
                         modifyVars(Ident(id)(0,0), call)
                     }
                     case _ => out += stat
                 }
-                case AssignOrTypelessDeclare(lval, rval) => lval match {
+                case AssignOrTypelessDeclare(_, lval, rval) => lval match {
                     case x: LValue => rval match {
                         case call@Call(ids, _) if (ids.last == func.fs._2) => lval match {
                             case x: Ident => modifyVars(x, call)

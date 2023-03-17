@@ -52,8 +52,8 @@ sealed abstract class Func(
 
     def toAssembly(gen: CodeGenerator, class_id: String = "")(implicit table: FuncTable): Seq[Instruction] = {
 
-        if (table.useCount == 0){
-            ErrorLogger.warn(s"${id} has not been called in the code", pos._1)
+        if (table.useCount == 0 && !(gen.suppressWarns || annotations.contains(SupressWarnsAnnotation))){
+            ErrorLogger.warn(s"Function/method ${id} has not been called in the code", pos._1)
         }
 
         (0 until args.length).foreach(i => {

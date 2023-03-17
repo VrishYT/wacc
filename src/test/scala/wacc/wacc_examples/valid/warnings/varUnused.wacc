@@ -1,0 +1,8 @@
+# unused var
+
+# Output:
+
+# Program:
+begin
+    int x = 9
+end

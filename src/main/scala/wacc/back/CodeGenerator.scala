@@ -52,7 +52,7 @@ object RegAssembly {
 
 object TODOAssembly extends RegAssembly(None, Seq[Instruction](), AL)
 
-case class CodeGenerator(val symbolTable: SymbolTable) {
+case class CodeGenerator(val symbolTable: SymbolTable, val suppressWarns: Boolean = false) {
     
     /*presections and post sections are sets that we can add different methods (DataSections) 
     into that will generate all code for printing variables, loading into arrays and reading*/

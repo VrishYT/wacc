@@ -1,0 +1,9 @@
+# supress unused warning
+
+# Output:
+
+# Program:
+
+begin
+    @nowarn int unused = 5
+end

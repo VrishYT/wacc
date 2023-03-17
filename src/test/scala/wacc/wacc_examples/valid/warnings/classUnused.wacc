@@ -1,0 +1,12 @@
+# unused class
+
+# Output:
+
+# Program:
+
+begin
+    class C {
+        int x
+    }
+    skip
+end
