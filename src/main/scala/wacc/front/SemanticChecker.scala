@@ -140,6 +140,11 @@ object SemanticChecker {
             } catch {
               case x: TypeException =>
             })
+            x.paramIdTypes.keys.toSeq.foreach(id => {
+              if (x.paramIdTypes(id) == NoType) {
+                x.paramIdTypes(id) = AnyType
+              }
+            })
           }
           case None => 
         }
@@ -176,19 +181,6 @@ object SemanticChecker {
           symbolTable.setOverload(id, 1)
         }
       }
-    })
-
-    functions.foreach(func => {
-      func.args.foreach(param => {
-        vars.getType(param.id) match {
-          case Some(x) => {
-            if (x == NoType) {
-              errors += new TypeException(message = "non-inferrable function paramter", pos = Seq(func.pos))
-            }
-          }
-          case None =>
-        }
-      })
     })
 
     /* return the type of an identifier from the parent and child scope maps */

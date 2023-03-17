@@ -1,4 +1,4 @@
-# typeless variables inferred outside of function
+# typeless variables inferred in main
 
 # Output:
 # 4
