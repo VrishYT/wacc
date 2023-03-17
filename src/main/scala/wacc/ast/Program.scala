@@ -25,10 +25,11 @@ case class Program(classes : List[Class], fs: List[Func], stats: List[Stat]) {
             gen.regs.reset()
             out
         })
-        val mainTable = getFuncTable("main")
+        val mainTable = getFuncTable("_main")
         mainTable.resetCounts()
-        gen.mem.size = 0.max(mainTable.getSize() - gen.regs.freeRegs.size)
-        val main = gen.mem.grow() +: stats.map(_.toAssembly(gen)(mainTable)).fold(Seq())(_ ++ _) :+ gen.mem.shrink()
+        val size = 0.max(mainTable.getSize() - gen.regs.freeRegs.size)
+        val main = gen.mem.grow(size) +: stats.map(_.toAssembly(gen)(mainTable)).fold(Seq())(_ ++ _) :+ gen.mem.shrink()
+        gen.mem.pop()
 
         return (Seq(Section(".global main"), Label("main"), 
                     Push(FP, LR), Mov(FP, SP)) ++ main ++ Seq(Mov(Register(0), ImmInt(0)), 
