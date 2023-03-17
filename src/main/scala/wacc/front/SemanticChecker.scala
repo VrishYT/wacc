@@ -21,7 +21,7 @@ object SemanticChecker {
     val functions = program.fs
 
     /* create a map for the global scope, containing function identifiers to return types */
-    val vars = symbolTable.declare("main")
+    val vars = symbolTable.declare("_main")
 
     /* check if a variable already exists in scope, error if it does, and add it to the scope if it doesn't */
     def declareVar(id: String, t: Type, vars: Table, pos: (Int, Int), isPrivate: Boolean = false): Unit = {
@@ -210,7 +210,7 @@ object SemanticChecker {
     }
 
     def getFuncTable(table: Table, rVal: RValue): FuncTable = table match {
-            case x: FuncTable if (x.id != "main") => x
+            case x: FuncTable if (x.id != "_main") => x
             case x: ChildTable => getFuncTable(x.parent, rVal)
             case _ => ErrorLogger.err("invalid return call\n  cannot return outside a function body", rVal.pos)
           }
