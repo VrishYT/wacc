@@ -272,6 +272,7 @@ case class Free(x: Expr) extends Stat {
                         case _: ArrayType => freeArray(xAssembly, gen)
                         case _: PairType => freePair(xAssembly, gen)
                         case Pair => freePair(xAssembly, gen)
+                        case _: ClassType => freeClass(xAssembly, gen)
                         case _ => ???
                     }
                     case None => ???
@@ -306,6 +307,11 @@ case class Free(x: Expr) extends Stat {
                                          Mov(Register(0), Register(8)), LinkBranch("_freepair"), 
                                          Mov(Register(0), ImmInt(0)), Pop(Register(8)))
         return instrns
+    }
+
+    def freeClass(assembly: Assembly, gen: CodeGenerator): Seq[Instruction] = {
+        gen.postSections.addOne(FreeClassSection)
+        assembly.instr ++ Func.callFunction("_freeclass", Seq(assembly.getOp()), gen)
     }
 }
 
@@ -641,7 +647,22 @@ case class While(p: Expr, x: List[Stat]) extends Stat {
     }
 }
 
-object While extends ParserBridge2[Expr, List[Stat], While]
+object While extends ParserBridge2[Expr, List[Stat], While]{
+    def generateWhile(cond: Assembly, startLabel: String, block: Seq[Instruction], endLabel: String): Seq[Instruction] = {
+        var branch: Seq[Instruction] = if (cond.cond == Condition.AL) Seq() else Seq(Branch(endLabel, Condition.invert(cond.cond)))
+        cond.op match {
+            case Some(x) => x match {
+                case x: Register => {
+                    branch = Seq(Cmp(x, ImmInt(0)), Branch(endLabel, Condition.EQ))
+                }
+                case x => 
+            }
+            case None => 
+        }
+
+        (Label(startLabel) +: cond.instr) ++ branch ++ block ++ Seq(Branch(startLabel), Label(endLabel))
+    }
+}
 
 case class Begin(xs: List[Stat]) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {

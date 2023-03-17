@@ -4,6 +4,7 @@ package back
 import wacc.back._
 import Condition._
 import ast.Func
+import ast.While
 
 abstract class DataSection {
     def toAssembly(): Seq[Instruction]
@@ -179,3 +180,42 @@ case object FreePairSection extends DataSection {
         )
     }
 }
+
+case object FreeClassSection extends DataSection {
+    def toAssembly(): Seq[Instruction] = Func.generateFunction(
+        "_freeclass",
+        Seq(
+            Push(Register(8)),
+            // no_members = r12
+            Load(Register(12), Address(Register(1), ImmInt(-4))),
+            // i = r8
+            Mov(Register(8), ImmInt(0))
+        ) ++ While.generateWhile(
+            Assembly(Seq(Cmp(Register(8), Register(12))), Condition.LT), 
+            "_freeclass_while0",
+            Seq(
+                Mul(Register(0), Register(8), ImmInt(4)), 
+                Load(Register(0), Address(Register(1), Register(0))),
+                Push(Register(1), Register(2), Register(3)),
+                LinkBranch("free"),
+                Pop(Register(1), Register(2), Register(3)),
+                Add(Register(8), Register(8), ImmInt(1))
+            ),
+            "_freeclass_while1"
+        ) ++ Seq(
+            Pop(Register(8)),
+            Pop(PC)
+        )
+    )
+
+    // _freeclass:
+    // assume r1 = address of instance to free
+    // int no_members = ldr [r1, #-4]
+    // int i = 0
+    // while i < no_members:
+    //     int offset = i * #4 (do i care about int overflow)
+    //     r0 = ldr [r1, offset]
+    //     free 
+    //     i = i + 1
+}
+
