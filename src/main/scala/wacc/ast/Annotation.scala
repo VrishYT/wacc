@@ -29,7 +29,7 @@ object Annotation extends ParserBridge1[String, Annotation] {
     }
 }
 
-case object UnknownAnnotation extends Annotation("???") {
+case object UnknownAnnotation extends Annotation("Unknown annotation") {
     override def isValid: Boolean = false
 }
 

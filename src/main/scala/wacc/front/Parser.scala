@@ -54,7 +54,7 @@ object Parser {
   val annotation = "@" *> Annotation(IDENT)
   
   val annotationList = sepBy(annotation.guardAgainst {
-    case annotation if !annotation.isValid => Seq("unknown annotation") // TODO: improve error msg
+    case annotation if !annotation.isValid => Seq(annotation.errorMsg) // TODO: improve error msg
   }, pure(""))
 
 
