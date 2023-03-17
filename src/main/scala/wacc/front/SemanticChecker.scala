@@ -141,22 +141,23 @@ object SemanticChecker {
             func.rename(uniqueFuncId)
           }
 
-          symbolTable.get(uniqueFuncId) match {
-            case Some(x) => {
-              func.stats.foreach(stat => try {
-                tryInferParam(stat, x)
-              } catch {
-                case x: TypeException =>
-              })
-              x.paramIdTypes.keys.toSeq.foreach(id => {
-                if (x.paramIdTypes(id) == NoType) {
-                  x.paramIdTypes(id) = AnyType
-                }
-              })
-            }
-            case None => 
+        symbolTable.get(uniqueFuncId) match {
+          case Some(x) => {
+            func.stats.foreach(stat => try {
+              tryInferParam(stat, x)
+            } catch {
+              case x: TypeException =>
+            })
+            x.paramIdTypes.keys.toSeq.foreach(id => {
+              if (x.paramIdTypes(id) == NoType) {
+                x.paramIdTypes(id) = AnyType
+                ErrorLogger.warn(s"${id}'s type is not inferrable in function", func.pos._1)
+              }
+            })
           }
+          case None => 
         }
+      }
 
 
         /* check a function is not a duplicate function */
