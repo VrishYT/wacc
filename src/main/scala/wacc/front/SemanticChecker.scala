@@ -343,11 +343,14 @@ object SemanticChecker {
             getClassType(ids, classElem.pos, vars, true)
           }
 
-          case newClass@NewClass(class_id, rvals) => {
-            val class_mems = symbolTable.classes.get(class_id) match {
-              case Some(x) => x
-              case None => ErrorLogger.err(s"invalid constructor for class ${class_id}\n  - class '${class_id}' does not exist", newClass.pos)
+        case newClass@NewClass(class_id, rvals) => {
+          val class_mems : ClassTable = symbolTable.classes.get(class_id) match {
+            case Some(x) => {
+              x.useCount += 1
+              x
             }
+            case None => ErrorLogger.err(s"invalid constructor for class ${class_id}\n  - class '${class_id}' does not exist", newClass.pos)
+          }
 
             val class_types = class_mems match {
               case z : ClassTable => z.types
@@ -405,26 +408,35 @@ object SemanticChecker {
 
                 // println(count)
 
-                /* check every overloaded function for a match */
-                (0 until count).foreach(i => {
-                  // println(i)
-                  val uniqueFuncId = s"${i}_${id}"
-                  val funcVars = table match {
-                    case Left(x) => x.get(uniqueFuncId) match {
-                      case Some(x) => x
-                      case None => getParentClass(vars) match {
-                        case Some(x) => x.getMethodTable(uniqueFuncId) match {
-                          case Some(x) => x
-                          case None => ???
+              /* check every overloaded function for a match */
+              (0 until count).foreach(i => {
+                // println(i)
+                val uniqueFuncId = s"${i}_${id}"
+                val funcVars = table match {
+                  case Left(x) => x.get(uniqueFuncId) match {
+                    case Some(x) => {
+                      x.useCount += 1
+                      x
+                    }
+                    case None => getParentClass(vars) match {
+                      case Some(x) => x.getMethodTable(uniqueFuncId) match {
+                        case Some(x) => {
+                          x.useCount += 1
+                          x
                         }
                         case None => ???
                       }
-                    }
-                    case Right(x) => x.getMethodTable(uniqueFuncId) match {
-                      case Some(x) => x
                       case None => ???
                     }
                   }
+                  case Right(x) => x.getMethodTable(uniqueFuncId) match {
+                    case Some(x) => {
+                      x.useCount += 1
+                      x
+                    }
+                    case None => ???
+                  }
+                }
 
                   val verify = checkOverloadedFunc(funcVars)
                   // println(verify)

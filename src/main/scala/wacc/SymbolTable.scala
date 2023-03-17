@@ -215,6 +215,8 @@ sealed abstract class Table(var id: String = "") extends TableEntry {
 }
 
 class FuncTable(funcId: String, val paramIdTypes: MapM[String, Type], var returnType: Type, val isPrivate: Boolean) extends Table(funcId) {
+    var useCount = 0;
+
     override def getReturnType = returnType
     def setReturnType(t: Type): Unit = {
         returnType = t
@@ -239,7 +241,7 @@ object ChildTable {
 }
 
 case class ClassTable(class_id: String, val types: Seq[Type]) extends Table(class_id) {
-
+    var useCount = 0 
     /* tracks the number of overloaded methods */
     private val methodOverloadCounter = MapM[String, Int]()
 

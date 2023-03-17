@@ -12,6 +12,13 @@ object Field extends ParserBridgePos3[Boolean, Type, String, Field]
 
 case class Class(annotations: List[Annotation], class_id: String, decls: List[Field], funcs: List[Func])(val pos: (Int, Int)){
     def toAssembly(gen: CodeGenerator): Seq[Instruction] = {
+        val classUseCount = gen.symbolTable.classes.get(class_id) match {
+            case Some(x) => x.useCount
+            case None => ???
+        }
+        if (classUseCount == 0){
+            ErrorLogger.warn(s"${class_id} is never used", pos._1)
+        }
         if (decls.isEmpty && funcs.isEmpty){
             ErrorLogger.warn(s"${class_id} is an empty class", pos._1)
         }
