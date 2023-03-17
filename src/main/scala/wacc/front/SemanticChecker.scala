@@ -142,6 +142,7 @@ object SemanticChecker {
             x.paramIdTypes.keys.toSeq.foreach(id => {
               if (x.paramIdTypes(id) == NoType) {
                 x.paramIdTypes(id) = AnyType
+                ErrorLogger.warn(s"${id}'s type is not inferrable in function", func.pos._1)
               }
             })
           }
