@@ -926,7 +926,12 @@ object SemanticChecker {
         }
       })
       symbolTable.get(func.fs._2) match {
-        case Some(x) => checkStatements(func.stats, x, false)
+        case Some(x) => {
+          checkStatements(func.stats, x, false)
+          if (x.getReturnType == NoType) {
+            errors += new TypeException(message = s"function's type is not inferrable", pos = Seq(func.pos))
+          }
+        }
         case None => errors += new TypeException(message = "invalid function declaration", pos = Seq(func.pos))
       }
     })
