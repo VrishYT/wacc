@@ -11,6 +11,15 @@ import wacc.front.error.{ErrorLogger}
 /* statements as objects extending the sealed trait Stat */
 sealed trait Stat {
     def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction]
+
+    def getPos(): (Int, Int) = {
+        val pos = (this match {
+            case Declare(_, _, _, x)                => x.pos
+            case AssignOrTypelessDeclare(_, x, _)   => x.pos
+            case _ => (-1, -1)
+        })
+        (pos._1, 0)
+    }
 }
 
 case object Skip extends Stat with ParserBridge0[Stat] {
@@ -37,7 +46,7 @@ case class Declare(annotations: List[Annotation], t: Type, id: String, rhs: RVal
             case Some(x) => x
             case None => ???
         }
-        if (symbol.refCount == 0) {
+        if (symbol.refCount == 0 && !(gen.suppressWarns || annotations.contains(SupressWarnsAnnotation))) {
             ErrorLogger.warn(s"variable ${id} is not used anywhere in the code", rhs.pos._1)
         } 
         val assembly = rhs.toAssembly(gen).condToReg(gen.regs)

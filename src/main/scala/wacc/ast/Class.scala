@@ -16,10 +16,10 @@ case class Class(annotations: List[Annotation], class_id: String, decls: List[Fi
             case Some(x) => x.useCount
             case None => ???
         }
-        if (classUseCount == 0){
+        if (classUseCount == 0 && !(gen.suppressWarns || annotations.contains(SupressWarnsAnnotation))) {
             ErrorLogger.warn(s"${class_id} is never used", pos._1)
         }
-        if (decls.isEmpty && funcs.isEmpty){
+        if (decls.isEmpty && funcs.isEmpty && !(gen.suppressWarns || annotations.contains(SupressWarnsAnnotation))) {
             ErrorLogger.warn(s"${class_id} is an empty class", pos._1)
         }
         val func_instr = funcs.map(f => {

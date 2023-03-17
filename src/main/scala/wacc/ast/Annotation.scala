@@ -10,11 +10,13 @@ import scala.collection.mutable.{LinkedHashMap => MapM}
 sealed abstract class Annotation(val errorMsg: String) {
     def isValid: Boolean = true
 
-    def verify(program: Program): Boolean = false
+    def verify(c: Class): Boolean = false
     def verify(statement: Stat): Boolean = false
     def verify(func: Func): Boolean = false
+    def verify(program: Program): Boolean = false
 
-    def process(func: Func)(implicit @unused funcTable: FuncTable): Func = func
+    def process(c: Class)(implicit @unused table: ClassTable): Class = c
+    def process(func: Func)(implicit @unused table: FuncTable): Func = func
     def process(program: Program)(implicit @unused table: SymbolTable): Program = program
     def process(statement: Stat)(implicit @unused table: Table): Stat = statement
 }
@@ -33,6 +35,7 @@ case object UnknownAnnotation extends Annotation("???") {
 
 case object SupressWarnsAnnotation extends Annotation("always valid") {
 
+    override def verify(c: Class): Boolean = true
     override def verify(program: Program): Boolean = true
     override def verify(statement: Stat): Boolean = true
     override def verify(func: Func): Boolean = true

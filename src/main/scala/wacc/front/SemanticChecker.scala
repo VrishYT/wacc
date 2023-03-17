@@ -666,148 +666,157 @@ object SemanticChecker {
         }
 
         /* checks each statement */
-        def checkStatement(statement: Stat): Unit = statement match {
+        def checkStatement(statement: Stat): Unit = {
 
-          case x: Break => if (!isWhile) ErrorLogger.err("cannot use control-flow statment 'break' outside of while loop", x.pos)
-          case x: Continue => if (!isWhile) ErrorLogger.err("cannot use control-flow statment 'continue' outside of while loop", x.pos)
+          val invalidAnnotations = program.annotations.foldRight(false)((annotation, acc) => {
+            val invalid = !annotation.verify(program)
+            if (invalid) ErrorLogger.err(annotation.errorMsg, statement.getPos())
+            acc || invalid
+          })
 
-          /* check declare statement */
-          case Declare(as, t, id, rhs) => {
-            val rType = getRValType(vars, rhs, (false, Some(t)))
+          statement match {
 
-            /* error if the left type is not the same as the right type */
-            if (rType != t) ErrorLogger.err("invalid type for declare", rType, t, rhs.pos)
+            case x: Break => if (!isWhile) ErrorLogger.err("cannot use control-flow statment 'break' outside of while loop", x.pos)
+            case x: Continue => if (!isWhile) ErrorLogger.err("cannot use control-flow statment 'continue' outside of while loop", x.pos)
 
-            /* check identifier hasn't already been declared, and add it to the scope */
-            declareVar(id, t, vars, rhs.pos)
-          }
+            /* check declare statement */
+            case Declare(as, t, id, rhs) => {
+              val rType = getRValType(vars, rhs, (false, Some(t)))
 
-          /* check assign statement */
-          case AssignOrTypelessDeclare(as, x, y) => {/* get type of left and right hand sides of the assign */
+              /* error if the left type is not the same as the right type */
+              if (rType != t) ErrorLogger.err("invalid type for declare", rType, t, rhs.pos)
 
-            var rType: Type = NoType
-            var lType: Type = NoType
+              /* check identifier hasn't already been declared, and add it to the scope */
+              declareVar(id, t, vars, rhs.pos)
+            }
 
-            /* error if the identifier being reassigned is a function. */
-            x match {
-              case (ident@Ident(id)) => {
-                if (symbolTable.contains(id) && !vars.contains(id)) {
-                  ErrorLogger.err("Cannot re-assign value for a function: " + id, ident.pos)
-                } else if (isInferredTypeDefinition(x)) {
-                  rType = getRValType(vars, y, (true, None))
-                  lType = rType
-                  declareVar(id, rType, vars, y.pos)
-                } else if (isTypelessParam(x)) {
-                  rType = getRValType(vars, y, (false, None))
-                  lType = rType
-                  vars.updateRecursive(id, Symbol(rType))
-                } else {
+            /* check assign statement */
+            case AssignOrTypelessDeclare(as, x, y) => {/* get type of left and right hand sides of the assign */
+
+              var rType: Type = NoType
+              var lType: Type = NoType
+
+              /* error if the identifier being reassigned is a function. */
+              x match {
+                case (ident@Ident(id)) => {
+                  if (symbolTable.contains(id) && !vars.contains(id)) {
+                    ErrorLogger.err("Cannot re-assign value for a function: " + id, ident.pos)
+                  } else if (isInferredTypeDefinition(x)) {
+                    rType = getRValType(vars, y, (true, None))
+                    lType = rType
+                    declareVar(id, rType, vars, y.pos)
+                  } else if (isTypelessParam(x)) {
+                    rType = getRValType(vars, y, (false, None))
+                    lType = rType
+                    vars.updateRecursive(id, Symbol(rType))
+                  } else {
+                    lType = getLValType(x, vars)
+                    rType = getRValType(vars, y, (false, Some(lType)))
+                  }
+                }
+                case _ => {
                   lType = getLValType(x, vars)
                   rType = getRValType(vars, y, (false, Some(lType)))
                 }
               }
-              case _ => {
-                lType = getLValType(x, vars)
-                rType = getRValType(vars, y, (false, Some(lType)))
+
+              /* error when attempting to assign an unknown type to another unknown type */
+              if (lType == AnyType && rType == AnyType) ErrorLogger.err("invalid type for assign\n  cannot assign when both types are unknown", x.pos, y.pos)
+
+              /* error when attempting to assign to a different type */
+              if (lType != rType && rType != lType) ErrorLogger.err("invalid type for assign", rType, lType, x.pos, y.pos)
+            }
+
+            /* check read statement */
+            case Read(x) => {
+              val ltype = getLValType(x, vars)
+
+              /* error if attempting to read to non int or char type. */
+              if (ltype != IntType && ltype != CharType) ErrorLogger.err("invalid type for read", ltype, Seq(IntType, CharType), x.pos)
+            }
+
+            /* check free statement */
+            case Free(x) => {
+              val rType = getRValType(vars, x)
+
+              /* error when freeing a non array or pair type. */
+              rType match {
+                case x: ArrayType =>
+                case x: PairType =>
+                case y => ErrorLogger.err("invalid type for free", y, Seq(ArrayType(AnyType), PairType(AnyType, AnyType)), x.pos)
               }
             }
 
-            /* error when attempting to assign an unknown type to another unknown type */
-            if (lType == AnyType && rType == AnyType) ErrorLogger.err("invalid type for assign\n  cannot assign when both types are unknown", x.pos, y.pos)
+            /* check return statement */
+            case Return(x) => {
+              val rType = getRValType(vars, x)
 
-            /* error when attempting to assign to a different type */
-            if (lType != rType && rType != lType) ErrorLogger.err("invalid type for assign", rType, lType, x.pos, y.pos)
-          }
+              /* error if we are not inside of a function */
+              val funcTable = getFuncTable(vars, x)
 
-          /* check read statement */
-          case Read(x) => {
-            val ltype = getLValType(x, vars)
+              /* error if return type does not match return type of the current function being checked */
+              var funcType = funcTable.getReturnType
 
-            /* error if attempting to read to non int or char type. */
-            if (ltype != IntType && ltype != CharType) ErrorLogger.err("invalid type for read", ltype, Seq(IntType, CharType), x.pos)
-          }
+              if (funcType == NoType) {
+                funcType = rType
+                funcTable.setReturnType(rType)
+              }
 
-          /* check free statement */
-          case Free(x) => {
-            val rType = getRValType(vars, x)
-
-            /* error when freeing a non array or pair type. */
-            rType match {
-              case x: ArrayType =>
-              case x: PairType =>
-              case y => ErrorLogger.err("invalid type for free", y, Seq(ArrayType(AnyType), PairType(AnyType, AnyType)), x.pos)
-            }
-          }
-
-          /* check return statement */
-          case Return(x) => {
-            val rType = getRValType(vars, x)
-
-            /* error if we are not inside of a function */
-            val funcTable = getFuncTable(vars, x)
-
-            /* error if return type does not match return type of the current function being checked */
-            var funcType = funcTable.getReturnType
-
-            if (funcType == NoType) {
-              funcType = rType
-              funcTable.setReturnType(rType)
+              if (rType != funcType) ErrorLogger.err("invalid type for return", rType, funcType, x.pos)
             }
 
-            if (rType != funcType) ErrorLogger.err("invalid type for return", rType, funcType, x.pos)
+            /* check exit statement */
+            case Exit(x) => {
+
+              /* error if exit code is not an intType */
+              val rValType = getRValType(vars, x)
+              if (rValType != IntType) ErrorLogger.err("invalid type for exit", rValType, IntType, x.pos)
+            }
+
+            /* check print statement */
+            case Print(x) => getRValType(vars, x)
+
+            /* check println statement */
+            case Println(x) => getRValType(vars, x)
+
+            /* check if statement */
+            case If(p, xs, ys) => {
+
+              /* error if condition not of boolean type */
+              val rValType = getRValType(vars, p)
+              if (rValType != BoolType) ErrorLogger.err("invalid type for if cond", rValType, BoolType, p.pos)
+
+              /* check semantics of both branches of if statement */
+              val thenVars = ChildTable(vars)
+              checkStatements(xs, thenVars, isWhile)
+              val elseVars = ChildTable(vars)
+              checkStatements(ys, elseVars, isWhile)
+              vars.addIf(thenVars, elseVars)
+            }
+
+            /* check while statement */
+            case While(p, xs) => {
+
+              /* error if while condition isn't of boolean type */
+              val rtype = getRValType(vars, p)
+              if (rtype != BoolType) ErrorLogger.err("invalid type for while cond", rtype, BoolType, p.pos)
+
+              /* check semantics of loop body's statements */
+              val child = ChildTable(vars)
+              checkStatements(xs, child, true)
+              vars.addWhile(child)
+            }
+
+            /* check begin statement, by checking the semantics of its body's statements */
+            case Begin(xs) => {
+              val child = ChildTable(vars)
+              checkStatements(xs, child, isWhile)
+              vars.addBegin(child)
+            }
+
+            /* defualt case */
+            case default =>
           }
-
-          /* check exit statement */
-          case Exit(x) => {
-
-            /* error if exit code is not an intType */
-            val rValType = getRValType(vars, x)
-            if (rValType != IntType) ErrorLogger.err("invalid type for exit", rValType, IntType, x.pos)
-          }
-
-          /* check print statement */
-          case Print(x) => getRValType(vars, x)
-
-          /* check println statement */
-          case Println(x) => getRValType(vars, x)
-
-          /* check if statement */
-          case If(p, xs, ys) => {
-
-            /* error if condition not of boolean type */
-            val rValType = getRValType(vars, p)
-            if (rValType != BoolType) ErrorLogger.err("invalid type for if cond", rValType, BoolType, p.pos)
-
-            /* check semantics of both branches of if statement */
-            val thenVars = ChildTable(vars)
-            checkStatements(xs, thenVars, isWhile)
-            val elseVars = ChildTable(vars)
-            checkStatements(ys, elseVars, isWhile)
-            vars.addIf(thenVars, elseVars)
-          }
-
-          /* check while statement */
-          case While(p, xs) => {
-
-            /* error if while condition isn't of boolean type */
-            val rtype = getRValType(vars, p)
-            if (rtype != BoolType) ErrorLogger.err("invalid type for while cond", rtype, BoolType, p.pos)
-
-            /* check semantics of loop body's statements */
-            val child = ChildTable(vars)
-            checkStatements(xs, child, true)
-            vars.addWhile(child)
-          }
-
-          /* check begin statement, by checking the semantics of its body's statements */
-          case Begin(xs) => {
-            val child = ChildTable(vars)
-            checkStatements(xs, child, isWhile)
-            vars.addBegin(child)
-          }
-
-          /* defualt case */
-          case default =>
         }
 
         /* check each statement in the program, and add any TypeExceptions to the list of errors */
