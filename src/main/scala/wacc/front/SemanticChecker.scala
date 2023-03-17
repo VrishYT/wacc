@@ -184,9 +184,14 @@ object SemanticChecker {
     })
 
     /* return the type of an identifier from the parent and child scope maps */
-    def getTypeFromVars(id: String, vars: Table, pos: (Int, Int)): Type = {
-      def get(vars: Table): Option[Type] = vars.getType(id) match {
-        case x: Some[_] => x
+    def getTypeFromVars(id: String, vars: Table, pos: (Int, Int), updateRefs: Boolean = true): Type = {
+      def get(vars: Table): Option[Type] = vars.getSymbol(id) match {
+        case x@Some(y) => {
+          if (updateRefs){
+            y.refCount += 1
+          }
+          return Some(y.t)
+        }
         case None => vars.getType("this") match {
           case Some(x) => x match {
             case ClassType(class_id) => symbolTable.classes.get(class_id) match {
@@ -215,9 +220,9 @@ object SemanticChecker {
             case _ => ErrorLogger.err("invalid return call\n  cannot return outside a function body", rVal.pos)
           }
 
-    def getClassType(ids: List[String], pos: (Int, Int), vars: Table): Type = {
+    def getClassType(ids: List[String], pos: (Int, Int), vars: Table, updateRefs: Boolean = false): Type = {
 
-      def get(ident: String, elems: List[String], table: Table): Type = getTypeFromVars(ident, table, pos) match {
+      def get(ident: String, elems: List[String], table: Table): Type = getTypeFromVars(ident, table, pos, updateRefs) match {
           case ClassType(class_id) => symbolTable.classes.get(class_id) match {
             case Some(x) => elems match {
               case Nil => ???
@@ -247,26 +252,26 @@ object SemanticChecker {
     }
 
     /* returns the type of a pairElem (fst(x) or snd(x)) */
-    def getLValPairElem(p: PairElem, vars: Table) = p match {
-      case Fst(x) => getLValType(x, vars) match {
+    def getLValPairElem(p: PairElem, vars: Table, updateRefs: Boolean = false) = p match {
+      case Fst(x) => getLValType(x, vars, updateRefs) match {
         case PairType(fst, _) => getPairElemType(fst)
         case _ => AnyType
       }
-      case Snd(x) => getLValType(x, vars) match {
+      case Snd(x) => getLValType(x, vars, updateRefs) match {
         case PairType(_, snd) => getPairElemType(snd)
         case _ => AnyType
       }
     }
 
     /* returns the type of an lvalue */
-    def getLValType(lVal: LValue, vars: Table): Type = {
+    def getLValType(lVal: LValue, vars: Table, updateRefs: Boolean = false): Type = {
       lVal match {
 
         /* if its an identifier then get it's type from the parent and child scope maps */
-        case (x@Ident(id)) => getTypeFromVars(id, vars, x.pos)
+        case (x@Ident(id)) => getTypeFromVars(id, vars, x.pos, updateRefs)
 
         /* if its an array element, then get it's type from the parent and child scope maps */
-        case (elem@ArrayElem(id, xs)) => getTypeFromVars(id, vars, elem.pos) match {
+        case (elem@ArrayElem(id, xs)) => getTypeFromVars(id, vars, elem.pos, updateRefs) match {
 
           /* check if the type is an array type */
           case ArrayType(t) => t
@@ -277,7 +282,7 @@ object SemanticChecker {
 
         /* if it's a pair element then get the type of x, which is in the form fst(y) or snd(y),
            by calling getLValPairElem */
-        case x: PairElem => getLValPairElem(x, vars)
+        case x: PairElem => getLValPairElem(x, vars, updateRefs)
 
         case classElem@ClassElem(ids) => {
           getClassType(ids, classElem.pos, vars)
@@ -297,7 +302,7 @@ object SemanticChecker {
       rval match {
         /* if it's a pair element then get the type of x, which is in the form fst(y) or snd(y),
            by calling getLValPairElem */
-        case x: PairElem => getLValPairElem(x, vars)
+        case x: PairElem => getLValPairElem(x, vars, true)
 
         /* if it's an array literal then : */
         case (array@ArrayLiteral(xs)) => {
@@ -327,7 +332,7 @@ object SemanticChecker {
           }
 
         case classElem@ClassElem(ids) => {
-          getClassType(ids, classElem.pos, vars)
+          getClassType(ids, classElem.pos, vars, true)
         }
 
         case newClass@NewClass(class_id, rvals) => {
@@ -498,7 +503,7 @@ object SemanticChecker {
                 }
                 case _ => {
                   // println("case 2.2")
-                  getClassType(ids.init, func.pos, vars)
+                  getClassType(ids.init, func.pos, vars, true)
                 }
               } 
               // println(ids)

@@ -5,6 +5,7 @@ import wacc.back._
 import parsley.genericbridges._ 
 import front.ParserBridge._
 import scala.collection.mutable.{ListBuffer}
+import wacc.front.error.{ErrorLogger}
 
 /* statements as objects extending the sealed trait Stat */
 sealed trait Stat {
@@ -31,6 +32,13 @@ case class Continue(val pos: (Int, Int)) extends Stat with ParserBridgePos0[Stat
 
 case class Declare(t: Type, id: String, rhs: RValue) extends Stat {
     override def toAssembly(gen: CodeGenerator)(implicit table: Table): Seq[Instruction] = {
+        val symbol = table.getSymbol(id) match {
+            case Some(x) => x
+            case None => ???
+        }
+        if (symbol.refCount == 0) {
+            ErrorLogger.warn(s"variable ${id} is not used anywhere in the code", rhs.pos._1)
+        } 
         val assembly = rhs.toAssembly(gen).condToReg(gen.regs)
         val instr = rhs match {
             case x: Ident => {
