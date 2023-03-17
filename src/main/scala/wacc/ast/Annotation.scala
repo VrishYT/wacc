@@ -100,7 +100,7 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
                         case None => ???
                     }
                     table.add(newId, Symbol(symbol.t, symbol.isPrivate))
-                    out += AssignOrTypelessDeclare(Ident(newId)(id.pos), x._2)
+                    out += Declare(symbol.t, newId, x._2)
                 })
                 renamed.foreach {
                     case (k, v) => out += AssignOrTypelessDeclare(Ident(k)(id.pos), Ident(v)(id.pos))
@@ -221,7 +221,7 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
             func.isPrivate, 
             func.fs,
             func.args.toList,
-            List(While(BoolLiteral(true)(0,0), stats))
+            List(While(BoolLiteral(true)(0,0), stats :+ Return(IntLiteral(-1)(0,0))))
         )(func.pos)
     }
 
