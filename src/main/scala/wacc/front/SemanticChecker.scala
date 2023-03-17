@@ -652,11 +652,7 @@ object SemanticChecker {
         /* checks each statement */
         def checkStatement(statement: Stat): Unit = {
 
-          val invalidAnnotations = program.annotations.foldRight(false)((annotation, acc) => {
-            val invalid = !annotation.verify(program)
-            if (invalid) ErrorLogger.err(annotation.errorMsg, statement.getPos())
-            acc || invalid
-          })
+          program.annotations.foreach(annotation => {if (!annotation.verify(program)) ErrorLogger.err(annotation.errorMsg, statement.getPos())})
 
           statement match {
 
