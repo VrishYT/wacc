@@ -41,8 +41,10 @@ object Parser {
   /*parsing of basic types such as boolean values, pair literal null and primitive types*/
   val BOOL_LIT = ("true" #> true <|> "false" #> false).label(
     "boolean literal").explain("booleans can either be true or false")
-  
-  lazy val PRIVATE = ("private" #> true <|> "public" #> false) <|> lookAhead(IDENT <|> types) #> false 
+    
+  import scala.annotation.nowarn
+
+  @nowarn lazy val PRIVATE = ("private" #> true <|> "public" #> false) <|> lookAhead(IDENT <|> types) #> false 
 
   val PAIR_LIT = (pos <**> ("null") #> PairLiteralNull).label("pair null type")
 

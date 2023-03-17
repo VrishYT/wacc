@@ -258,9 +258,10 @@ object SemanticChecker {
         case x: PairType => Pair
         case x => x
       }
+      import scala.annotation.nowarn
 
       /* returns the type of a pairElem (fst(x) or snd(x)) */
-      def getLValPairElem(p: PairElem, vars: Table, updateRefs: Boolean = false) = p match {
+      @nowarn def getLValPairElem(p: PairElem, vars: Table, updateRefs: Boolean = false) = p match {
         case Fst(x) => getLValType(x, vars, updateRefs) match {
           case PairType(fst, _) => getPairElemType(fst)
           case _ => AnyType
@@ -652,7 +653,8 @@ object SemanticChecker {
         /* checks each statement */
         def checkStatement(statement: Stat): Unit = {
 
-          val invalidAnnotations = program.annotations.foldRight(false)((annotation, acc) => {
+          import scala.annotation.nowarn
+          @nowarn val invalidAnnotations = program.annotations.foldRight(false)((annotation, acc) => {
             val invalid = !annotation.verify(program)
             if (invalid) ErrorLogger.err(annotation.errorMsg, statement.getPos())
             acc || invalid

@@ -22,6 +22,7 @@ lazy val root = (project in file(".")).
 
     // Some handy scala compiler flags
     scalacOptions ++= Seq(
+        // "-Xfatal-warnings",
         "-deprecation", "-unchecked", "-feature",
         // https://docs.scala-lang.org/overviews/compiler-options/index.html
         "-Xlint:nullary-unit",     // warn when methods without parentheses return Unit

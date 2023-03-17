@@ -26,8 +26,9 @@ class RegisterAllocator(val mem: MemoryAllocator) {
             freeRegs.enqueue(reg)
         }
     }
-
-    def isAllocated(reg: Register): Boolean = {
+    
+    import scala.annotation.nowarn
+    @nowarn def isAllocated(reg: Register): Boolean = {
         regsInUse.foreach(r => if (r.i == reg.i) return true)
         return false
     }

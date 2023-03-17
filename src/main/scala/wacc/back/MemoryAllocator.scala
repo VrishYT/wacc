@@ -21,7 +21,7 @@ class MemoryAllocator {
 
     /*pops stack value after use*/
     def pop(): Unit = {
-        stack.pop
+        stack.pop()
     }
 
     /*when register is reallocated, ensures that the data is stored in memory*/

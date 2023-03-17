@@ -72,7 +72,7 @@ case class Call(var id: List[String], args: List[Expr])(val pos: (Int, Int)) ext
                     //find the id corresponding to the type of class the variable x represents
                     val classType = classTable.getType(x) match {
                         case Some(x: ClassType) => x.class_id
-                        case None => ???
+                        case _ => ???
                     } 
                     //feed currOp as the first argument so the reference to the class that holds the function is passed in 
                     //as an argument 
@@ -117,6 +117,7 @@ case class Call(var id: List[String], args: List[Expr])(val pos: (Int, Int)) ext
                     instrs ++= (op.instr ++ Seq(Load(Register(12), Address(op.getReg(), ImmInt(elemOffset)))))
                     return callAssembly(ids.tail, gen, instrs, Register(12), newClassTable)
                 }
+                case _ => ???
             }
         }
 
@@ -126,7 +127,7 @@ case class Call(var id: List[String], args: List[Expr])(val pos: (Int, Int)) ext
             //instantiated in stored in, so we use getSymbol
             val classSymbol = table.getSymbol(id.head) match {
                 case Some(z : OpSymbol) => z
-                case None => ???
+                case _ => ???
             }
             return callAssembly(id, gen, list, classSymbol.op, table)
         } else {

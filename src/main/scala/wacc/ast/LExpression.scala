@@ -164,8 +164,8 @@ case class ClassElem(ids: List[String])(val pos: (Int, Int)) extends LExpr {
     
     val classAss = Operands.opToReg(table.getOp(ids.head), Register(12))
     val classType = table.getType(ids.head) match {
-        case Some(x : ClassType) => x.class_id
-        case None => ???
+        case Some(x: ClassType) => x.class_id
+        case _ => ???
     }
     val instrs = ListBuffer[Instruction]()
     instrs += classAss
