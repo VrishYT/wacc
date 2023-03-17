@@ -450,7 +450,12 @@ object SemanticChecker {
               val rType = getRValType(vars, args(i))
 
               /* error an argument type doesn't match the required parameter */
-              if (rType != paramType || paramType == NoType) return (false, None)
+              if (rType != paramType) {
+                if (paramType != NoType) {
+                  return (false, None)
+                }
+                funcVars.paramIdTypes(funcVars.paramIdTypes.keys.toSeq(i)) = rType
+              }
             }
 
             val matches = lval._2 match {
