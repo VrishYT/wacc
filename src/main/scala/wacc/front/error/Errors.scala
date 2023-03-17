@@ -163,6 +163,11 @@ object ErrorLogger {
         sys.exit(exit)
     }
 
+    def warn(msg: String, line: Int) = {
+        println(s"Warning (line ${line}): ")
+        System.err.println(msg)
+    }
+
     /* Overloaded err method used for semantic errors. Can have varying inputs depending on error found. */
     def err(msg: String, pos: (Int, Int)*) = throw new TypeException(msg, None, pos)
     def err(msg: String, actual: Type, expected: Type, pos: (Int, Int)*) = throw new TypeException(msg, Some(actual, Seq(expected)), pos)
