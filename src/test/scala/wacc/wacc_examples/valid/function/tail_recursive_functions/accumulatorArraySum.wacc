@@ -1,3 +1,13 @@
+#
+
+# Output:
+# 
+
+# Exit:
+# 65
+
+# Program: 
+
 begin
     @tailrec
     int arraySum(int[] x, int size, int sum) is
