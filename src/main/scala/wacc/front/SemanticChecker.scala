@@ -151,7 +151,8 @@ object SemanticChecker {
             x.paramIdTypes.keys.toSeq.foreach(id => {
               if (x.paramIdTypes(id) == NoType) {
                 x.paramIdTypes(id) = AnyType
-                ErrorLogger.warn(s"${id}'s type is not inferrable in function", func.pos._1)
+                if (!(program.annotations.contains(SupressWarnsAnnotation) || func.annotations.contains(SupressWarnsAnnotation)))
+                ErrorLogger.warn(s"Cannot infer type of parameter '$id' in function/method '${func.id}'", func.pos._1)
               }
             })
           }

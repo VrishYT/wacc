@@ -47,7 +47,7 @@ case class Declare(annotations: List[Annotation], t: Type, id: String, rhs: RVal
             case None => ???
         }
         if (symbol.refCount == 0 && !(gen.suppressWarns || annotations.contains(SupressWarnsAnnotation))) {
-            ErrorLogger.warn(s"variable ${id} is not used anywhere in the code", rhs.pos._1)
+            ErrorLogger.warn(s"Variable ${id} is not used", rhs.pos._1)
         } 
         val assembly = rhs.toAssembly(gen).condToReg(gen.regs)
         val instr = rhs match {
