@@ -4,6 +4,7 @@ package wacc
 package ast
 
 import annotation.unused
+import front.error._
 import parsley.genericbridges.ParserBridge1
 import scala.collection.mutable.{LinkedHashMap => MapM}
 
@@ -87,8 +88,10 @@ case object TailRecursiveAnnotation extends Annotation("Invalid annotation '@tai
     override def process(func: Func)(implicit funcTable: FuncTable): Func = {
 
         import scala.collection.mutable.ListBuffer
+        var foundBaseCase = false
 
         def processStats(stats: List[Stat])(implicit table: Table): List[Stat] = {
+
 
             var ifCount = 0
             var whileCount = 0
@@ -173,14 +176,19 @@ case object TailRecursiveAnnotation extends Annotation("Invalid annotation '@tai
                 }
                 case Return(expr) => expr match {
                     case x: Ident if isModified(x) => out += Continue(0,0)
-                    case _ => out += stat
+                    case _ => {
+                        foundBaseCase |= true
+                        out += stat
+                    }
                 }
-                case _ => out += stat
+                case _ => {
+                    foundBaseCase |= true
+                    out += stat
+                }
             })
             out.toList
         }        
         
-        // println(funcTable)
         val table = funcTable.table.clone()
         funcTable.table.filterInPlace((k, v) => v match {
             case _: OpSymbol => true
@@ -188,7 +196,6 @@ case object TailRecursiveAnnotation extends Annotation("Invalid annotation '@tai
         })
         val whileTable = ChildTable(funcTable)
         funcTable.addWhile(whileTable)
-        // println(s"=${table.filter(_._2.isInstanceOf[ChildTable])}")
 
         def updateParents(table: MapM[String, TableEntry], parent: Table, function: Boolean = false): Unit = table.foreach { 
             case (id, entry) => entry match {
@@ -207,6 +214,9 @@ case object TailRecursiveAnnotation extends Annotation("Invalid annotation '@tai
 
         updateParents(table, whileTable, true)
         val stats = processStats(func.stats)(whileTable)
+
+        if (!foundBaseCase) ErrorLogger.warn("Possible infinite recusion. Could not detect a base case.", func.pos._1)
+            
 
         TypedFunc(
             func.annotations, 
