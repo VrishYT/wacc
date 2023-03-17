@@ -60,71 +60,78 @@ object SemanticChecker {
 
       /* Add attributes and functions to the symbol table */
       classes.foreach(c => {
-        symbolTable.classes.get(c.class_id) match {
-          case Some(members) => {
-            /* declare attributes of a class */
-            c.decls.foreach(f => f.t match {
-              case ClassType(id) if (id == c.class_id) => {
-                errors += new TypeException(message = s"Cannot have instance of a class within a class", pos = Seq(f.pos))
-              }
-              case _ => declareVar(f.id, f.t, members, f.pos, f.isPrivate)
-            })
 
-            /* declare methods within a class */
-            c.funcs.foreach(func => {
-              val funcId = func.fs._2
+        val invalidAnnotations = program.annotations.foldRight(false)((annotation, acc) => {
+          val invalid = !annotation.verify(program)
+          if (invalid) errors += new TypeException(annotation.errorMsg, pos = Seq((0,0)))
+          acc || invalid
+        })
+        if (!invalidAnnotations) {
+          symbolTable.classes.get(c.class_id) match {
+            case Some(members) => {
+              /* declare attributes of a class */
+              c.decls.foreach(f => f.t match {
+                case ClassType(id) if (id == c.class_id) => {
+                  errors += new TypeException(message = s"Cannot have instance of a class within a class", pos = Seq(f.pos))
+                }
+                case _ => declareVar(f.id, f.t, members, f.pos, f.isPrivate)
+              })
 
-              members.getOverloadCount(funcId) match {
-                case Some(count) => {
-                  if (checkNonDuplicateMethod(func, count)) {
-                    storeMethod(func, count)
-                    members.setOverload(funcId, count + 1)
+              /* declare methods within a class */
+              c.funcs.foreach(func => {
+                val funcId = func.fs._2
+
+                members.getOverloadCount(funcId) match {
+                  case Some(count) => {
+                    if (checkNonDuplicateMethod(func, count)) {
+                      storeMethod(func, count)
+                      members.setOverload(funcId, count + 1)
+                    }
+                  }
+                  case None => {
+                    storeMethod(func, 0)
+                    members.setOverload(funcId, 1)
                   }
                 }
-                case None => {
-                  storeMethod(func, 0)
-                  members.setOverload(funcId, 1)
-                }
-              }
-            })
-
-            def storeMethod(func: Func, i: Int): Unit = {
-              if (func.args.distinct.size != func.args.size) {
-                errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
-              } else {
-                val uniqueMethodId = s"${i}_${func.fs._2}"
-                val pairs = func.args.map(_.id) zip func.args.map(_.t)
-                val map = LinkedHashMap[String, Type]()
-                pairs.foreach(pair => map(pair._1) = pair._2)
-                val table = MethodTable(uniqueMethodId, map, func.fs._1, func.isPrivate, members)
-
-                func.args.foreach(param => table.add(param.id, ParamSymbol(param.t)))
-                /* modify arguments to take a class instance as a parameter */
-                func.args.prepend(TypedParam(ClassType(c.class_id), "this")(0,0))
-                table.add("this", ParamSymbol(ClassType(c.class_id)))
-                members.addTable(uniqueMethodId, table)
-                func.rename(uniqueMethodId)
-              }
-            }
-
-            def checkNonDuplicateMethod(func: Func, count: Int): Boolean = {
-              (0 until count).foreach(i => {
-                val funcTable = members.getMethodTable(s"${i}_${func.fs._2}") match {
-                  case Some(x) => x
-                  case None => ???
-                }
-                /* error if the function has been declared more than once */
-                if (funcTable.returnType == func.fs._1 && (funcTable.paramIdTypes.values.toSeq) == func.args.map(_.t)) {
-                  errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
-                  return false
-                }
               })
-              return true
-            }
-          }
-          case None => ???
-        }
 
+              def storeMethod(func: Func, i: Int): Unit = {
+                if (func.args.distinct.size != func.args.size) {
+                  errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
+                } else {
+                  val uniqueMethodId = s"${i}_${func.fs._2}"
+                  val pairs = func.args.map(_.id) zip func.args.map(_.t)
+                  val map = LinkedHashMap[String, Type]()
+                  pairs.foreach(pair => map(pair._1) = pair._2)
+                  val table = MethodTable(uniqueMethodId, map, func.fs._1, func.isPrivate, members)
+
+                  func.args.foreach(param => table.add(param.id, ParamSymbol(param.t)))
+                  /* modify arguments to take a class instance as a parameter */
+                  func.args.prepend(TypedParam(ClassType(c.class_id), "this")(0,0))
+                  table.add("this", ParamSymbol(ClassType(c.class_id)))
+                  members.addTable(uniqueMethodId, table)
+                  func.rename(uniqueMethodId)
+                }
+              }
+
+              def checkNonDuplicateMethod(func: Func, count: Int): Boolean = {
+                (0 until count).foreach(i => {
+                  val funcTable = members.getMethodTable(s"${i}_${func.fs._2}") match {
+                    case Some(x) => x
+                    case None => ???
+                  }
+                  /* error if the function has been declared more than once */
+                  if (funcTable.returnType == func.fs._1 && (funcTable.paramIdTypes.values.toSeq) == func.args.map(_.t)) {
+                    errors += new TypeException(message = "Cannot redeclare function '" + func.fs._2 + "'", pos = Seq(func.pos))
+                    return false
+                  }
+                })
+                return true
+              }
+            }
+            case None => ???
+          }
+        }
       })
 
       functions.foreach(func => {
@@ -653,12 +660,7 @@ object SemanticChecker {
         /* checks each statement */
         def checkStatement(statement: Stat): Unit = {
 
-          import scala.annotation.nowarn
-          @nowarn val invalidAnnotations = program.annotations.foldRight(false)((annotation, acc) => {
-            val invalid = !annotation.verify(program)
-            if (invalid) ErrorLogger.err(annotation.errorMsg, statement.getPos())
-            acc || invalid
-          })
+          program.annotations.foreach(annotation => {if (!annotation.verify(program)) ErrorLogger.err(annotation.errorMsg, statement.getPos())})
 
           statement match {
 
