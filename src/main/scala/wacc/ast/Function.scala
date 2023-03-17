@@ -119,7 +119,7 @@ object Func {
 
     def callFunction(id: String, args: Seq[Operand] = Seq(), gen: CodeGenerator): Seq[Instruction] = {
 
-        if (args.length > FuncRegs.length) println("Too many args to load in") // TODO: load excess into mem 
+        if (args.length > FuncRegs.length) println("Too many args to load in")
 
         val range = (0 until args.length.min(FuncRegs.length))
 
