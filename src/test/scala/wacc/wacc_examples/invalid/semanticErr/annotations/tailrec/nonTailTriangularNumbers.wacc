@@ -1,3 +1,12 @@
+# no recursion
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
 begin
     @tailrec
     int triangular(int x) is

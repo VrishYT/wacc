@@ -1,3 +1,13 @@
+# unknwown annotation
+
+# Output:
+# #syntax_error#
+
+# Exit:
+# 100
+
+# Program:
+
 begin
     @tail_rec # this is a typo
     int sumToFive(int x) is

@@ -1,0 +1,12 @@
+# unused func
+
+# Output:
+
+# Program:
+
+begin
+    int x() is 
+        return 5
+    end
+    skip
+end

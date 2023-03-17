@@ -1,0 +1,39 @@
+# program with every warning
+
+# Output:
+
+# Exit:
+# 9
+
+# Program:
+
+begin
+    class EmptyUnused {}
+    class EmptyUsed {}
+    class Used {int x}
+    class Unused {int x}
+    class UnusedMethod{ int f() is return 5 end }
+    class UsedMethod {int g() is return 9 end }
+    
+    unusedTyped() is return 5 end
+    usedTyped() is return 9 end
+    cannotInferUnused(b) is return 8 end
+    cannotInferUsed(a) is return 10 end
+
+    inferredUsed = 5 ;
+    inferredUnused = false ;
+    string unused = "unused" ;
+    char used = ']' ;
+
+    Used x = new Used { 5 } ;
+    EmptyUsed y = new EmptyUsed {} ;
+    UnusedMethod m = new UnusedMethod {} ;
+    UsedMethod n = new UsedMethod {} ;
+
+    r = call usedTyped() ;
+    s = call cannotInferUsed("wow") ;
+
+    println r - s ;
+    int o = call n.g() ; 
+    exit o
+end

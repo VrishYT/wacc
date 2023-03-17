@@ -1,4 +1,0 @@
-begin
-    @tailrec
-    int x = 5
-end
