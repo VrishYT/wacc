@@ -1,4 +1,4 @@
-# a simple typeless function call inferrable by its assignment type
+# a simple typeless function call inferrable by its return type
 
 # Output:
 # 1

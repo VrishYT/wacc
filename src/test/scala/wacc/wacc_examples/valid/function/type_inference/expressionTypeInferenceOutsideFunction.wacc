@@ -1,4 +1,4 @@
-# typeless variable inferred in expression outside of function
+# typeless variable inferred in expression in main
 
 # Output:
 # 4

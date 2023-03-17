@@ -1,4 +1,4 @@
-# functions cannot access global variables
+# typeless declare within function
 
 # Output:
 # 5
