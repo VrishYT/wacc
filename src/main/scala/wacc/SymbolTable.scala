@@ -82,11 +82,13 @@ sealed abstract class Table(var id: String = "") extends TableEntry {
     }
 
     def update(id: String, op: Operand): Unit = {
-        val t = getType(id) match {
+        val x = getSymbol(id) match {
             case Some(x) => x
             case None => ???
         }
-        updateRecursive(id, OpSymbol(t, op))
+        val opSymbol = OpSymbol(x.t, op)
+        opSymbol.refCount = x.refCount
+        updateRecursive(id, opSymbol)
     }
 
     def updateEntry(id: String, reg: Register, op: Operand): Unit = {
@@ -265,7 +267,9 @@ case class MethodTable(
     val parent: ClassTable
 ) extends FuncTable(funcId, paramIdTypes, t, isPrivate)
 
-class Symbol(val t: Type, val isPrivate : Boolean = false, var modified: Boolean = false) extends TableEntry 
+class Symbol(val t: Type, val isPrivate : Boolean = false, var modified: Boolean = false) extends TableEntry {
+    var refCount = 0
+}
 object Symbol {
     def apply(t: Type): Symbol = new Symbol(t, false)
     def apply(t: Type, isPrivate: Boolean) = new Symbol(t, isPrivate, false)

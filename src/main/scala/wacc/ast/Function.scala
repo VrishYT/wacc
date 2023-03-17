@@ -49,8 +49,6 @@ sealed abstract class Func(
 
     def toAssembly(gen: CodeGenerator, class_id: String = "")(implicit table: FuncTable): Seq[Instruction] = {
 
-        gen.mem.size = 0.max(table.getSize() - gen.regs.freeRegs.size)
-
         (0 until args.length).foreach(i => {
             val param = args(i)
             gen.regs.link(param.id, Register(i + 1))
@@ -62,12 +60,14 @@ sealed abstract class Func(
         // println(s"*-Stats:-*\n$stats\n")
         val modified = annotations.foldRight(this)(_.process(_))
         // println(s"*-Modified Stats:-*\n$modifiedStats")
+        val size = 0.max(table.getSize() - gen.regs.freeRegs.size)
 
         // println(table)
         // println(modified.stats.mkString("\n"))
 
         table.resetCounts()
-        
+
+        val grow = gen.mem.grow(size)
         val instr = modified.stats.map(_.toAssembly(gen)).fold(Seq())(_ ++ _)
 
         // println(s"table = ${table.getSize}\nfreeRegs = ${gen.regs.freeRegs.size}")
@@ -77,8 +77,10 @@ sealed abstract class Func(
         // println(s"stacksize = $stack")
 
         val name = if (class_id == "") fs._2 else s"${class_id}_${fs._2}"
+        val final_instr = Func.generateFunction(s"wacc_${name}", grow +: instr, Func.FuncRegs:_*)
+        gen.mem.pop()
 
-        return Func.generateFunction(s"wacc_${name}", gen.mem.grow() +: instr, Func.FuncRegs:_*)
+        return final_instr
     }
 
 }
