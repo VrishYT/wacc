@@ -164,8 +164,7 @@ object ErrorLogger {
     }
 
     def warn(msg: String, line: Int) = {
-        println(s"Warning (line ${line}): ")
-        System.err.println(msg)
+        println(s"Warning (line ${line}): ${msg}")
     }
 
     /* Overloaded err method used for semantic errors. Can have varying inputs depending on error found. */
