@@ -11,6 +11,9 @@ object Field extends ParserBridgePos3[Boolean, Type, String, Field]
 
 case class Class(class_id: String, decls: List[Field], funcs: List[Func])(val pos: (Int, Int)){
     def toAssembly(gen: CodeGenerator): Seq[Instruction] = {
+        if (decls.isEmpty && funcs.isEmpty){
+            println(s"Warning (line ${pos._1}): ${class_id} is an empty class")
+        }
         val func_instr = funcs.map(f => {
             val table: MethodTable = gen.symbolTable.classes.get(class_id) match {
                 case Some(x) => x.getMethodTable(f.fs._2) match {
