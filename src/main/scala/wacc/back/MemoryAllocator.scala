@@ -1,19 +1,27 @@
 package wacc
 package back
+import scala.collection.mutable.Stack
 
 class MemoryAllocator {
 
     private var count = 0
-    var size = 0
+    val stack = Stack[Int]()
 
     /*grows stack space to store data*/
-    def grow(): Instruction = Sub(SP, SP, ImmInt(size * 4))
+    def grow(size: Int): Instruction = {
+        stack.push(size)
+        return Sub(SP, SP, ImmInt(size * 4))
+    }
 
     /*shrinks stack space to store data*/
     def shrink(): Instruction = {
-        val instr = Add(SP, SP, ImmInt(size * 4))
-        size = 0
-        instr
+        val size = stack.top
+        return Add(SP, SP, ImmInt(size * 4))
+    }
+
+    /*pops stack value after use*/
+    def pop(): Unit = {
+        stack.pop
     }
 
     /*when register is reallocated, ensures that the data is stored in memory*/
