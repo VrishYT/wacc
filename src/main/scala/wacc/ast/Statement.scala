@@ -296,7 +296,7 @@ case class Free(x: Expr) extends Stat {
         into it therefore we need to push it*/
         val instrns = assembly.instr ++ Seq(Push(Register(8)), Mov(Register(8), xOp), 
                                          Mov(Register(0), Register(8)), LinkBranch("_freepair"), 
-                                         Mov(Register(0), ImmInt(0)), Pop( Register(8)))
+                                         Mov(Register(0), ImmInt(0)), Pop(Register(8)))
         return instrns
     }
 }

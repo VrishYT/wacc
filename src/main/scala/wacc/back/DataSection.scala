@@ -174,7 +174,8 @@ case object FreePairSection extends DataSection {
             LinkBranch("free"),
             Mov(Register(0), Register(8)),
             LinkBranch("free"),
-            Pop(PC, Register(8))
+            Pop(Register(8)),
+            Pop(PC)
         )
     }
 }
