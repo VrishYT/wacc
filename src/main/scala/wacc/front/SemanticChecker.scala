@@ -647,7 +647,7 @@ object SemanticChecker {
         case x: Continue => if (!isWhile) ErrorLogger.err("cannot use control-flow statment 'continue' outside of while loop", x.pos)
 
         /* check declare statement */
-        case Declare(t, id, rhs) => {
+        case Declare(as, t, id, rhs) => {
           val rType = getRValType(vars, rhs, (false, Some(t)))
 
           /* error if the left type is not the same as the right type */
@@ -658,7 +658,7 @@ object SemanticChecker {
         }
 
         /* check assign statement */
-        case AssignOrTypelessDeclare(x, y) => {/* get type of left and right hand sides of the assign */
+        case AssignOrTypelessDeclare(as, x, y) => {/* get type of left and right hand sides of the assign */
 
           var rType: Type = NoType
           var lType: Type = NoType
@@ -864,13 +864,13 @@ object SemanticChecker {
 
       statement match {
 
-        case Declare(t, id, rhs) => {
+        case Declare(as, t, id, rhs) => {
           
           checkParamRVal(rhs, vars)
         }
 
         /* check assign statement */
-        case AssignOrTypelessDeclare(x, y) => {/* get type of left and right hand sides of the assign */
+        case AssignOrTypelessDeclare(as, x, y) => {/* get type of left and right hand sides of the assign */
           
           checkParamRVal(y, vars)
         }

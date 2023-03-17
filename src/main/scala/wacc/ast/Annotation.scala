@@ -32,11 +32,11 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
         @nowarn def verifyBranch(stats: List[Stat]): Boolean = {
             def matchId(ids: List[String], funcId: String): Boolean = ids.last == funcId.substring(funcId.indexOf("_") + 1)
             stats.foreach {
-                case Declare(_, id, rhs) => rhs match {
+                case Declare(_, _, id, rhs) => rhs match {
                     case Call(ids, _) if (matchId(ids, func.fs._2)) => tailCallVar = Ident(id)(0,0) 
                     case _ => 
                 }
-                case AssignOrTypelessDeclare(lval, rval) => rval match {
+                case AssignOrTypelessDeclare(_, lval, rval) => rval match {
                     case Call(ids, _) if (matchId(ids, func.fs._2)) => lval match {
                         case x: Ident => tailCallVar = x
                         case _ => 
@@ -100,21 +100,21 @@ case object TailRecursiveAnnotation extends Annotation("Function is not tail-rec
                         case None => ???
                     }
                     table.add(newId, Symbol(symbol.t, symbol.isPrivate))
-                    out += Declare(symbol.t, newId, x._2)
+                    out += Declare(List(), symbol.t, newId, x._2)
                 })
                 renamed.foreach {
-                    case (k, v) => out += AssignOrTypelessDeclare(Ident(k)(id.pos), Ident(v)(id.pos))
+                    case (k, v) => out += AssignOrTypelessDeclare(List(), Ident(k)(id.pos), Ident(v)(id.pos))
                 } 
             }
 
             stats.foreach (stat => stat match {
-                case Declare(_, id, rhs) => rhs match {
+                case Declare(_, _, id, rhs) => rhs match {
                     case call@Call(ids, _) if (ids.last == func.fs._2) => {
                         modifyVars(Ident(id)(0,0), call)
                     }
                     case _ => out += stat
                 }
-                case AssignOrTypelessDeclare(lval, rval) => lval match {
+                case AssignOrTypelessDeclare(_, lval, rval) => lval match {
                     case x: LValue => rval match {
                         case call@Call(ids, _) if (ids.last == func.fs._2) => lval match {
                             case x: Ident => modifyVars(x, call)

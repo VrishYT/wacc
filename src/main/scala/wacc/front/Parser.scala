@@ -50,6 +50,12 @@ object Parser {
     base_type_desc("string") #> StringType <|>
     base_type_desc("bool") #> BoolType <|>
     base_type_desc("char") #> CharType 
+  
+  val annotation = "@" *> Annotation(IDENT)
+  
+  val annotationList = sepBy(annotation.guardAgainst {
+    case annotation if !annotation.isValid => Seq("unknown annotation") // TODO: improve error msg
+  }, pure(""))
 
 
   /*labels method allows us to print the expected values when we throw an unexpected error*/
@@ -135,16 +141,14 @@ object Parser {
   val _invalid_declaration = amend(attempt((types *> IDENT <~ "(").hide) *> unexpected(
     "function declaration")).explain(
     "all functions must be declared at the top of main block")
-  
-  val declare = Declare(types, IDENT, "=" *> rvalue) 
 
   /*defined parsing for statements*/
   val stat: Parsley[Stat] = _invalid_declaration <|>
     ("skip" #> Skip) <|>
     (pos <**> "continue" #> Continue) <|>
     (pos <**> "break" #> Break) <|>
-    (AssignOrTypelessDeclare(attempt(lvalue <~ "=".label("assignment")), rvalue)) <|>
-    (Declare(types, IDENT, "=" *> rvalue)) <|>
+    (AssignOrTypelessDeclare(annotationList, attempt(lvalue <~ "=".label("assignment")), rvalue)) <|>
+    (Declare(annotationList, types, IDENT, "=" *> rvalue)) <|>
     (Read("read" *> lvalue)) <|>
     (Free("free" *> expr)) <|>
     (Return("return" *> expr)) <|>
@@ -171,12 +175,6 @@ object Parser {
   val param = attempt(TypedParam(types, _invalid_pointer <|> IDENT)) <|> TypelessParam(_invalid_pointer <|> IDENT)
 
   val paramList = sepBy(param, ",")
-  
-  val annotation = "@" *> Annotation(IDENT)
-  
-  val annotationList = sepBy(annotation.guardAgainst {
-    case annotation if !annotation.isValid => Seq("unknown annotation") // TODO: improve error msg
-  }, pure(""))
 
   /*rule to pick on invalid function declarations with a missing type*/
   // val _invalid_function = amend((attempt(IDENT <~ "(").hide).verifiedFail(
@@ -194,12 +192,12 @@ object Parser {
   /*rule to parse on classes */
   val field = attempt(Field(PRIVATE, types, IDENT <* notFollowedBy("(")))
   val fieldList = sepBy(field, ",")
-  val class_ = Class(attempt("class" *> IDENT <~ "{"), fieldList, funcList <~ "}")
-  val classList = sepEndBy(class_, pure(""))
+  val class_ = Class(annotationList, attempt("class" *> IDENT <~ "{"), fieldList, funcList <~ "}")
+  val classList = sepEndBy(attempt(class_), pure(""))
 
   /*rule to parse on programs, we check that at the end of the function body
     we have a return or an exit on all exit paths using the method valid return*/
-  val program_ = Program("begin" *> classList, funcList, stats <* "end")
+  val program_ = Program(annotationList, "begin" *> classList, funcList, stats <* "end")
 
   val program = fully(program_)
 }

@@ -5,7 +5,7 @@ import parsley.genericbridges._
 import wacc.back._
 
 /* program case class with its functions and statements */
-case class Program(classes : List[Class], fs: List[Func], stats: List[Stat]) {
+case class Program(annotations: List[Annotation], classes : List[Class], fs: List[Func], stats: List[Stat]) {
     def toAssembly(gen: CodeGenerator): (Seq[Instruction], Seq[Seq[Instruction]]) = {
 
         def getFuncTable(id: String): FuncTable = gen.symbolTable.get(id) match {
@@ -37,4 +37,4 @@ case class Program(classes : List[Class], fs: List[Func], stats: List[Stat]) {
 }
 
 /* program companion object with parser bridge */
-object Program extends ParserBridge3[List[Class], List[Func], List[Stat], Program]
+object Program extends ParserBridge4[List[Annotation], List[Class], List[Func], List[Stat], Program]
