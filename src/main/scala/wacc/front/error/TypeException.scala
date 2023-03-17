@@ -45,7 +45,6 @@ object TypeException {
            Useful for files that have semantic errors on multiple lines sequentially. 
            Overlapping "code previews" in the error message can use tabulate lines rather than repeated file access. */
         def getLine(i: Int): String = {
-            // could be replaced with getOrElseUpdate(i)
             table.get(i) match {
                 case Some(x) => return x
                 case None => {

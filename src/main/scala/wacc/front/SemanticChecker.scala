@@ -93,8 +93,6 @@ object SemanticChecker {
                 errors += new TypeException(message = "Cannot redeclare function parameters", pos = Seq(func.pos))
               } else {
                 val uniqueMethodId = s"${i}_${func.fs._2}"
-                // val uniqueFuncId = s"${c.class_id}_${i}_${func.fs._2}"
-
                 val pairs = func.args.map(_.id) zip func.args.map(_.t)
                 val map = LinkedHashMap[String, Type]()
                 pairs.foreach(pair => map(pair._1) = pair._2)
@@ -388,9 +386,6 @@ object SemanticChecker {
               case _ => None
             }
 
-            // println(s"call ${ids.mkString(".")}(${args.mkString(",")})")
-            // println(vars)
-
             def getFuncType(id: String, table: Either[SymbolTable, ClassTable]): Type = {
 
                 /* error if function not defined */
@@ -398,7 +393,6 @@ object SemanticChecker {
                   case Left(x) => x.getOverloadCount(id) match {
                     case Some(x) => x
                     case None => {
-                      // println("check class")
                       return getRValType(vars, Call("this" +: ids, args)(func.pos), lval, Some(func))
                     }
                   }
@@ -408,11 +402,9 @@ object SemanticChecker {
                   }
                 }
 
-                // println(count)
 
               /* check every overloaded function for a match */
               (0 until count).foreach(i => {
-                // println(i)
                 val uniqueFuncId = s"${i}_${id}"
                 val funcVars = table match {
                   case Left(x) => x.get(uniqueFuncId) match {
@@ -441,7 +433,6 @@ object SemanticChecker {
                 }
 
                   val verify = checkOverloadedFunc(funcVars)
-                  // println(verify)
 
                   if (verify._1) {
                     func.rename(uniqueFuncId)
@@ -458,7 +449,6 @@ object SemanticChecker {
                   }              
                 })
 
-                // println("no")
 
                 /* if none are valid, error */
                 ErrorLogger.err(s"invalid call to ${id}\n  - no function with same return/parameter arguments", func.pos)
@@ -508,13 +498,10 @@ object SemanticChecker {
 
             ids match {
               case id :: Nil => {
-                // println("case 1")
                 val t = getFuncType(id, Left(symbolTable))
-                // println(t)
                 t
               }
               case _ => { 
-                // println("case 2")
                 val t = ids match {
                   case instance :: method :: Nil => instance match {
                     case "this" => getParentClass(vars) match {
@@ -524,18 +511,13 @@ object SemanticChecker {
                     case _ => getTypeFromVars(instance, vars, func.pos) 
                   }
                   case _ => {
-                    // println("case 2.2")
                     getClassType(ids.init, func.pos, vars, true)
                   }
                 } 
-                // println(ids)
-                // println(t)
                 t match {
                   case x: ClassType => symbolTable.classes.get(x.class_id) match {
                     case Some(classTable) => {
-                      // println(classTable)
                       val t = getFuncType(ids.last, Right(classTable))
-                      // println(s"t => $t")
                       t
                     }
                     case _ => ???
@@ -853,11 +835,8 @@ object SemanticChecker {
             /* if its an identifier then check if it has a type in the parent and child scope maps yet*/
             case (y@Ident(id)) => vars.getType(id) match {
               case Some(x) => {
-                // println(s"this is the right id: ${id}")
-                // println(s"it should have the type NoType: ${x}")
                 if (x == NoType) {
                   vars.updateRecursive(id, Symbol(rType))
-                  // println(s"it should now be different: ${vars.getType(id)}")
                   val tbl = getFuncTable(vars, y)
                   tbl.paramIdTypes(id) = rType
                 }

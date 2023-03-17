@@ -54,7 +54,7 @@ object Parser {
   val annotation = "@" *> Annotation(IDENT)
   
   val annotationList = sepBy(annotation.guardAgainst {
-    case annotation if !annotation.isValid => Seq(annotation.errorMsg) // TODO: improve error msg
+    case annotation if !annotation.isValid => Seq(annotation.errorMsg)
   }, pure(""))
 
 
@@ -77,7 +77,6 @@ object Parser {
 
   /*base elements of any expression, as the expression type is recursive*/
   private lazy val atom: Parsley[Expr] = "(".label("open parenthesis") *> expr <* ")" <|>
-    // attempt(CLASS_ELEM) <|>
     L_EXPR <|>
     IntLiteral(INTEGER.hide).label("integer literal").explain(
       "all numbers are signed 32-bit integers") <|>
@@ -131,7 +130,7 @@ object Parser {
     expr <|>
     ARRAY_LITER <|>
     NewPair("newpair" *> "(" *> expr <~ ",", expr <~ ")") <|>
-    NewClass("new" *> IDENT, "{" *> sepBy(rvalue, ",") <~ "}") <|> // TODO: CHECK @PREESHA- braces instead of parentheses ???
+    NewClass("new" *> IDENT, "{" *> sepBy(rvalue, ",") <~ "}") <|>
     PAIR_ELEM 
 
   /*defined parsing for l-values*/
@@ -177,8 +176,6 @@ object Parser {
   val paramList = sepBy(param, ",")
 
   /*rule to pick on invalid function declarations with a missing type*/
-  // val _invalid_function = amend((attempt(IDENT <~ "(").hide).verifiedFail(
-  //   "function declaration missing type"))
 
   val func = attempt(TypedFunc(annotationList, PRIVATE, types <~> IDENT <~ "(".label(
     "opening parenthesis").label(
