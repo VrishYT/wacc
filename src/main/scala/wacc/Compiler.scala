@@ -80,7 +80,7 @@ class Compiler(private val file: File) {
                 writer.close
             } 
 
-            val gen = new CodeGenerator(symbolTable)
+            val gen = new CodeGenerator(symbolTable, x.annotations.contains(SupressWarnsAnnotation))
             val out = gen.toAssembly(x)
             writeToFile(out)
         }

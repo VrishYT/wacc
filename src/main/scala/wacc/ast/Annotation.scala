@@ -9,22 +9,37 @@ import scala.collection.mutable.{LinkedHashMap => MapM}
 
 sealed abstract class Annotation(val errorMsg: String) {
     def isValid: Boolean = true
+
+    def verify(program: Program): Boolean = false
+    def verify(statement: Stat): Boolean = false
     def verify(func: Func): Boolean = false
+
     def process(func: Func)(implicit @unused funcTable: FuncTable): Func = func
+    def process(program: Program)(implicit @unused table: SymbolTable): Program = program
+    def process(statement: Stat)(implicit @unused table: Table): Stat = statement
 }
 
 object Annotation extends ParserBridge1[String, Annotation] {
     def apply(id: String): Annotation = id match {
         case "tailrec" => TailRecursiveAnnotation
+        case "nowarn" => SupressWarnsAnnotation
         case _ => UnknownAnnotation
     }
 }
 
-case object UnknownAnnotation extends Annotation("Unknown annotation - shouldn't have ever reached this???") {
+case object UnknownAnnotation extends Annotation("???") {
     override def isValid: Boolean = false
 }
 
-case object TailRecursiveAnnotation extends Annotation("Function is not tail-recursive\n - cannot optimize with \'@tailrec\' annotation") {
+case object SupressWarnsAnnotation extends Annotation("always valid") {
+
+    override def verify(program: Program): Boolean = true
+    override def verify(statement: Stat): Boolean = true
+    override def verify(func: Func): Boolean = true
+
+}
+
+case object TailRecursiveAnnotation extends Annotation("Invalid annotation '@tailrec'\n - this is not a tail-recursive function/method") {
 
     override def verify(func: Func): Boolean = {
         import scala.annotation.nowarn
