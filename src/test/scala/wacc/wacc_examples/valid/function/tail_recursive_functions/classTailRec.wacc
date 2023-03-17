@@ -3,12 +3,13 @@
 # Output:
 
 # Exit:
-# 14
+# 5
 
 # Program:
 
 begin
     class Square {
+        @tailrec
         int sumToFive(int x) is
             if x == 5
             then return x
