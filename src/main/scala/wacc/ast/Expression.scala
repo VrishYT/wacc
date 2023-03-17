@@ -43,8 +43,10 @@ case class UnaryOpExpr(op: UnaryOp, x: Expr)(val pos: (Int, Int)) extends Expr {
   override def toAssembly(gen: CodeGenerator)(implicit table: Table): Assembly = {
 
     def len(expr: Assembly): Assembly = {
+      val reg = gen.regs.allocate
       val out = Operands.opToReg(expr.getOp(), gen.regs)
-      return Assembly(out.getReg(), expr.instr ++ out.instr ++ Seq(Load(out.getReg(), Address(out.getReg(), ImmInt(-4)))))
+      gen.regs.free(reg.getReg())
+      return Assembly(reg.getReg(), expr.instr ++ reg.instr ++ out.instr ++ Seq(Load(reg.getReg(), Address(out.getReg(), ImmInt(-4)))))
     }
 
     val expr = x.toAssembly(gen)
