@@ -1,0 +1,15 @@
+# a function with typeless parameters inferred by arithmetic and exiting
+
+# Output:
+#
+# 0
+
+# Program:
+
+begin
+  int f(a, b, c) is
+    d = a + b - c;
+	return (d)
+  end
+  int x = call f(1, 2, 3)
+end

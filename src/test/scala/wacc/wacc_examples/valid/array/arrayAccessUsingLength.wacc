@@ -1,0 +1,14 @@
+# get element in array using length
+
+# Output:
+
+# Exit:
+# 10
+
+# Program:
+
+begin
+  int[] a = [1, 5, 10] ;
+  int e = a[len a - 1] ;
+  exit e
+end

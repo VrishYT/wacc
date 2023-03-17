@@ -1,0 +1,14 @@
+# create new array within class contructor
+
+# Output:
+# #semantic_error#
+
+# Exit:
+# 200
+
+# Program:
+
+begin
+    class A { int[] i }
+    A instance = new A { [0, 5, 7] }
+end

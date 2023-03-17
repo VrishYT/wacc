@@ -22,7 +22,8 @@ begin
         end
     }
 
-    Grid ford = new Grid {new Square {}} ;
+    Square square = new Square {} ;
+    Grid ford = new Grid { square } ;
     int d = call ford.square.area(4) ;
     println d ;
     int e = call ford.square.area(4, 5) ;

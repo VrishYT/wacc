@@ -1,0 +1,30 @@
+# call this.<method> from inside a method
+
+# Output:
+
+# Exit:
+# 14
+
+# Program:
+begin
+    class C {
+        int x
+
+        int five() is
+            return 5
+        end
+
+        int f(int x) is
+            int y = call this.five() ;
+            return y + x + this.x
+        end
+    }
+
+    int five() is
+        return 15
+    end
+
+    C inst = new C {5};
+    int result = call inst.f(4);
+    exit result
+end

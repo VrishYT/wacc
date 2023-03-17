@@ -1,0 +1,17 @@
+# class contains multiple methods
+
+# Output:
+
+# Program:
+
+begin
+    class MyClass {
+        int f(int x) is 
+            return x + 1
+        end
+        int g(int x) is 
+            return x + 2
+        end
+    }
+    skip
+end

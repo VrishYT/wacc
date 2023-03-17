@@ -1,0 +1,14 @@
+# typeless variable inferred in expression outside of function
+
+# Output:
+# 4
+#
+
+# Program:
+
+
+
+begin
+  x = 1 + 3;
+  println x
+end

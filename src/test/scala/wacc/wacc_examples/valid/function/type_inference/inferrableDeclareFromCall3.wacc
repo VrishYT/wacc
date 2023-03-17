@@ -1,0 +1,20 @@
+# typeless declarations can be made with function calls, picking the first match on arguments
+
+# Output:
+# c
+
+# Program:
+
+begin
+	int f() is
+		return 3
+	end
+  char f(bool x) is
+		return 'c'
+	end
+  int f(bool x) is
+		return 5
+	end
+  y = call f(true) ;
+  println y
+end
